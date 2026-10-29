@@ -1,0 +1,60 @@
+{
+  "source": "Natural Earth (public domain) via jsDelivr",
+  "licence": "Public Domain - free for academic and commercial use, no attribution required (attribution appreciated)",
+  "layers": [
+    {
+      "file": "ne_110m_admin_0_countries.geojson",
+      "desc": "世界国界 110m（概览）",
+      "use": "world",
+      "bytes": 838726
+    },
+    {
+      "file": "ne_50m_admin_0_countries.geojson",
+      "desc": "世界国界 50m（中等）",
+      "use": "world",
+      "bytes": 3083490
+    },
+    {
+      "file": "ne_50m_admin_1_states_provinces.geojson",
+      "desc": "一级行政区界（省界）",
+      "use": "china",
+      "bytes": 2325694
+    },
+    {
+      "file": "ne_50m_lakes.geojson",
+      "desc": "湖泊 50m",
+      "use": "region",
+      "bytes": 876018
+    },
+    {
+      "file": "ne_10m_lakes.geojson",
+      "desc": "湖泊 10m（精细）",
+      "use": "region",
+      "bytes": 5043554
+    },
+    {
+      "file": "ne_50m_rivers_lake_centerlines.geojson",
+      "desc": "河流 50m",
+      "use": "region",
+      "bytes": 827318
+    },
+    {
+      "file": "ne_10m_coastline.geojson",
+      "desc": "海岸线 10m",
+      "use": "region",
+      "bytes": 10110735
+    },
+    {
+      "file": "ne_50m_ocean.geojson",
+      "desc": "海洋面 50m（区域层靠它分海陆）",
+      "use": "region",
+      "bytes": 1383426
+    },
+    {
+      "file": "osm_qiantang_yuhang.geojson",
+      "desc": "Overpass/OSM：钱塘江水系、余杭区界",
+      "use": "region",
+      "bytes": 43678
+    }
+  ]
+}

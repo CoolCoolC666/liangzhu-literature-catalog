@@ -1,0 +1,55 @@
+{
+  "app": {
+    "host": "127.0.0.1",
+    "port": 8771,
+    "local_detail": true
+  },
+  "source": {
+    "root": "<你的 04_专题研究 目录>"
+  },
+  "db": {
+    "path": "<程序目录>/data/lzkg.db"
+  },
+  "auth": {
+    "enabled": false,
+    "bootstrap": {
+      "username": "admin",
+      "password": "CHANGE-ME-AT-FIRST-LOGIN"
+    },
+    "session_days": 7
+  },
+  "ai": {
+    "enabled": true,
+    "api_base": "",
+    "api_key": "",
+    "model": "",
+    "timeout": 60
+  },
+  "mineru": {
+    "local_api_url": "http://127.0.0.1:8000",
+    "cloud_api_url": "https://mineru.net/api",
+    "doclib_tcp": "http://127.0.0.1:15980",
+    "default_tier": "standard",
+    "tiers": ["flash", "basic", "standard", "advanced"],
+    "staging_dir": "解析暂存",
+    "timeout": 60,
+    "poll_interval": 3
+  },
+  "sites": {
+    "path": "<程序目录>/data/遗址点位表.xlsx"
+  },
+  "webdev": {
+    "enabled": true
+  },
+  "browse_server": {
+    "enabled": true
+  },
+  "public": {
+    "access_enabled": true,
+    "access_aud": "<你自己的 Access 应用 aud>",
+    "access_team_domain": "yourteam.cloudflareaccess.com",
+    "access_app_id": "<你自己的 Access 应用 ID>",
+    "domain": "lztp.example.com",
+    "local_detail": false
+  }
+}

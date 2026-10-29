@@ -1,0 +1,619 @@
+{
+  "_comment": "良渚文献登记表的单一事实来源。模板生成器 / 导入器 / 导出器 / 校验都读这份定义，改一处全部同步。",
+  "version": "1.0",
+  "generated_at": "2026-10-27",
+  "literatures": {
+    "sheet": "文献基本信息",
+    "title": "宁波地域文明探源工程（二期）文献基本信息登记表",
+    "note": "填写说明：带*字段必填；标签填写受控词表代码及名称，可多值并列（用；分隔）；文献标识符建议采用 NB-LIT-六位流水号。",
+    "columns": [
+      {
+        "no": 1,
+        "name": "序号",
+        "field": "seq",
+        "required": true,
+        "help": "本表内的顺序号，从 1 开始",
+        "example": "1",
+        "width": 8,
+        "in_template32": true
+      },
+      {
+        "no": 2,
+        "name": "文献标识符*",
+        "field": "lit_id",
+        "required": true,
+        "help": "全程不变的唯一标识。建议 NB-LIT- 六位流水号",
+        "example": "LIT-000001",
+        "width": 18,
+        "in_template32": true
+      },
+      {
+        "no": 3,
+        "name": "本组主题*",
+        "field": "theme",
+        "required": true,
+        "help": "本组认领的文化专题",
+        "example": "良渚文化",
+        "width": 14,
+        "in_template32": true
+      },
+      {
+        "no": 4,
+        "name": "文献类型代码*",
+        "field": "doc_type",
+        "required": true,
+        "help": "受控词表代码＋名称，用 ｜ 分隔",
+        "example": "DOC-AR｜学术论文",
+        "width": 20,
+        "in_template32": true
+      },
+      {
+        "no": 5,
+        "name": "题名*",
+        "field": "title",
+        "required": true,
+        "help": "与原文一致，不要用 OCR 改写后的文字",
+        "example": "基于ArcGIS…的设计与实现",
+        "width": 36,
+        "in_template32": true
+      },
+      {
+        "no": 6,
+        "name": "作者/责任者",
+        "field": "authors",
+        "required": false,
+        "help": "多人用 ； 分隔",
+        "example": "金鑫；董少春；王晓琪",
+        "width": 24,
+        "in_template32": true
+      },
+      {
+        "no": 7,
+        "name": "语种*",
+        "field": "lang",
+        "required": true,
+        "help": "受控词表代码＋名称",
+        "example": "zh｜中文",
+        "width": 12,
+        "in_template32": true
+      },
+      {
+        "no": 8,
+        "name": "出版/发表时间",
+        "field": "year",
+        "required": false,
+        "help": "★ 文献出版年，不是良渚文化分期年",
+        "example": "2018",
+        "width": 14,
+        "in_template32": true
+      },
+      {
+        "no": 9,
+        "name": "出版物/载体题名",
+        "field": "venue",
+        "required": false,
+        "help": "期刊名 / 学位授予单位 / 出版社",
+        "example": "南京大学学报(自然科学)",
+        "width": 22,
+        "in_template32": true
+      },
+      {
+        "no": 10,
+        "name": "出版者/机构",
+        "field": "publisher",
+        "required": false,
+        "help": "",
+        "example": "南京大学",
+        "width": 18,
+        "in_template32": true
+      },
+      {
+        "no": 11,
+        "name": "页码范围",
+        "field": "pages_range",
+        "required": false,
+        "help": "",
+        "example": "54(1)",
+        "width": 12,
+        "in_template32": true
+      },
+      {
+        "no": 12,
+        "name": "摘要",
+        "field": "abstract",
+        "required": false,
+        "help": "",
+        "example": "本文以…",
+        "width": 40,
+        "in_template32": true
+      },
+      {
+        "no": 13,
+        "name": "原文关键词",
+        "field": "keywords",
+        "required": false,
+        "help": "原文里的关键词，不要自己改写",
+        "example": "ArcGIS；空间数据库",
+        "width": 24,
+        "in_template32": true
+      },
+      {
+        "no": 14,
+        "name": "来源/获取链接",
+        "field": "source_url",
+        "required": false,
+        "help": "★ DOI 或来源站点；没有就写可核实的题录",
+        "example": "DOI:10.13232/…",
+        "width": 30,
+        "in_template32": true
+      },
+      {
+        "no": 15,
+        "name": "原始PDF文件名",
+        "field": "pdf_name",
+        "required": true,
+        "help": "实际磁盘上的文件名",
+        "example": "LIT-000001_原始PDF.pdf",
+        "width": 30,
+        "in_template32": true
+      },
+      {
+        "no": 16,
+        "name": "PDF页数",
+        "field": "pdf_pages",
+        "required": true,
+        "help": "整数",
+        "example": "13",
+        "width": 10,
+        "in_template32": true
+      },
+      {
+        "no": 17,
+        "name": "原始PDF存储地址",
+        "field": "pdf_path",
+        "required": true,
+        "help": "相对 04_专题研究 的路径",
+        "example": "01_原始资料/LIT-000001_原始PDF.pdf",
+        "width": 34,
+        "in_template32": true
+      },
+      {
+        "no": 18,
+        "name": "正文存储标识符*",
+        "field": "body_id",
+        "required": true,
+        "help": "通常与文献标识符相同",
+        "example": "LIT-000001",
+        "width": 18,
+        "in_template32": true
+      },
+      {
+        "no": 19,
+        "name": "Markdown文件名/相对路径",
+        "field": "md_path",
+        "required": true,
+        "help": "★ 必须是 Markdown 的路径，不要指向 JSON",
+        "example": "03_文献全文/MinerU_markdown_LIT-000001_….md",
+        "width": 40,
+        "in_template32": true
+      },
+      {
+        "no": 20,
+        "name": "MinerU解析状态",
+        "field": "parse_status",
+        "required": true,
+        "help": "已解析 / 解析失败 等",
+        "example": "已解析",
+        "width": 18,
+        "in_template32": true
+      },
+      {
+        "no": 21,
+        "name": "解析问题/备注",
+        "field": "parse_note",
+        "required": false,
+        "help": "解析异常、换源、待人工复核等，都要写清",
+        "example": "…",
+        "width": 36,
+        "in_template32": true
+      },
+      {
+        "no": 22,
+        "name": "开放类型/使用条件",
+        "field": "open_type",
+        "required": false,
+        "help": "★ 决定能不能对外公开",
+        "example": "开放获取(OA)",
+        "width": 22,
+        "in_template32": true
+      },
+      {
+        "no": 23,
+        "name": "时间分期标签*",
+        "field": "period_tags",
+        "required": true,
+        "help": "受控词表代码＋名称，多值用 ； 分隔",
+        "example": "新石器时代晚期",
+        "width": 20,
+        "in_template32": true
+      },
+      {
+        "no": 24,
+        "name": "空间分区标签*",
+        "field": "region_tags",
+        "required": true,
+        "help": "同上",
+        "example": "R-0101 良渚古城",
+        "width": 20,
+        "in_template32": true
+      },
+      {
+        "no": 25,
+        "name": "主题分类标签*",
+        "field": "topic_tags",
+        "required": true,
+        "help": "同上",
+        "example": "S-0801 数据库; S-0803 GIS",
+        "width": 30,
+        "in_template32": true
+      },
+      {
+        "no": 26,
+        "name": "文化谱系标签*",
+        "field": "lineage_tags",
+        "required": true,
+        "help": "同上",
+        "example": "良渚文化",
+        "width": 18,
+        "in_template32": true
+      },
+      {
+        "no": 27,
+        "name": "CLC分类号（可选）",
+        "field": "clc",
+        "required": false,
+        "help": "可选",
+        "example": "K878",
+        "width": 14,
+        "in_template32": true
+      },
+      {
+        "no": 28,
+        "name": "汉语主题词（可选）",
+        "field": "subject_terms",
+        "required": false,
+        "help": "可选",
+        "example": "良渚古城；GIS",
+        "width": 22,
+        "in_template32": true
+      },
+      {
+        "no": 29,
+        "name": "著录人",
+        "field": "recorder",
+        "required": false,
+        "help": "谁填的",
+        "example": "张三",
+        "width": 12,
+        "in_template32": true
+      },
+      {
+        "no": 30,
+        "name": "著录日期",
+        "field": "record_date",
+        "required": false,
+        "help": "ISO 短横线格式",
+        "example": "2026-10-27",
+        "width": 14,
+        "in_template32": true
+      },
+      {
+        "no": 31,
+        "name": "审核状态",
+        "field": "review_status",
+        "required": false,
+        "help": "受控词表",
+        "example": "REV-PENDING｜已审核",
+        "width": 24,
+        "in_template32": true
+      },
+      {
+        "no": 32,
+        "name": "著录备注",
+        "field": "remark",
+        "required": false,
+        "help": "",
+        "example": "—",
+        "width": 24,
+        "in_template32": true
+      },
+      {
+        "no": 33,
+        "name": "数据来源类型*",
+        "field": "source_type",
+        "required": true,
+        "help": "受控词表代码＋名称；32 列模板无此列，留空即可",
+        "example": "S1｜中国知网(CNKI)",
+        "width": 22,
+        "in_template32": false
+      },
+      {
+        "no": 34,
+        "name": "来源判据（痕迹）",
+        "field": "source_evidence",
+        "required": false,
+        "help": "凭什么认定来源（PDF 内嵌指纹、刊物页眉页脚特征等）；写清楚才可回溯",
+        "example": "PDF内嵌元数据携带知网下载器唯一指纹：producer=TTKN",
+        "width": 46,
+        "in_template32": false
+      }
+    ]
+  },
+  "images": {
+    "sheet": "文献图像信息",
+    "title": "宁波地域文明探源工程（二期）文献图像信息登记表",
+    "note": "填写说明：带*字段必填；图像标识符建议采用 IMG-六位流水号；AI初标须经人工复核。",
+    "columns": [
+      {
+        "no": 1,
+        "name": "序号",
+        "field": "",
+        "required": true,
+        "help": "",
+        "example": "1",
+        "width": 8,
+        "in_template32": true
+      },
+      {
+        "no": 2,
+        "name": "图像标识符*",
+        "field": "img_id",
+        "required": true,
+        "help": "建议 IMG-六位流水号",
+        "example": "IMG-LIT-000001-004",
+        "width": 24,
+        "in_template32": true
+      },
+      {
+        "no": 3,
+        "name": "关联文献标识符*",
+        "field": "lit_id",
+        "required": true,
+        "help": "★ 必须能在文献表里找到",
+        "example": "LIT-000001",
+        "width": 18,
+        "in_template32": true
+      },
+      {
+        "no": 4,
+        "name": "本组主题*",
+        "field": "theme",
+        "required": true,
+        "help": "",
+        "example": "良渚文化",
+        "width": 14,
+        "in_template32": true
+      },
+      {
+        "no": 5,
+        "name": "图像文件名*",
+        "field": "filename",
+        "required": true,
+        "help": "实际磁盘文件名",
+        "example": "IMG-LIT-000001-004.jpg",
+        "width": 28,
+        "in_template32": true
+      },
+      {
+        "no": 6,
+        "name": "图像相对路径*",
+        "field": "path",
+        "required": true,
+        "help": "相对 04_专题研究 的路径",
+        "example": "04_文献图像/IMG-LIT-000001-004.jpg",
+        "width": 36,
+        "in_template32": true
+      },
+      {
+        "no": 7,
+        "name": "图像题名",
+        "field": "img_title",
+        "required": false,
+        "help": "",
+        "example": "良渚古城遗址空间数据形态示意图",
+        "width": 32,
+        "in_template32": true
+      },
+      {
+        "no": 8,
+        "name": "图像类型代码*",
+        "field": "img_type",
+        "required": true,
+        "help": "受控词表代码＋名称",
+        "example": "IMG-SCHEMATIC｜示意图",
+        "width": 24,
+        "in_template32": true
+      },
+      {
+        "no": 9,
+        "name": "图像对象类型代码*",
+        "field": "obj_type",
+        "required": true,
+        "help": "受控词表代码＋名称",
+        "example": "IMGOBJ-SITE｜遗址",
+        "width": 24,
+        "in_template32": true
+      },
+      {
+        "no": 10,
+        "name": "原文页码",
+        "field": "orig_page",
+        "required": false,
+        "help": "与 PDF页码不一致时两个都保留",
+        "example": "166",
+        "width": 12,
+        "in_template32": true
+      },
+      {
+        "no": 11,
+        "name": "PDF页码",
+        "field": "pdf_page",
+        "required": false,
+        "help": "",
+        "example": "4",
+        "width": 10,
+        "in_template32": true
+      },
+      {
+        "no": 12,
+        "name": "图号/图版号",
+        "field": "fig_no",
+        "required": false,
+        "help": "图1 / 图版三",
+        "example": "图1",
+        "width": 12,
+        "in_template32": true
+      },
+      {
+        "no": 13,
+        "name": "图注",
+        "field": "caption",
+        "required": false,
+        "help": "★ 从 Markdown 里取，别自己改写",
+        "example": "图1 良渚古城遗址空间数据形态示意图",
+        "width": 40,
+        "in_template32": true
+      },
+      {
+        "no": 14,
+        "name": "AI初标描述",
+        "field": "ai_desc",
+        "required": false,
+        "help": "AI 生成的描述，不是结论",
+        "example": "图像为示意图，主要展示…",
+        "width": 36,
+        "in_template32": true
+      },
+      {
+        "no": 15,
+        "name": "AI提取对象/关键词",
+        "field": "ai_objects",
+        "required": false,
+        "help": "",
+        "example": "数据；分析结果",
+        "width": 20,
+        "in_template32": true
+      },
+      {
+        "no": 16,
+        "name": "AI工具/模型",
+        "field": "ai_tool",
+        "required": false,
+        "help": "★ AI 初标必须留痕",
+        "example": "MinerU 3.4.4",
+        "width": 18,
+        "in_template32": true
+      },
+      {
+        "no": 17,
+        "name": "AI提示词编号/版本",
+        "field": "ai_prompt",
+        "required": false,
+        "help": "",
+        "example": "无",
+        "width": 16,
+        "in_template32": true
+      },
+      {
+        "no": 18,
+        "name": "人工复核状态",
+        "field": "review_status",
+        "required": false,
+        "help": "★ 判定「已复核」只看这一列，不要用复核日期",
+        "example": "REV-PASS｜通过",
+        "width": 24,
+        "in_template32": true
+      },
+      {
+        "no": 19,
+        "name": "复核人",
+        "field": "reviewer",
+        "required": false,
+        "help": "人工签署才写；无人复核就留空",
+        "example": "李四",
+        "width": 12,
+        "in_template32": true
+      },
+      {
+        "no": 20,
+        "name": "复核日期",
+        "field": "review_date",
+        "required": false,
+        "help": "填数据核对日；日期非空不代表已复核",
+        "example": "2026-10-27",
+        "width": 14,
+        "in_template32": true
+      },
+      {
+        "no": 21,
+        "name": "时间分期标签",
+        "field": "period_tags",
+        "required": false,
+        "help": "与文献表同格式",
+        "example": "新石器时代晚期",
+        "width": 20,
+        "in_template32": true
+      },
+      {
+        "no": 22,
+        "name": "空间分区标签",
+        "field": "region_tags",
+        "required": false,
+        "help": "",
+        "example": "R-0101 良渚古城",
+        "width": 20,
+        "in_template32": true
+      },
+      {
+        "no": 23,
+        "name": "主题分类标签",
+        "field": "topic_tags",
+        "required": false,
+        "help": "",
+        "example": "S-0801 数据库; S-0803 GIS",
+        "width": 30,
+        "in_template32": true
+      },
+      {
+        "no": 24,
+        "name": "文化谱系标签",
+        "field": "lineage_tags",
+        "required": false,
+        "help": "",
+        "example": "良渚文化",
+        "width": 18,
+        "in_template32": true
+      },
+      {
+        "no": 25,
+        "name": "存储记录标识符*",
+        "field": "storage_id",
+        "required": true,
+        "help": "回源锚点",
+        "example": "LIT-000001",
+        "width": 18,
+        "in_template32": true
+      },
+      {
+        "no": 26,
+        "name": "标注备注",
+        "field": "remark",
+        "required": false,
+        "help": "",
+        "example": "MinerU自动提取；待人工复核",
+        "width": 34,
+        "in_template32": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,1533 @@
+{
+  "vocab": [
+    {
+      "dim": "img_type",
+      "code": "",
+      "name": "IMG-CHART｜统计图",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 104,
+      "raw_forms": "IMG-CHART｜统计图"
+    },
+    {
+      "dim": "img_type",
+      "code": "",
+      "name": "IMG-DRAWING｜线图",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 198,
+      "raw_forms": "IMG-DRAWING｜线图"
+    },
+    {
+      "dim": "img_type",
+      "code": "",
+      "name": "IMG-FLOW｜流程图",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 13,
+      "raw_forms": "IMG-FLOW｜流程图"
+    },
+    {
+      "dim": "img_type",
+      "code": "",
+      "name": "IMG-MAP｜地图",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 80,
+      "raw_forms": "IMG-MAP｜地图"
+    },
+    {
+      "dim": "img_type",
+      "code": "",
+      "name": "IMG-OTHER｜其他",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 1987,
+      "raw_forms": "IMG-OTHER｜其他"
+    },
+    {
+      "dim": "img_type",
+      "code": "",
+      "name": "IMG-PHOTO｜图像",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 136,
+      "raw_forms": "IMG-PHOTO｜图像"
+    },
+    {
+      "dim": "img_type",
+      "code": "",
+      "name": "IMG-PHOTO｜照片",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 389,
+      "raw_forms": "IMG-PHOTO｜照片"
+    },
+    {
+      "dim": "img_type",
+      "code": "",
+      "name": "IMG-PLAN｜平面图",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 71,
+      "raw_forms": "IMG-PLAN｜平面图"
+    },
+    {
+      "dim": "img_type",
+      "code": "",
+      "name": "IMG-PLATE｜图版",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 15,
+      "raw_forms": "IMG-PLATE｜图版"
+    },
+    {
+      "dim": "img_type",
+      "code": "",
+      "name": "IMG-SCHEMATIC｜示意图",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 93,
+      "raw_forms": "IMG-SCHEMATIC｜示意图"
+    },
+    {
+      "dim": "img_type",
+      "code": "",
+      "name": "IMG-SECTION｜剖面图",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 73,
+      "raw_forms": "IMG-SECTION｜剖面图"
+    },
+    {
+      "dim": "img_type",
+      "code": "",
+      "name": "IMG-TABLE｜表格图",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 3,
+      "raw_forms": "IMG-TABLE｜表格图"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "—",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 12,
+      "raw_forms": "—（法文文献）（法文文献）"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "东南亚新石器",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 8,
+      "raw_forms": "东南亚新石器（越南/台湾）（越南/台湾）"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "仙人洞遗址",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 1,
+      "raw_forms": "仙人洞遗址（江西，新石器早期）（江西，新石器早期）"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "凌家滩文化",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 2,
+      "raw_forms": "凌家滩文化"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "凌家滩文化/红山文化",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 1,
+      "raw_forms": "凌家滩文化/红山文化（组合）（组合）"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "古希腊文化",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 1,
+      "raw_forms": "古希腊文化（比较图像）（比较图像）"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "台湾新石器",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 1,
+      "raw_forms": "台湾新石器"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "吴文化",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 2,
+      "raw_forms": "吴文化（春秋）（春秋）"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "吴越文化",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 4,
+      "raw_forms": "吴越文化（春秋，屯溪）（春秋，屯溪）"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "商文化",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 9,
+      "raw_forms": "商文化（殷墟，安阳侯家庄）（殷墟，安阳侯家庄）"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "壳丘头文化",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 7,
+      "raw_forms": "壳丘头文化（福建）（福建）"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "大汶口文化",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 8,
+      "raw_forms": "大汶口文化"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "富国墩文化",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 3,
+      "raw_forms": "富国墩文化（台湾）（台湾）"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "崧泽-良渚-钱山漾",
+      "code_reliable": 1,
+      "lit_count": 9,
+      "img_count": 294,
+      "raw_forms": "崧泽-良渚-钱山漾"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "崧泽文化",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 25,
+      "raw_forms": "崧泽文化"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "广富林文化",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 77,
+      "raw_forms": "广富林文化（广富林遗址，新石器）（广富林遗址，新石器）"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "日本绳文文化",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 38,
+      "raw_forms": "日本绳文文化"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "昙石山文化",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 7,
+      "raw_forms": "昙石山文化（福建）（福建）"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "晋文化",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 1,
+      "raw_forms": "晋文化（春秋，李峪）（春秋，李峪）"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "曾文化",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 1,
+      "raw_forms": "曾文化（战国，擂鼓墩）（战国，擂鼓墩）"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "楚文化",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 1,
+      "raw_forms": "楚文化（战国，熊家岭）（战国，熊家岭）"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "民间艺术",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 2,
+      "raw_forms": "民间艺术（现代虎纹）（现代虎纹）"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "汉代",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 5,
+      "raw_forms": "汉代（汉阳陵）（汉阳陵）"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "河姆渡文化",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 19,
+      "raw_forms": "河姆渡文化"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "石家河文化",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 1,
+      "raw_forms": "石家河文化"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "石峡文化",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 3,
+      "raw_forms": "石峡文化（Yanshanzhai，玉器仿良渚）（Yanshanzhai，玉器仿良渚）"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "红山文化",
+      "code_reliable": 1,
+      "lit_count": 1,
+      "img_count": 63,
+      "raw_forms": "红山文化"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "综合",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 26,
+      "raw_forms": "综合（浙江粟黍遗存分布）（浙江粟黍遗存分布）"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "美洲文化",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 2,
+      "raw_forms": "美洲文化（比较图像）（比较图像）"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "良渚文化",
+      "code_reliable": 1,
+      "lit_count": 158,
+      "img_count": 2162,
+      "raw_forms": "良渚文化"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "越文化",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 3,
+      "raw_forms": "越文化（春秋战国）（春秋战国）"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "跨文化",
+      "code_reliable": 1,
+      "lit_count": 5,
+      "img_count": 81,
+      "raw_forms": "跨文化（数字考古）（数字考古）"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "通用",
+      "code_reliable": 1,
+      "lit_count": 14,
+      "img_count": 73,
+      "raw_forms": "通用（方法论）（方法论）"
+    },
+    {
+      "dim": "lineage",
+      "code": "",
+      "name": "马家浜文化",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 2,
+      "raw_forms": "马家浜文化"
+    },
+    {
+      "dim": "obj_type",
+      "code": "",
+      "name": "IMGOBJ-ARTIFACT｜器物",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 623,
+      "raw_forms": "IMGOBJ-ARTIFACT｜器物"
+    },
+    {
+      "dim": "obj_type",
+      "code": "",
+      "name": "IMGOBJ-DATA｜数据/分析结果",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 129,
+      "raw_forms": "IMGOBJ-DATA｜数据/分析结果"
+    },
+    {
+      "dim": "obj_type",
+      "code": "",
+      "name": "IMGOBJ-ENVIRONMENT｜环境/地貌",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 40,
+      "raw_forms": "IMGOBJ-ENVIRONMENT｜环境/地貌"
+    },
+    {
+      "dim": "obj_type",
+      "code": "",
+      "name": "IMGOBJ-FEATURE｜遗迹",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 134,
+      "raw_forms": "IMGOBJ-FEATURE｜遗迹"
+    },
+    {
+      "dim": "obj_type",
+      "code": "",
+      "name": "IMGOBJ-OTHER｜其他",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 1800,
+      "raw_forms": "IMGOBJ-OTHER｜其他"
+    },
+    {
+      "dim": "obj_type",
+      "code": "",
+      "name": "IMGOBJ-PERSON｜人物/活动",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 12,
+      "raw_forms": "IMGOBJ-PERSON｜人物/活动"
+    },
+    {
+      "dim": "obj_type",
+      "code": "",
+      "name": "IMGOBJ-SITE｜遗址",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 233,
+      "raw_forms": "IMGOBJ-SITE｜遗址"
+    },
+    {
+      "dim": "obj_type",
+      "code": "",
+      "name": "IMGOBJ-STRATIGRAPHY｜地层/堆积",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 55,
+      "raw_forms": "IMGOBJ-STRATIGRAPHY｜地层/堆积"
+    },
+    {
+      "dim": "obj_type",
+      "code": "",
+      "name": "OBJ-SCENE｜场景/遗址",
+      "code_reliable": 1,
+      "lit_count": 0,
+      "img_count": 136,
+      "raw_forms": "OBJ-SCENE｜场景/遗址"
+    },
+    {
+      "dim": "period",
+      "code": "",
+      "name": "崧泽-良渚过渡",
+      "code_reliable": 1,
+      "lit_count": 1,
+      "img_count": 44,
+      "raw_forms": "崧泽-良渚过渡"
+    },
+    {
+      "dim": "period",
+      "code": "",
+      "name": "当代",
+      "code_reliable": 1,
+      "lit_count": 38,
+      "img_count": 192,
+      "raw_forms": "当代"
+    },
+    {
+      "dim": "period",
+      "code": "",
+      "name": "新石器时代中晚期",
+      "code_reliable": 1,
+      "lit_count": 7,
+      "img_count": 84,
+      "raw_forms": "新石器时代中晚期"
+    },
+    {
+      "dim": "period",
+      "code": "",
+      "name": "新石器时代中期",
+      "code_reliable": 1,
+      "lit_count": 5,
+      "img_count": 105,
+      "raw_forms": "新石器时代中期"
+    },
+    {
+      "dim": "period",
+      "code": "",
+      "name": "新石器时代早中晚三期",
+      "code_reliable": 1,
+      "lit_count": 14,
+      "img_count": 501,
+      "raw_forms": "新石器时代早中晚三期"
+    },
+    {
+      "dim": "period",
+      "code": "",
+      "name": "新石器时代早中期",
+      "code_reliable": 1,
+      "lit_count": 3,
+      "img_count": 31,
+      "raw_forms": "新石器时代早中期"
+    },
+    {
+      "dim": "period",
+      "code": "",
+      "name": "新石器时代晚期",
+      "code_reliable": 1,
+      "lit_count": 117,
+      "img_count": 1979,
+      "raw_forms": "新石器时代晚期"
+    },
+    {
+      "dim": "region",
+      "code": "R-0199",
+      "name": "中国综合",
+      "code_reliable": 0,
+      "lit_count": 15,
+      "img_count": 116,
+      "raw_forms": "R-0199 中国综合"
+    },
+    {
+      "dim": "region",
+      "code": "R-0399",
+      "name": "参考案例",
+      "code_reliable": 1,
+      "lit_count": 8,
+      "img_count": 144,
+      "raw_forms": "R-0399 参考案例"
+    },
+    {
+      "dim": "region",
+      "code": "R-0102",
+      "name": "姚江流域",
+      "code_reliable": 1,
+      "lit_count": 4,
+      "img_count": 27,
+      "raw_forms": "R-0102 姚江流域"
+    },
+    {
+      "dim": "region",
+      "code": "R-0199",
+      "name": "数字化",
+      "code_reliable": 0,
+      "lit_count": 7,
+      "img_count": 22,
+      "raw_forms": "R-0199 数字化"
+    },
+    {
+      "dim": "region",
+      "code": "R-0199",
+      "name": "文化创意",
+      "code_reliable": 0,
+      "lit_count": 14,
+      "img_count": 101,
+      "raw_forms": "R-0199 文化创意"
+    },
+    {
+      "dim": "region",
+      "code": "R-0199",
+      "name": "浙江综合",
+      "code_reliable": 0,
+      "lit_count": 9,
+      "img_count": 102,
+      "raw_forms": "R-0199 浙江综合"
+    },
+    {
+      "dim": "region",
+      "code": "R-0199",
+      "name": "环太湖",
+      "code_reliable": 0,
+      "lit_count": 31,
+      "img_count": 878,
+      "raw_forms": "R-0199 环太湖"
+    },
+    {
+      "dim": "region",
+      "code": "R-0199",
+      "name": "良渚全域",
+      "code_reliable": 0,
+      "lit_count": 4,
+      "img_count": 36,
+      "raw_forms": "R-0199 良渚全域"
+    },
+    {
+      "dim": "region",
+      "code": "R-0199",
+      "name": "良渚博物院",
+      "code_reliable": 0,
+      "lit_count": 6,
+      "img_count": 57,
+      "raw_forms": "R-0199 良渚博物院"
+    },
+    {
+      "dim": "region",
+      "code": "R-0101",
+      "name": "良渚古城",
+      "code_reliable": 1,
+      "lit_count": 75,
+      "img_count": 1384,
+      "raw_forms": "R-0101 良渚古城"
+    },
+    {
+      "dim": "region",
+      "code": "R-0199",
+      "name": "良渚遗址群",
+      "code_reliable": 0,
+      "lit_count": 9,
+      "img_count": 17,
+      "raw_forms": "R-0199 良渚遗址群"
+    },
+    {
+      "dim": "region",
+      "code": "R-0000",
+      "name": "跨遗址",
+      "code_reliable": 1,
+      "lit_count": 18,
+      "img_count": 278,
+      "raw_forms": "R-0000 跨遗址"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0803",
+      "name": "AIGC",
+      "code_reliable": 0,
+      "lit_count": 3,
+      "img_count": 41,
+      "raw_forms": "S-0803 AIGC"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0803",
+      "name": "GIS",
+      "code_reliable": 0,
+      "lit_count": 7,
+      "img_count": 130,
+      "raw_forms": "S-0803 GIS"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0803",
+      "name": "VR",
+      "code_reliable": 0,
+      "lit_count": 1,
+      "img_count": 4,
+      "raw_forms": "S-0803 VR"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0802",
+      "name": "丧葬考古",
+      "code_reliable": 0,
+      "lit_count": 1,
+      "img_count": 48,
+      "raw_forms": "S-0802 丧葬考古"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0804",
+      "name": "产品开发",
+      "code_reliable": 0,
+      "lit_count": 15,
+      "img_count": 72,
+      "raw_forms": "S-0804 产品开发"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0804",
+      "name": "人机共创",
+      "code_reliable": 0,
+      "lit_count": 1,
+      "img_count": 8,
+      "raw_forms": "S-0804 人机共创"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0802",
+      "name": "人骨考古",
+      "code_reliable": 0,
+      "lit_count": 1,
+      "img_count": 14,
+      "raw_forms": "S-0802 人骨考古"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0801",
+      "name": "保护",
+      "code_reliable": 0,
+      "lit_count": 25,
+      "img_count": 230,
+      "raw_forms": "S-0801 保护"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0804",
+      "name": "信息系统",
+      "code_reliable": 0,
+      "lit_count": 3,
+      "img_count": 42,
+      "raw_forms": "S-0804 信息系统"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0804",
+      "name": "公园",
+      "code_reliable": 0,
+      "lit_count": 1,
+      "img_count": 19,
+      "raw_forms": "S-0804 公园"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0801",
+      "name": "墓葬",
+      "code_reliable": 0,
+      "lit_count": 5,
+      "img_count": 378,
+      "raw_forms": "S-0801 墓葬"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0802",
+      "name": "墓葬考古",
+      "code_reliable": 0,
+      "lit_count": 1,
+      "img_count": 9,
+      "raw_forms": "S-0802 墓葬考古"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0804",
+      "name": "媒体研究",
+      "code_reliable": 0,
+      "lit_count": 10,
+      "img_count": 31,
+      "raw_forms": "S-0804 媒体研究"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0802",
+      "name": "学术史",
+      "code_reliable": 0,
+      "lit_count": 2,
+      "img_count": 12,
+      "raw_forms": "S-0802 学术史"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0802",
+      "name": "宗教考古",
+      "code_reliable": 0,
+      "lit_count": 1,
+      "img_count": 0,
+      "raw_forms": "S-0802 宗教考古"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0802",
+      "name": "建筑技术",
+      "code_reliable": 0,
+      "lit_count": 1,
+      "img_count": 17,
+      "raw_forms": "S-0802 建筑技术"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0803",
+      "name": "建筑研究",
+      "code_reliable": 0,
+      "lit_count": 1,
+      "img_count": 11,
+      "raw_forms": "S-0803 建筑研究"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0803",
+      "name": "数字传播",
+      "code_reliable": 0,
+      "lit_count": 11,
+      "img_count": 41,
+      "raw_forms": "S-0803 数字传播"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0803",
+      "name": "数字化",
+      "code_reliable": 0,
+      "lit_count": 18,
+      "img_count": 220,
+      "raw_forms": "S-0803 数字化"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0803",
+      "name": "数字化传播",
+      "code_reliable": 0,
+      "lit_count": 1,
+      "img_count": 9,
+      "raw_forms": "S-0803 数字化传播"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0803",
+      "name": "数字化保护",
+      "code_reliable": 0,
+      "lit_count": 1,
+      "img_count": 2,
+      "raw_forms": "S-0803 数字化保护"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0804",
+      "name": "数字博物馆",
+      "code_reliable": 0,
+      "lit_count": 1,
+      "img_count": 4,
+      "raw_forms": "S-0804 数字博物馆"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0801",
+      "name": "数据库",
+      "code_reliable": 0,
+      "lit_count": 6,
+      "img_count": 63,
+      "raw_forms": "S-0801 数据库"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0804",
+      "name": "文创设计",
+      "code_reliable": 0,
+      "lit_count": 19,
+      "img_count": 110,
+      "raw_forms": "S-0804 文创设计"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0802",
+      "name": "文物研究",
+      "code_reliable": 0,
+      "lit_count": 18,
+      "img_count": 415,
+      "raw_forms": "S-0802 文物研究"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0801",
+      "name": "方法研究",
+      "code_reliable": 0,
+      "lit_count": 2,
+      "img_count": 28,
+      "raw_forms": "S-0801 方法研究"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0802",
+      "name": "植物考古",
+      "code_reliable": 0,
+      "lit_count": 6,
+      "img_count": 43,
+      "raw_forms": "S-0802 植物考古"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0802",
+      "name": "水利与环境",
+      "code_reliable": 0,
+      "lit_count": 1,
+      "img_count": 31,
+      "raw_forms": "S-0802 水利与环境"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0802",
+      "name": "水利工程",
+      "code_reliable": 0,
+      "lit_count": 2,
+      "img_count": 34,
+      "raw_forms": "S-0802 水利工程"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0802",
+      "name": "治理路径",
+      "code_reliable": 0,
+      "lit_count": 8,
+      "img_count": 31,
+      "raw_forms": "S-0802 治理路径"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0804",
+      "name": "活化",
+      "code_reliable": 0,
+      "lit_count": 11,
+      "img_count": 102,
+      "raw_forms": "S-0804 活化"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0801",
+      "name": "玉器",
+      "code_reliable": 0,
+      "lit_count": 1,
+      "img_count": 30,
+      "raw_forms": "S-0801 玉器"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0802",
+      "name": "玉器研究",
+      "code_reliable": 0,
+      "lit_count": 1,
+      "img_count": 62,
+      "raw_forms": "S-0802 玉器研究"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0802",
+      "name": "环境考古",
+      "code_reliable": 0,
+      "lit_count": 11,
+      "img_count": 187,
+      "raw_forms": "S-0802 环境考古"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0802",
+      "name": "社会考古",
+      "code_reliable": 0,
+      "lit_count": 1,
+      "img_count": 8,
+      "raw_forms": "S-0802 社会考古"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0801",
+      "name": "祭坛遗址",
+      "code_reliable": 0,
+      "lit_count": 4,
+      "img_count": 114,
+      "raw_forms": "S-0801 祭坛遗址"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0802",
+      "name": "祭祀考古",
+      "code_reliable": 0,
+      "lit_count": 1,
+      "img_count": 13,
+      "raw_forms": "S-0802 祭祀考古"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0802",
+      "name": "科技考古",
+      "code_reliable": 0,
+      "lit_count": 38,
+      "img_count": 682,
+      "raw_forms": "S-0802 科技考古"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0801",
+      "name": "空间分析",
+      "code_reliable": 0,
+      "lit_count": 2,
+      "img_count": 57,
+      "raw_forms": "S-0801 空间分析"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0802",
+      "name": "纹饰研究",
+      "code_reliable": 0,
+      "lit_count": 9,
+      "img_count": 372,
+      "raw_forms": "S-0802 纹饰研究"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0801",
+      "name": "综述",
+      "code_reliable": 0,
+      "lit_count": 3,
+      "img_count": 4,
+      "raw_forms": "S-0801 综述"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0801",
+      "name": "考古发掘",
+      "code_reliable": 0,
+      "lit_count": 31,
+      "img_count": 964,
+      "raw_forms": "S-0801 考古发掘"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0801",
+      "name": "考古研究",
+      "code_reliable": 0,
+      "lit_count": 52,
+      "img_count": 770,
+      "raw_forms": "S-0801 考古研究"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0802",
+      "name": "聚落考古",
+      "code_reliable": 0,
+      "lit_count": 10,
+      "img_count": 227,
+      "raw_forms": "S-0802 聚落考古"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0801",
+      "name": "遗址调查",
+      "code_reliable": 0,
+      "lit_count": 1,
+      "img_count": 1,
+      "raw_forms": "S-0801 遗址调查"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0803",
+      "name": "遥感",
+      "code_reliable": 0,
+      "lit_count": 2,
+      "img_count": 59,
+      "raw_forms": "S-0803 遥感"
+    }
+  ],
+  "multi_code": [
+    {
+      "dim": "region",
+      "code": "R-0199",
+      "n_names": 8,
+      "names": "中国综合、数字化、文化创意、浙江综合、环太湖、良渚全域、良渚博物院、良渚遗址群"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0801",
+      "n_names": 11,
+      "names": "保护、墓葬、数据库、方法研究、玉器、祭坛遗址、空间分析、综述、考古发掘、考古研究、遗址调查"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0802",
+      "n_names": 18,
+      "names": "丧葬考古、人骨考古、墓葬考古、学术史、宗教考古、建筑技术、文物研究、植物考古、水利与环境、水利工程、治理路径、玉器研究、环境考古、社会考古、祭祀考古、科技考古、纹饰研究、聚落考古"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0803",
+      "n_names": 9,
+      "names": "AIGC、GIS、VR、建筑研究、数字传播、数字化、数字化传播、数字化保护、遥感"
+    },
+    {
+      "dim": "topic",
+      "code": "S-0804",
+      "n_names": 8,
+      "names": "产品开发、人机共创、信息系统、公园、媒体研究、数字博物馆、文创设计、活化"
+    }
+  ],
+  "synonym_candidates": [
+    {
+      "dim": "topic",
+      "a": "数字化",
+      "b": "数字化保护",
+      "rule": "R1 包含关系",
+      "a_lit": 18,
+      "a_img": 220,
+      "b_lit": 1,
+      "b_img": 2,
+      "merged_lit": 19,
+      "merged_img": 222,
+      "stem": "数字化"
+    },
+    {
+      "dim": "topic",
+      "a": "数字化",
+      "b": "数字化传播",
+      "rule": "R1 包含关系",
+      "a_lit": 18,
+      "a_img": 220,
+      "b_lit": 1,
+      "b_img": 9,
+      "merged_lit": 19,
+      "merged_img": 229,
+      "stem": "数字化"
+    },
+    {
+      "dim": "topic",
+      "a": "保护",
+      "b": "数字化保护",
+      "rule": "R1 包含关系",
+      "a_lit": 25,
+      "a_img": 230,
+      "b_lit": 1,
+      "b_img": 2,
+      "merged_lit": 26,
+      "merged_img": 232,
+      "stem": "保护"
+    },
+    {
+      "dim": "topic",
+      "a": "建筑技术",
+      "b": "建筑研究",
+      "rule": "R2 词干相同",
+      "a_lit": 1,
+      "a_img": 17,
+      "b_lit": 1,
+      "b_img": 11,
+      "merged_lit": 2,
+      "merged_img": 28,
+      "stem": "建筑"
+    },
+    {
+      "dim": "topic",
+      "a": "玉器研究",
+      "b": "玉器",
+      "rule": "R1 包含关系",
+      "a_lit": 1,
+      "a_img": 62,
+      "b_lit": 1,
+      "b_img": 30,
+      "merged_lit": 2,
+      "merged_img": 92,
+      "stem": "玉器"
+    },
+    {
+      "dim": "topic",
+      "a": "数字化保护",
+      "b": "数字化传播",
+      "rule": "R2 词干相同",
+      "a_lit": 1,
+      "a_img": 2,
+      "b_lit": 1,
+      "b_img": 9,
+      "merged_lit": 2,
+      "merged_img": 11,
+      "stem": "数字化"
+    },
+    {
+      "dim": "topic",
+      "a": "墓葬考古",
+      "b": "墓葬",
+      "rule": "R1 包含关系",
+      "a_lit": 1,
+      "a_img": 9,
+      "b_lit": 5,
+      "b_img": 378,
+      "merged_lit": 6,
+      "merged_img": 387,
+      "stem": "墓葬"
+    },
+    {
+      "dim": "lineage",
+      "a": "红山文化",
+      "b": "凌家滩文化/红山文化",
+      "rule": "R1 包含关系",
+      "a_lit": 1,
+      "a_img": 63,
+      "b_lit": 0,
+      "b_img": 1,
+      "merged_lit": 1,
+      "merged_img": 64,
+      "stem": "红山"
+    },
+    {
+      "dim": "lineage",
+      "a": "凌家滩文化/红山文化",
+      "b": "凌家滩文化",
+      "rule": "R1 包含关系",
+      "a_lit": 0,
+      "a_img": 1,
+      "b_lit": 0,
+      "b_img": 2,
+      "merged_lit": 0,
+      "merged_img": 3,
+      "stem": "凌家滩文化/红山"
+    },
+    {
+      "dim": "lineage",
+      "a": "越文化",
+      "b": "吴越文化",
+      "rule": "R1 包含关系",
+      "a_lit": 0,
+      "a_img": 3,
+      "b_lit": 0,
+      "b_img": 4,
+      "merged_lit": 0,
+      "merged_img": 7,
+      "stem": "越文化"
+    },
+    {
+      "dim": "topic/region",
+      "a": "数字化",
+      "b": "",
+      "rule": "R3 跨维同名",
+      "a_lit": 0,
+      "a_img": 0,
+      "b_lit": 0,
+      "b_img": 0,
+      "merged_lit": 0,
+      "merged_img": 0,
+      "stem": "数字化"
+    }
+  ],
+  "site_calibration": [
+    {
+      "遗址名称": "莫角山",
+      "分组": "良渚古城遗址群·宫殿区",
+      "表内文献数": 5,
+      "表内图版数": 6,
+      "现算文献数": 5,
+      "现算图版数": 6,
+      "图版·题注命中": 6,
+      "图版·图题命中": 6,
+      "图版·AI描述命中": 0,
+      "文献数一致": "是",
+      "图版数一致": "是",
+      "本库是否作为标签": "否",
+      "说明": "「本库出现」现算于 2026-10-29：文献=题名/摘要/关键词/刊名命中；图版=图版题注/图题命中"
+    },
+    {
+      "遗址名称": "反山",
+      "分组": "良渚古城遗址群·高等级墓地",
+      "表内文献数": 8,
+      "表内图版数": 87,
+      "现算文献数": 8,
+      "现算图版数": 87,
+      "图版·题注命中": 87,
+      "图版·图题命中": 65,
+      "图版·AI描述命中": 11,
+      "文献数一致": "是",
+      "图版数一致": "是",
+      "本库是否作为标签": "否",
+      "说明": "「本库出现」现算于 2026-10-29：文献=题名/摘要/关键词/刊名命中；图版=图版题注/图题命中"
+    },
+    {
+      "遗址名称": "瑶山",
+      "分组": "良渚古城遗址群·祭坛",
+      "表内文献数": 6,
+      "表内图版数": 60,
+      "现算文献数": 6,
+      "现算图版数": 60,
+      "图版·题注命中": 52,
+      "图版·图题命中": 48,
+      "图版·AI描述命中": 16,
+      "文献数一致": "是",
+      "图版数一致": "是",
+      "本库是否作为标签": "否",
+      "说明": "「本库出现」现算于 2026-10-29：文献=题名/摘要/关键词/刊名命中；图版=图版题注/图题命中"
+    },
+    {
+      "遗址名称": "汇观山",
+      "分组": "良渚古城遗址群·祭坛",
+      "表内文献数": 3,
+      "表内图版数": 9,
+      "现算文献数": 3,
+      "现算图版数": 9,
+      "图版·题注命中": 9,
+      "图版·图题命中": 9,
+      "图版·AI描述命中": 7,
+      "文献数一致": "是",
+      "图版数一致": "是",
+      "本库是否作为标签": "否",
+      "说明": "「本库出现」现算于 2026-10-29：文献=题名/摘要/关键词/刊名命中；图版=图版题注/图题命中"
+    },
+    {
+      "遗址名称": "钟家港",
+      "分组": "良渚古城遗址群·考古工作区",
+      "表内文献数": 3,
+      "表内图版数": 22,
+      "现算文献数": 3,
+      "现算图版数": 22,
+      "图版·题注命中": 22,
+      "图版·图题命中": 21,
+      "图版·AI描述命中": 4,
+      "文献数一致": "是",
+      "图版数一致": "是",
+      "本库是否作为标签": "否",
+      "说明": "「本库出现」现算于 2026-10-29：文献=题名/摘要/关键词/刊名命中；图版=图版题注/图题命中"
+    },
+    {
+      "遗址名称": "姜家山",
+      "分组": "良渚古城遗址群·墓地",
+      "表内文献数": 1,
+      "表内图版数": 2,
+      "现算文献数": 1,
+      "现算图版数": 2,
+      "图版·题注命中": 2,
+      "图版·图题命中": 2,
+      "图版·AI描述命中": 2,
+      "文献数一致": "是",
+      "图版数一致": "是",
+      "本库是否作为标签": "否",
+      "说明": "「本库出现」现算于 2026-10-29：文献=题名/摘要/关键词/刊名命中；图版=图版题注/图题命中"
+    },
+    {
+      "遗址名称": "官井头",
+      "分组": "良渚古城遗址群·聚落",
+      "表内文献数": 2,
+      "表内图版数": 0,
+      "现算文献数": 2,
+      "现算图版数": 0,
+      "图版·题注命中": 0,
+      "图版·图题命中": 0,
+      "图版·AI描述命中": 0,
+      "文献数一致": "是",
+      "图版数一致": "是",
+      "本库是否作为标签": "否",
+      "说明": "「本库出现」现算于 2026-10-29：文献=题名/摘要/关键词/刊名命中；图版=图版题注/图题命中"
+    },
+    {
+      "遗址名称": "卞家山",
+      "分组": "良渚古城遗址群·聚落",
+      "表内文献数": 2,
+      "表内图版数": 17,
+      "现算文献数": 2,
+      "现算图版数": 17,
+      "图版·题注命中": 17,
+      "图版·图题命中": 15,
+      "图版·AI描述命中": 1,
+      "文献数一致": "是",
+      "图版数一致": "是",
+      "本库是否作为标签": "否",
+      "说明": "「本库出现」现算于 2026-10-29：文献=题名/摘要/关键词/刊名命中；图版=图版题注/图题命中"
+    },
+    {
+      "遗址名称": "凤山",
+      "分组": "良渚古城遗址群·制玉作坊",
+      "表内文献数": 0,
+      "表内图版数": 0,
+      "现算文献数": 0,
+      "现算图版数": 0,
+      "图版·题注命中": 0,
+      "图版·图题命中": 0,
+      "图版·AI描述命中": 0,
+      "文献数一致": "是",
+      "图版数一致": "是",
+      "本库是否作为标签": "否",
+      "说明": "「本库出现」现算于 2026-10-29：文献=题名/摘要/关键词/刊名命中；图版=图版题注/图题命中"
+    },
+    {
+      "遗址名称": "寺墩",
+      "分组": "环太湖·同期遗址参照",
+      "表内文献数": 1,
+      "表内图版数": 34,
+      "现算文献数": 1,
+      "现算图版数": 34,
+      "图版·题注命中": 33,
+      "图版·图题命中": 28,
+      "图版·AI描述命中": 1,
+      "文献数一致": "是",
+      "图版数一致": "是",
+      "本库是否作为标签": "否",
+      "说明": "「本库出现」现算于 2026-10-29：文献=题名/摘要/关键词/刊名命中；图版=图版题注/图题命中"
+    },
+    {
+      "遗址名称": "福泉山",
+      "分组": "环太湖·同期遗址参照",
+      "表内文献数": 1,
+      "表内图版数": 27,
+      "现算文献数": 1,
+      "现算图版数": 27,
+      "图版·题注命中": 26,
+      "图版·图题命中": 22,
+      "图版·AI描述命中": 8,
+      "文献数一致": "是",
+      "图版数一致": "是",
+      "本库是否作为标签": "否",
+      "说明": "「本库出现」现算于 2026-10-29：文献=题名/摘要/关键词/刊名命中；图版=图版题注/图题命中"
+    },
+    {
+      "遗址名称": "广富林",
+      "分组": "环太湖·同期遗址参照",
+      "表内文献数": 2,
+      "表内图版数": 18,
+      "现算文献数": 2,
+      "现算图版数": 18,
+      "图版·题注命中": 18,
+      "图版·图题命中": 18,
+      "图版·AI描述命中": 0,
+      "文献数一致": "是",
+      "图版数一致": "是",
+      "本库是否作为标签": "否",
+      "说明": "「本库出现」现算于 2026-10-29：文献=题名/摘要/关键词/刊名命中；图版=图版题注/图题命中"
+    },
+    {
+      "遗址名称": "草鞋山",
+      "分组": "环太湖·同期遗址参照",
+      "表内文献数": 0,
+      "表内图版数": 19,
+      "现算文献数": 0,
+      "现算图版数": 19,
+      "图版·题注命中": 17,
+      "图版·图题命中": 17,
+      "图版·AI描述命中": 0,
+      "文献数一致": "是",
+      "图版数一致": "是",
+      "本库是否作为标签": "否",
+      "说明": "「本库出现」现算于 2026-10-29：文献=题名/摘要/关键词/刊名命中；图版=图版题注/图题命中"
+    },
+    {
+      "遗址名称": "马桥",
+      "分组": "环太湖·同期遗址参照",
+      "表内文献数": 0,
+      "表内图版数": 4,
+      "现算文献数": 0,
+      "现算图版数": 4,
+      "图版·题注命中": 3,
+      "图版·图题命中": 4,
+      "图版·AI描述命中": 9,
+      "文献数一致": "是",
+      "图版数一致": "是",
+      "本库是否作为标签": "否",
+      "说明": "「本库出现」现算于 2026-10-29：文献=题名/摘要/关键词/刊名命中；图版=图版题注/图题命中"
+    },
+    {
+      "遗址名称": "马家浜",
+      "分组": "崧泽—良渚过渡参照",
+      "表内文献数": 4,
+      "表内图版数": 2,
+      "现算文献数": 4,
+      "现算图版数": 2,
+      "图版·题注命中": 2,
+      "图版·图题命中": 2,
+      "图版·AI描述命中": 0,
+      "文献数一致": "是",
+      "图版数一致": "是",
+      "本库是否作为标签": "否",
+      "说明": "「本库出现」现算于 2026-10-29：文献=题名/摘要/关键词/刊名命中；图版=图版题注/图题命中"
+    },
+    {
+      "遗址名称": "崧泽",
+      "分组": "崧泽—良渚过渡参照",
+      "表内文献数": 8,
+      "表内图版数": 33,
+      "现算文献数": 8,
+      "现算图版数": 33,
+      "图版·题注命中": 33,
+      "图版·图题命中": 23,
+      "图版·AI描述命中": 3,
+      "文献数一致": "是",
+      "图版数一致": "是",
+      "本库是否作为标签": "否",
+      "说明": "「本库出现」现算于 2026-10-29：文献=题名/摘要/关键词/刊名命中；图版=图版题注/图题命中"
+    },
+    {
+      "遗址名称": "河姆渡",
+      "分组": "更早文化参照",
+      "表内文献数": 1,
+      "表内图版数": 11,
+      "现算文献数": 1,
+      "现算图版数": 11,
+      "图版·题注命中": 10,
+      "图版·图题命中": 8,
+      "图版·AI描述命中": 1,
+      "文献数一致": "是",
+      "图版数一致": "是",
+      "本库是否作为标签": "否",
+      "说明": "「本库出现」现算于 2026-10-29：文献=题名/摘要/关键词/刊名命中；图版=图版题注/图题命中"
+    },
+    {
+      "遗址名称": "钱山漾",
+      "分组": "良渚文化·地域扩展参照",
+      "表内文献数": 2,
+      "表内图版数": 13,
+      "现算文献数": 2,
+      "现算图版数": 13,
+      "图版·题注命中": 13,
+      "图版·图题命中": 13,
+      "图版·AI描述命中": 0,
+      "文献数一致": "是",
+      "图版数一致": "是",
+      "本库是否作为标签": "否",
+      "说明": "「本库出现」现算于 2026-10-29：文献=题名/摘要/关键词/刊名命中；图版=图版题注/图题命中"
+    }
+  ]
+}

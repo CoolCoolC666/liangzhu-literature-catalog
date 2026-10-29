@@ -1,0 +1,4263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>宁波地域文明探源工程 · 良渚文化文献目录</title>
+<!-- 内联 SVG 图标：避免 /favicon.ico 404（同时保持零外链） -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%234C78A8'/%3E%3Ctext x='50%25' y='56%25' text-anchor='middle' font-size='17' fill='white' font-family='sans-serif'%3E良%3C/text%3E%3C/svg%3E">
+<!--
+  良渚文化文献目录 · 前端单页（原生 JS / CSS，零外部依赖、零 CDN，断网可用）
+  后端：FastAPI，同源 /api/*；错误统一 {"error": "..."}
+  数据契约：03/01-程序/_docs/数据契约.md（v1.0，2026-10-27 冻结）
+  本机访问地址：http://127.0.0.1:8771/
+  vis-network 运行时由后端内联提供：/api/graph/vislib.js 与 /api/graph/vislib.css（同源相对路径，非外链）
+  图版图像经后端代理：/media/img/{filename}（契约 §2.12）；页脚口径与免责说明读 /api/notes
+-->
+<link rel="stylesheet" href="/api/graph/vislib.css">
+<!-- Leaflet 1.9.4：本地 vendor 副本（零 CDN、零外链），许可声明见 vendor/leaflet/LICENSE -->
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<script src="vendor/leaflet/leaflet.js"></script>
+<style>
+:root{
+  --ink:#1d2733; --ink2:#4a5a6a; --line:#dfe6ec; --bg:#f5f7f9; --card:#ffffff;
+  --brand:#1b6c8c; --brand2:#e9f2f6; --warn:#b34a00; --ok:#1e7a45;
+  --mark:#fff2a8;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:"Microsoft YaHei","PingFang SC","Hiragino Sans GB","Source Han Sans SC",sans-serif;
+  font-size:14px; line-height:1.6;
+}
+a{color:var(--brand);text-decoration:none} a:hover{text-decoration:underline}
+.wrap{max-width:1240px;margin:0 auto;padding:0 18px}
+
+/* ---------- 顶栏 ---------- */
+.topbar{background:#fff;border-bottom:1px solid var(--line);box-shadow:0 1px 3px rgba(20,40,60,.05)}
+.topbar .wrap{position:relative;padding-top:14px;padding-bottom:0}
+/* 右上角同步控件。
+   ★ 为什么钉在顶栏而不是塞进某个页签：同步是**全局**状态 ——
+     用户在任何页面浏览，都该一眼看到「现在会不会自动存」。
+     放在页签里就会变成「只有进那个页才知道」。 */
+.syncbox{position:absolute;right:18px;top:14px;display:flex;gap:6px;align-items:center}
+.syncbox .btn{padding:5px 12px;font-size:12.5px}
+.syncbox .btn.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.syncbox .btn.bad{background:#fff;color:#c0392b;border-color:#c0392b}
+@media (max-width:820px){
+  .syncbox{position:static;margin:6px 0 8px}
+}
+h1{font-size:20px;margin:0 0 4px;font-weight:700;letter-spacing:.3px}
+.sub{color:var(--ink2);font-size:12.5px;margin-bottom:10px}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tabs button{
+  background:none;border:none;border-bottom:3px solid transparent;padding:9px 18px;cursor:pointer;
+  font-size:15px;font-family:inherit;color:var(--ink2);font-weight:600;
+}
+.tabs button:hover{color:var(--brand);background:var(--brand2)}
+.tabs button.active{color:var(--brand);border-bottom-color:var(--brand)}
+
+/* ---------- 通用 ---------- */
+main{padding:20px 18px 40px;min-height:60vh}
+h2.sec{font-size:16px;margin:22px 0 10px;padding-left:9px;border-left:4px solid var(--brand)}
+h3.sub2{font-size:14px;margin:14px 0 8px;color:var(--brand)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:14px 16px}
+.muted{color:var(--ink2)}
+.small{font-size:12.5px}
+.mono{font-family:Consolas,"Courier New",monospace;font-size:12.5px;word-break:break-all}
+mark{background:var(--mark);padding:0 1px;border-radius:2px}
+.grid{display:grid;gap:12px}
+
+/* 口径条 */
+.scope{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--brand2);
+  border:1px solid #cfe0e8;border-radius:6px;padding:8px 12px;margin-bottom:14px;font-size:12.5px}
+.scope b{color:var(--brand)}
+.scope .k{color:var(--ink2);margin-right:2px}
+
+/* 统计卡 */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:6px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+.stat .n{font-size:24px;font-weight:700;color:var(--brand);line-height:1.25}
+.stat .t{font-size:12.5px;color:var(--ink2)}
+
+/* 分布条形图（纯 CSS） */
+.bars{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+.barrow{display:grid;grid-template-columns:minmax(120px,220px) 1fr 56px;gap:8px;align-items:center;margin:5px 0}
+.barrow .lb{font-size:12.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.barrow .tr{background:#eef2f5;border-radius:3px;height:14px;overflow:hidden}
+.barrow .fl{background:linear-gradient(90deg,#2f87ad,#5fb0cd);height:100%;border-radius:3px;min-width:2px}
+.barrow .vl{text-align:right;font-size:12.5px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.barhead{font-weight:700;font-size:13.5px;margin-bottom:6px;color:var(--ink)}
+.tag{font-size:11.5px;color:var(--ink2);font-weight:400;margin-left:8px;font-family:Consolas,"Courier New",monospace}
+
+/* 表单控件 */
+input[type=text],input[type=number],select{
+  font-family:inherit;font-size:13px;padding:5px 8px;border:1px solid #c9d5de;border-radius:4px;
+  background:#fff;color:var(--ink);max-width:100%}
+label.fl{font-size:12.5px;color:var(--ink2);margin-right:4px}
+.btn{font-family:inherit;font-size:13px;padding:6px 14px;border:1px solid var(--brand);background:var(--brand);
+  color:#fff;border-radius:4px;cursor:pointer}
+.btn:hover{background:#155a75}
+.btn.ghost{background:#fff;color:var(--brand)}
+.btn.ghost:hover{background:var(--brand2)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--card);
+  border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-bottom:12px}
+
+/* 列表 */
+.litlist{border:1px solid var(--line);border-radius:6px;background:var(--card);overflow:hidden}
+.litrow{display:grid;grid-template-columns:46px 1fr 96px 92px 190px;gap:10px;padding:9px 12px;
+  border-bottom:1px solid #edf1f4;align-items:start}
+.litrow:hover{background:#f9fcfd}
+.litrow.head{background:#f2f6f8;font-weight:700;font-size:12.5px;color:var(--ink2)}
+.litrow .idx{color:var(--ink2);font-variant-numeric:tabular-nums}
+.litrow .ttl{font-weight:600}
+.litrow .au{font-size:12.5px;color:var(--ink2)}
+.litrow .tg{font-size:12px;color:var(--ink2)}
+.pill{display:inline-block;background:#eef3f6;border:1px solid #dde6ec;border-radius:10px;
+  padding:1px 8px;font-size:11.5px;margin:1px 3px 1px 0;color:var(--ink2);white-space:nowrap}
+.pill.st-pass{background:#e7f4ec;border-color:#bfe0cd;color:var(--ok)}
+.pill.st-pending{background:#fdf1e6;border-color:#f2d5b8;color:var(--warn)}
+.pager{display:flex;gap:8px;align-items:center;justify-content:flex-end;padding:10px 12px;
+  background:var(--card);border:1px solid var(--line);border-top:none;border-radius:0 0 6px 6px}
+
+/* 详情 */
+.dl{display:grid;grid-template-columns:88px 1fr;gap:4px 10px;font-size:13.5px}
+.dl dt{color:var(--ink2)}
+.dl dd{margin:0;word-break:break-word}
+.secblk{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:13px 16px;margin-bottom:12px}
+.imgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.imgtile{border:1px solid var(--line);border-radius:5px;overflow:hidden;background:#fbfcfd}
+.imgtile .ph{width:100%;height:150px;object-fit:cover;display:block;background:#eef1f3}
+.imgtile .cap{padding:6px 8px;font-size:12px;line-height:1.5}
+.imgtile .cap .fn{color:var(--brand);font-weight:600}
+.notebox{background:#fff8e6;border:1px solid #f0dcae;border-radius:5px;padding:9px 12px;font-size:12.5px;color:#7a5510}
+.errbox{background:#fdecec;border:1px solid #f2c2c2;border-radius:5px;padding:10px 12px;color:#8c2020}
+.hits li{margin:6px 0}
+.jsonlist{border:1px solid var(--line);border-radius:5px;background:#fafcfd;padding:8px 10px;max-height:340px;overflow:auto}
+.jsonlist .jf{padding:6px 0;border-bottom:1px dashed #e2e9ee}
+.jsonlist .jf:last-child{border-bottom:none}
+
+/* 图谱 */
+.graphwrap{display:grid;grid-template-columns:260px 1fr 340px;gap:12px;align-items:start}
+#net{width:100%;height:560px;background:var(--card);border:1px solid var(--line);border-radius:6px}
+.sidepanel{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px;max-height:640px;overflow:auto}
+.ev{border:1px solid var(--line);border-radius:5px;padding:9px 10px;margin-bottom:9px;background:#fcfdfe}
+.ev .t{font-weight:600;margin-bottom:3px}
+.ev .meta{font-size:12px;color:var(--ink2)}
+.chk{display:inline-flex;align-items:center;gap:4px;margin-right:12px;font-size:13px}
+.edgelist{list-style:none;margin:8px 0 0;padding:0}
+.edgelist li{border-bottom:1px dashed #e2e9ee;padding:6px 2px;font-size:12.5px;cursor:pointer}
+.edgelist li:hover{background:var(--brand2)}
+.edgelist li.hl{background:#fdf1e6;border-left:3px solid var(--warn);padding-left:4px}
+.edgelist li .rel{color:var(--ink2);font-size:11.5px}
+.edgelist li .pair{word-break:break-all}
+.edgelist .more{padding:8px 2px;color:var(--ink2);border-bottom:none;cursor:default}
+.legend{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:8px 0 0;font-size:12.5px}
+.legend .lg{display:inline-flex;align-items:center;gap:5px}
+.legend .dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+.legend .sq{width:11px;height:11px;border-radius:2px;display:inline-block}
+.legend .tri{width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:11px solid #238b45;display:inline-block}
+.legend .dia{width:10px;height:10px;transform:rotate(45deg);display:inline-block}
+.gtoggle{display:none}
+@media(max-width:1180px){ .graphwrap{grid-template-columns:1fr 320px} }
+@media(max-width:900px){
+  .graphwrap{grid-template-columns:1fr}
+  .litrow{grid-template-columns:40px 1fr;}
+  .litrow .col-hide{display:none}
+  .gtoggle{display:inline-block}
+  #g-edges{max-height:300px}
+  .graphwrap.collapsed #g-edges{display:none}
+}
+/* 工作台 */
+.wb{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));align-items:start}
+/* 工作台入口页：功能卡片网格 */
+.wbgrid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.wcard{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:14px 16px;
+  display:flex;flex-direction:column;gap:7px}
+.wcard h4{margin:0;font-size:15px;color:var(--brand)}
+.wcard .what{font-size:13px}
+.wcard .eps{font-size:11.5px;color:var(--ink2);font-family:Consolas,"Courier New",monospace;word-break:break-all}
+.wcard .perm{font-size:12px;color:var(--warn)}
+.wcard .statline{font-size:12.5px;background:#f4f8fa;border:1px solid #e2ecf1;border-radius:4px;padding:4px 8px}
+.wcard a.go{align-self:flex-start;margin-top:2px}
+/* 子界面顶部条 */
+.subbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.subbar h3{margin:0;font-size:17px;color:var(--brand)}
+.fullblk{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:14px 16px;margin-bottom:14px}
+.mapimg{width:100%;max-width:100%;border:1px solid var(--line);border-radius:5px;background:#fff}
+.pf{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.wbblk{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:13px 16px}
+.wbblk h3{margin:0 0 10px;font-size:15px;color:var(--brand)}
+.wbblk h3 .tag{font-size:11.5px;color:var(--ink2);font-weight:400;margin-left:6px}
+.formrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
+.formrow label.fl{min-width:96px;display:inline-block}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:5px;max-height:360px}
+table.grid{border-collapse:collapse;width:100%;font-size:12.5px}
+table.grid th,table.grid td{border-bottom:1px solid #edf1f4;padding:5px 8px;text-align:left;vertical-align:top}
+table.grid th{background:#f2f6f8;position:sticky;top:0}
+table.grid td.old{color:#8c2020}
+table.grid td.new{color:var(--ok)}
+.notice{background:#fff8e6;border:1px solid #f0dcae;border-radius:5px;padding:8px 11px;font-size:12.5px;color:#7a5510;margin-bottom:8px}
+.notice.bad{background:#fdecec;border-color:#f2c2c2;color:#8c2020}
+.notice.good{background:#e7f4ec;border-color:#bfe0cd;color:var(--ok)}
+.cite{border:1px solid var(--line);border-radius:5px;padding:6px 9px;margin:6px 0;background:#fcfdfe}
+.cite .t{font-weight:600}
+.loginbox{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.svgchart{width:100%;height:auto;display:block}
+.svgchart .ax{stroke:#c9d5de;stroke-width:1}
+.svgchart .bl{fill:#2f87ad}
+.svgchart .tx{fill:#4a5a6a;font-size:11px}
+.mapimg{max-width:100%;border:1px solid var(--line);border-radius:5px;background:#fff}
+/* ---------- 交互地图（Leaflet，本地 vendor；零外链） ---------- */
+/* 详情页内嵌小地图：聚焦「这一篇」的坐标标记 */
+#litmap{height:300px;border:1px solid var(--line);border-radius:6px;background:#F4F6F8;position:relative;z-index:0}
+.lz-tier{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;color:#fff;margin-right:6px;vertical-align:1px}
+.lz-tier.lit_coord{background:#C0392B}
+.lz-tier.public{background:#4C78A8}
+.lz-tier.region{background:#E08A1E}
+.lz-tier.none{background:#8895a1}
+.lz-mapmark{border:1px solid var(--line);border-left:3px solid #c3d0d9;border-radius:4px;padding:8px 10px;margin-top:8px;background:#fff}
+.lz-mapmark.t-lit_coord{border-left-color:#C0392B}
+.lz-mapmark.t-public{border-left-color:#4C78A8}
+.lz-mapmark.t-region{border-left-color:#E08A1E}
+.lz-mapmark .nm{font-weight:700}
+.lz-mapmark .kv{font-size:12px;color:var(--ink2);margin-top:3px;line-height:1.6}
+.lz-mapmark .kv b{color:var(--ink)}
+.lz-mk-t1 span{width:14px;height:14px;background:#C0392B;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1px rgba(30,50,70,.3)}
+.lz-mk-t2 span{width:14px;height:14px;background:#4C78A8;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1px rgba(30,50,70,.3)}
+.lz-mk-t3 span{width:13px;height:13px;background:#E08A1E;border:2px solid #fff;border-radius:2px;box-shadow:0 0 0 1px rgba(30,50,70,.25)}
+.lz-mk-t0 span{width:13px;height:13px;background:#fff;border:2px solid #8895a1;border-radius:50%}
+#stats-map{height:560px;border:1px solid var(--line);border-radius:6px;background:#DCEAF4;position:relative;z-index:0}
+/* 区域层是「陆地视角」（这一档画的是湖/河/海岸线，没有陆地多边形），
+   背景换成陆地色，太湖（#DCEAF4）才看得出来；世界层/中国层是海洋视角，用水色背景。 */
+#stats-map.lz-land,.leaflet-container.lz-land{background:#F4F6F8}
+.lz-wrap{position:relative}
+.lz-legend{position:absolute;left:10px;bottom:10px;z-index:600;background:rgba(255,255,255,.94);
+  border:1px solid var(--line);border-radius:5px;padding:8px 10px;font-size:12px;line-height:1.5;
+  box-shadow:0 1px 4px rgba(20,40,60,.14);max-width:340px}
+.lz-legend .t{font-weight:700;margin-bottom:4px}
+.lz-legend .li{display:flex;align-items:flex-start;gap:6px;margin-top:2px}
+.lz-legend .sw{flex:0 0 14px;width:14px;height:14px;margin-top:2px;border-radius:50%;background:#C0392B;
+  border:2px solid #fff;box-shadow:0 0 0 1px #9aa7b1}
+.lz-legend .sw.rg{background:#E08A1E;border-radius:2px}
+.lz-legend .sw.st{background:#178A7B;border-radius:2px;transform:rotate(45deg)}
+.lz-legend .sw.box{background:rgba(192,57,43,.12);border:2px dashed #C0392B;border-radius:0;box-shadow:none}
+.lz-legend .sw.lz{background:#4C78A8}
+.lz-legend .nt{font-size:11.5px;color:var(--ink2);margin-top:5px;border-top:1px solid var(--line);padding-top:5px}
+.lz-mk{background:none;border:none}
+.lz-mk span{display:block}
+.lz-mk-region span{width:13px;height:13px;background:#E08A1E;border:2px solid #fff;border-radius:2px;box-shadow:0 0 0 1px rgba(30,50,70,.25)}
+.lz-mk-region.lz-hl span{background:#C0392B;transform:scale(1.35);box-shadow:0 0 0 2px rgba(192,57,43,.35)}
+.lz-mk-pt span{width:14px;height:14px;background:#C0392B;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1px rgba(30,50,70,.3)}
+.lz-mk-site span{width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;
+  border-bottom:13px solid #178A7B;filter:drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff)}
+.lz-tip{background:#fff;border:1px solid var(--line);box-shadow:none;color:var(--ink);font-size:12px}
+.lz-tip:before{display:none}
+.lz-info{margin-top:12px;border:1px solid var(--line);border-radius:6px;background:#fbfcfd;padding:12px 14px}
+.lz-info h4{margin:0 0 6px;font-size:15px;color:var(--brand)}
+.lz-info .kv{font-size:12.5px;color:var(--ink2);margin:2px 0}
+.lz-info .kv b{color:var(--ink)}
+.lz-info .lits{margin-top:8px;max-height:280px;overflow:auto;border-top:1px solid var(--line);padding-top:6px}
+.lz-info .lit{display:block;padding:4px 0;border-bottom:1px dashed #e8eef3;font-size:12.5px;line-height:1.5}
+.lz-info .lit .yr{color:var(--ink2);margin-left:6px}
+.svgchart .bl.hl{fill:#C0392B}
+.svgchart .barhit:hover{fill:#C0392B}
+.modal{position:fixed;inset:0;background:rgba(20,35,45,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal .box{background:#fff;border-radius:8px;max-width:1000px;width:100%;max-height:88vh;overflow:auto;padding:16px 18px}
+.modal h3{margin:0 0 10px;font-size:16px;color:var(--brand)}
+@media(max-width:900px){ .wb{grid-template-columns:1fr} }
+
+
+/* 状态 */
+.loading{display:flex;align-items:center;gap:9px;color:var(--ink2);padding:26px;justify-content:center}
+.spin{width:16px;height:16px;border:2px solid #cfdce4;border-top-color:var(--brand);border-radius:50%;
+  animation:sp .8s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+.empty{padding:34px;text-align:center;color:var(--ink2);background:var(--card);border:1px dashed #cfd9e0;border-radius:6px}
+footer{background:#fff;border-top:1px solid var(--line);padding:16px 0 26px;color:var(--ink2);font-size:12.5px}
+footer p{margin:3px 0}
+@media(max-width:1180px){
+  .graphwrap{grid-template-columns:1fr 320px}
+}
+@media(max-width:900px){
+  .graphwrap{grid-template-columns:1fr}
+  .litrow{grid-template-columns:40px 1fr;}
+  .litrow .col-hide{display:none}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <h1>宁波地域文明探源工程 · 良渚文化文献目录</h1>
+    <div class="sub">
+      数据更新日期：<span id="update-date">2026-10-27</span>　|　服务状态：<span id="health-state">检测中…</span>
+      　|　全部数据由本机后端 <span class="mono">/api/*</span> 提供，同源访问，断网可用
+    </div>
+    <nav class="tabs" id="tabs">
+      <button data-tab="overview" class="active">总览</button>
+      <button data-tab="list">文献</button>
+      <button data-tab="graph">图谱</button>
+      <button data-tab="work">工作台</button>
+    </nav>
+    <!-- 右上角同步控件：主按钮=自动同步开关（未设置时点它跳配置页） -->
+    <div class="syncbox">
+      <button type="button" class="btn ghost" id="sync-auto" title="自动同步">同步：读取中…</button>
+      <button type="button" class="btn ghost" id="sync-now" title="立即同步一次（下载合并 + 上传）">⟳ 立即同步</button>
+    </div>
+  </div>
+</header>
+
+<main id="view"><div class="loading"><span class="spin"></span>正在初始化…</div></main>
+
+<footer>
+  <div class="wrap">
+    <p id="foot-source"><b>数据来源</b>：中国知网（CNKI）· 中文维普 · 出版商/期刊官网（OA 与开放获取）· 高校机构库 · 公共图书馆数字资源等；每条文献的来源类型与来源判据见「详情 → 去哪核实」。</p>
+    <p id="foot-usage"><b>使用条件</b>：以每条文献的「开放类型（open_type）」为准。仅标注为公开的条目可自由引用与转发；标注为机构订阅/限内部使用的文献<b>不得外传</b>，仅供本机核验与著录使用。</p>
+    <p id="foot-disclaimer"><b>免责说明</b>：本页数据由本机后端从原始登记表与文献附件自动汇整，用于课程作业的著录与检索演示；正式引用请回到原始来源核对。</p>
+    <p id="foot-version"><b>数据版本</b>：数据契约 v1.0（2026-10-27 冻结）· 良渚文化文献与图版目录 · 本页所有统计口径均以界面标注为准（总条数 / 当前筛选条数 / 复核覆盖率）。</p>
+    <p id="foot-review" class="small"></p>
+    <p id="foot-graph" class="small">图谱可视化由本机后端内联提供的 vis-network 运行时渲染，无任何外网依赖；图版图像经本机后端 <span class="mono">/media/img/</span> 读取。</p>
+  </div>
+</footer>
+
+<script src="/api/graph/vislib.js"></script>
+<script>
+"use strict";
+/* ==================================================================
+ * 良渚文化文献目录 · 前端单页
+ * 数据契约：03/01-程序/_docs/数据契约.md v1.0
+ * 全部请求同源相对路径 /api/*，无绝对 URL、无 CORS、无 CDN
+ * ================================================================== */
+
+/* ---------------- 基础工具 ---------------- */
+var $ = function (s) { return document.querySelector(s); };
+var view = $("#view");
+
+var ENT_MAP = {};
+ENT_MAP[String.fromCharCode(38)] = String.fromCharCode(38) + "amp;";
+ENT_MAP[String.fromCharCode(60)] = String.fromCharCode(38) + "lt;";
+ENT_MAP[String.fromCharCode(62)] = String.fromCharCode(38) + "gt;";
+ENT_MAP[String.fromCharCode(34)] = String.fromCharCode(38) + "quot;";
+ENT_MAP[String.fromCharCode(39)] = String.fromCharCode(38) + "#39;";
+function esc(s) {
+  return String(s === null || s === undefined ? "" : s)
+    .replace(/[&<>"']/g, function (c) { return ENT_MAP[c]; });
+}
+function stripTags(s) { return String(s === null || s === undefined ? "" : s).replace(/<[^>]*>/g, ""); }
+function escRe(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+function nz(s) { return (s === null || s === undefined || s === "") ? "—" : s; }
+function nl2br(s) { return esc(s).replace(/\r?\n/g, "<br>"); }
+/* MinerU 的 Markdown 正文里带 <sub>/<sup> 等内联 HTML 标记。作为纯文本展示时
+   先把标签**去掉**（只去标签、不当 HTML 解析，避免注入），否则页面上会出现
+   字面的 "<sub>"，读起来像坏掉了。 */
+function mdText(s) { return nl2br(stripTags(String(s === null || s === undefined ? "" : s))); }
+
+/* 来源链接：登记表的「来源/获取链接」列里混着三类东西——
+   真 URL、DOI、以及「南方文物, 2013, (2):125-128；知网可检索」这种**题录文字**。
+   把题录文字直接塞进 href 会生成一个点不动的假链接，所以只有真 URL 才做成 <a>，
+   DOI 走 doi.org，其余按纯文本显示。 */
+function linkOrText(v) {
+  var s = String(v === null || v === undefined ? "" : v).trim();
+  if (!s) return null;
+  if (/^https?:\/\//i.test(s) || /^www\./i.test(s)) {
+    var href = /^www\./i.test(s) ? ("http://" + s) : s;
+    return '<a href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(s) + "</a>";
+  }
+  var m = s.match(/(?:^|[^0-9])(10\.\d{4,9}\/[^\s"<>]+)/);
+  if (m) {
+    return '<a href="https://doi.org/' + esc(m[1]) + '" target="_blank" rel="noopener">DOI: ' + esc(m[1]) + "</a>";
+  }
+  return '<span class="mono small">' + esc(s) + "</span>";
+}
+
+/* 关键词命中标黄 */
+function hl(text, terms) {
+  var t = esc(stripTags(text));
+  var list = [];
+  if (typeof terms === "string") { if (terms) list.push(terms); }
+  else if (terms && terms.length) { list = terms.filter(function (x) { return !!x; }); }
+  list.forEach(function (w) {
+    var re = new RegExp(escRe(w), "gi");
+    t = t.replace(re, function (m) { return "<mark>" + m + "</mark>"; });
+  });
+  return t;
+}
+/* 取标签串的标签名（去掉代码前缀） */
+function tagNames(s) {
+  if (!s) return [];
+  return String(s).split(/[;；]/).map(function (x) { return x.trim(); })
+    .filter(function (x) { return !!x; })
+    .map(function (x) { return x.replace(/^[A-Z]-\d{4}\s+/, ""); });
+}
+function reviewClass(st) {
+  var s = String(st || "");
+  if (/通过|已复核|pass/i.test(s)) return "st-pass";
+  if (/待|pending|未/i.test(s)) return "st-pending";
+  return "";
+}
+function fmtNum(n) {
+  if (n === null || n === undefined || n === "") return "—";
+  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+function fmtSize(b) {
+  if (b === null || b === undefined || b === "") return "—";
+  var v = Number(b);
+  if (!isFinite(v)) return String(b);
+  if (v > 1048576) return (v / 1048576).toFixed(1) + " MB";
+  if (v > 1024) return (v / 1024).toFixed(1) + " KB";
+  return v + " B";
+}
+
+/* ---------------- 状态 ---------------- */
+var state = {
+  tab: "overview",
+  ov: null,                 // /api/overview 缓存
+  ovErr: null,
+  tagOpts: { period: [], region: [], topic: [], lineage: [] },
+  /* 「文献」页 = 浏览 + 检索合并：一套控件、一套渲染
+     关键词留空 = 浏览（按类别翻页）；关键词填了 = 检索（关键词 AND 类别） */
+  list: {
+    q: "", doc_type: "", lang: "", year: "",
+    period: "", region: "", topic: "", lineage: "",
+    sort: "lit_id", page: 1, size: 20
+  },
+  detailId: null,
+  /* 鉴权（接口契约-v2 §3.1）：未登录 = auth.user 为 null */
+  auth: { token: null, user: null, checked: false, err: null },
+  /* 收藏：items = [{lit_id,title,note,created_at}] */
+  fav: { items: null, loaded: false },
+  /* 工作台各区块的临时状态 */
+  work: { staging: null, ai: null, importLog: null },
+  /* 服务器端浏览记录（`/api/browse/server/status`）：决定同步目标走哪条路 */
+  browseServer: null,
+  graph: {
+    kinds: { lit: true, img: true, tag: true, objtype: true },
+    min_degree: 1, keyword: "", focus: "", hop: 1, limit: 600,
+    data: null, analysis: null, network: null,
+    edgeQuery: "", edgeSel: null, nodeSel: null, hasPos: false,
+    /* 标签清单（后端按「每社区一个」轮转排序）与「节点 id → 排名」索引。
+       前端按缩放级别渐进放出：全图 12 个 → 中等 24 个 → 放大后全部。 */
+    labelNodes: [], labelIndex: {},
+    /* scale 轮询（程序化缩放不触发 zoom 事件，见 applyLabelScale 处的说明） */
+    scaleTimer: null, lastScale: 0
+  }
+};
+
+/* ---------------- 请求封装（全部 try/catch，失败给提示不白屏） ----------------
+   响应兼容两种形态：
+     · v1（现网）：直接返回业务对象，如 {"lit_count":200,...}
+     · v2（接口契约-v2）：{"ok":true,"data":{...}} / {"ok":false,"error":"…"}
+   unwrap() 把 v2 信封拆掉，两种形态对上层是同一种数据。 */
+function apiUrl(path, params) {
+  var q = [];
+  if (params) {
+    Object.keys(params).forEach(function (k) {
+      var v = params[k];
+      if (v === undefined || v === null || v === "") return;
+      q.push(encodeURIComponent(k) + "=" + encodeURIComponent(v));
+    });
+  }
+  return path + (q.length ? (path.indexOf("?") >= 0 ? "&" : "?") + q.join("&") : "");
+}
+function unwrap(d) {
+  if (d && typeof d === "object" && d.ok === true && d.data !== undefined) return d.data;
+  return d;
+}
+function api(path, params) {
+  return apiSend("GET", path, null, params);
+}
+function apiSend(method, path, body, params) {
+  var opt = { method: method || "GET", headers: { "Accept": "application/json" } };
+  if (state.auth && state.auth.token) opt.headers["X-Auth-Token"] = state.auth.token;
+  if (body !== undefined && body !== null) {
+    if (typeof FormData !== "undefined" && body instanceof FormData) {
+      opt.body = body;                      /* multipart：让浏览器自己带 boundary */
+    } else {
+      opt.headers["Content-Type"] = "application/json; charset=utf-8";
+      opt.body = JSON.stringify(body);
+    }
+  }
+  return fetch(apiUrl(path, params), opt)
+    .then(function (r) {
+      return r.text().then(function (t) {
+        var d = null;
+        try { d = t ? JSON.parse(t) : null; } catch (e) { d = null; }
+        if (!r.ok) {
+          var msg = (d && d.error) ? d.error : ("HTTP " + r.status + (d === null ? "（端点未实现，或返回的不是 JSON）" : ""));
+          return { ok: false, status: r.status, error: msg };
+        }
+        if (d && d.ok === false) return { ok: false, status: r.status, error: d.error || "请求失败" };
+        return { ok: true, data: unwrap(d), raw: d };
+      });
+    })
+    .catch(function (e) {
+      var msg = (e && e.message) ? e.message : String(e);
+      return { ok: false, offline: true, error: "后端未启动或无法连接（" + msg + "）。请先启动本机后端服务后刷新本页。" };
+    });
+}
+function showLoading(txt) {
+  view.innerHTML = '<div class="loading"><span class="spin"></span>' + esc(txt || "加载中…") + "</div>";
+}
+function showError(title, err) {
+  view.innerHTML = '<div class="errbox"><b>' + esc(title) + "</b><br>" + esc(err) +
+    '<br><span class="small">本页所有数据均来自本机后端接口；后端未运行时页面不会显示假数据。</span></div>';
+}
+function emptyBox(txt) {
+  return '<div class="empty">' + esc(txt) + "</div>";
+}
+
+/* ---------------- 口径条 ---------------- */
+function scopeBar(items) {
+  var html = '<div class="scope">';
+  items.forEach(function (it) {
+    html += '<span><span class="k">' + esc(it[0]) + "</span><b>" + esc(it[1]) + "</b>" +
+      (it[2] ? " <span class='k'>" + esc(it[2]) + "</span>" : "") + "</span>";
+  });
+  html += "</div>";
+  return html;
+}
+function reviewRate() {
+  if (!state.ov || !state.ov.review) return null;
+  var r = state.ov.review;
+  return (typeof r.rate === "number") ? r.rate : null;
+}
+function reviewText() {
+  var r = reviewRate();
+  if (r === null) return "复核覆盖率：—（后端未返回 review 统计）";
+  return "复核覆盖率：" + (r * 100).toFixed(1) + "%（按状态字段统计）";
+}
+function reviewNote() {
+  return "说明：有复核日期不等于已复核，本口径按 review_status 状态字段统计。";
+}
+
+/* ---------------- 鉴权 ----------------
+   /api/auth/me 可能三种结果：200（已登录）/ 401（未登录）/ 404（本机 auth.enabled=false
+   或后端未实现）。三种都要能正常显示，不能因为 401 就整页报错。 */
+function loadMe() {
+  return api("/api/auth/me").then(function (r) {
+    state.auth.checked = true;
+    if (r.ok && r.data) {
+      var u = r.data.user || (r.data.username ? r.data : null);
+      state.auth.user = u || null;
+      if (r.data.token) state.auth.token = r.data.token;
+      state.auth.err = null;
+    } else {
+      state.auth.user = null;
+      state.auth.err = r.error || null;
+    }
+    return state.auth;
+  });
+}
+function isAdmin() {
+  return !!(state.auth.user && String(state.auth.user.role || "").toLowerCase() === "admin");
+}
+function loginUser() {
+  var u = $("#w-user"), p = $("#w-pass");
+  if (!u || !p) return;
+  if (!u.value.trim() || !p.value) {
+    setBlockMsg("#w-login-msg", "请填写用户名与密码", "bad");
+    return;
+  }
+  setBlockMsg("#w-login-msg", "正在登录…", "");
+  apiSend("POST", "/api/auth/login", { username: u.value.trim(), password: p.value })
+    .then(function (r) {
+      if (!r.ok) { setBlockMsg("#w-login-msg", "登录失败：" + r.error, "bad"); return; }
+      var d = r.data || {};
+      state.auth.token = d.token || state.auth.token;
+      state.auth.user = d.user || { username: u.value.trim(), role: "admin" };
+      state.auth.checked = true;
+      setBlockMsg("#w-login-msg", "", "");
+      renderWorkbench();
+    });
+}
+function logoutUser() {
+  apiSend("POST", "/api/auth/logout", {}).then(function (r) {
+    if (!r.ok) { setBlockMsg("#w-login-msg", "退出失败：" + r.error, "bad"); return; }
+    state.auth.token = null;
+    state.auth.user = null;
+    state.fav.items = null;
+    renderWorkbench();
+  });
+}
+/* 区块内的行内提示 */
+function setBlockMsg(sel, msg, kind) {
+  var e = $(sel);
+  if (!e) return;
+  if (!msg) { e.innerHTML = ""; e.style.display = "none"; return; }
+  e.style.display = "block";
+  e.className = "notice" + (kind ? " " + kind : "");
+  e.textContent = msg;
+}
+
+/* ---------------- 顶栏 / 页签 / 路由 ---------------- */
+function setHealth(ok, txt) { $("#health-state").textContent = txt; }
+function setUpdateDate(s) { if (s) $("#update-date").textContent = s; }
+/* 更新日期：updated_at → migrated_at → 写死 2026-10-27；只显示日期部分 */
+function applyUpdateDate(ov) {
+  var raw = (ov && (ov.updated_at || ov.migrated_at)) ? String(ov.updated_at || ov.migrated_at) : "";
+  var m = raw.match(/(\d{4}-\d{2}-\d{2})/);
+  setUpdateDate(m ? m[1] : (raw || "2026-10-27"));
+}
+
+$("#tabs").addEventListener("click", function (e) {
+  var b = e.target.closest("button[data-tab]");
+  if (!b) return;
+  var t = b.getAttribute("data-tab");
+  location.hash = (t === "list") ? "#/lit" : ("#/" + t);
+});
+function markTab(t) {
+  if (t === "detail") t = "list";           // 详情是下钻页，导航高亮仍落在「文献」
+  Array.prototype.forEach.call(document.querySelectorAll("#tabs button"), function (b) {
+    b.classList.toggle("active", b.getAttribute("data-tab") === t);
+  });
+}
+function parseHash() {
+  var h = (location.hash || "").replace(/^#\/?/, "");
+  var parts = h.split("/").filter(function (x) { return x !== ""; });
+  if (!parts.length) return { tab: "overview", id: null, sub: "" };
+  /* #/lit/LIT-000001 → 详情；#/lit → 文献列表；#/browse、#/search 也进文献列表（兼容旧链接） */
+  if (parts[0] === "lit") {
+    return parts.length > 1 ? { tab: "detail", id: parts[1], sub: "" } : { tab: "list", id: null, sub: "" };
+  }
+  if (parts[0] === "browse" || parts[0] === "search") return { tab: "list", id: null, sub: "" };
+  /* 工作台子界面：#/work、#/work/account、#/work/stats …（接口契约-v3 §1.1） */
+  if (parts[0] === "work") return { tab: "work", id: null, sub: parts[1] || "" };
+  var tabs = ["overview", "list", "graph", "work"];
+  if (tabs.indexOf(parts[0]) < 0) return { tab: "overview", id: null, sub: "" };
+  return { tab: parts[0], id: parts[1] || null, sub: "" };
+}
+window.addEventListener("hashchange", route);
+
+/* ==================================================================
+ * 总览
+ * ================================================================== */
+function barChart(title, arr, opts) {
+  opts = opts || {};
+  if (!arr || !arr.length) {
+    return '<div class="bars"><div class="barhead">' + esc(title) + "</div>" + emptyBox("暂无数据") + "</div>";
+  }
+  var rows = arr.slice();
+  if (opts.limit && rows.length > opts.limit) {
+    rows = rows.slice(0, opts.limit);
+  }
+  var max = 0;
+  rows.forEach(function (r) { if (Number(r.n) > max) max = Number(r.n); });
+  var html = '<div class="bars"><div class="barhead">' + esc(title) +
+    (opts.limit && arr.length > opts.limit ? ' <span class="small muted">（共 ' + arr.length + " 项，此处显示前 " + opts.limit + " 项）</span>" : "") +
+    "</div>";
+  rows.forEach(function (r) {
+    var pct = max ? (Number(r.n) / max * 100) : 0;
+    html += '<div class="barrow"><div class="lb" title="' + esc(r.k) + '">' + esc(r.k) + "</div>" +
+      '<div class="tr"><div class="fl" style="width:' + pct.toFixed(2) + '%"></div></div>' +
+      '<div class="vl">' + esc(r.n) + "</div></div>";
+  });
+  html += "</div>";
+  return html;
+}
+
+function renderOverview() {
+  showLoading("正在读取总览统计…");
+  Promise.all([api("/api/overview"), api("/api/images", { page: 1, size: 4 })])
+    .then(function (res) {
+      var ov = res[0];
+      if (!ov.ok) { showError("总览数据加载失败", ov.error); return; }
+      state.ov = ov.data;
+      setHealth(true, "后端正常");
+      applyUpdateDate(ov.data);
+
+      var d = ov.data || {};
+      var review = d.review || {};
+      var html = "";
+
+      html += scopeBar([
+        ["文献总数", fmtNum(d.lit_count), "条"],
+        ["图像总数", fmtNum(d.img_count), "条"],
+        ["标签总数", fmtNum(d.tag_count), "个"],
+        ["MD 正文字符", fmtNum(d.md_total_chars), "字符"],
+        ["原始 JSON", fmtNum(d.raw_json_count), "份"],
+        ["复核覆盖率", reviewRate() === null ? "—" : (reviewRate() * 100).toFixed(1) + "%", "按状态字段统计"]
+      ]);
+
+      html += '<div class="cards">';
+      html += statCard(d.lit_count, "文献条数");
+      html += statCard(d.img_count, "图像条数");
+      html += statCard(d.tag_count, "标签个数");
+      html += statCard(d.md_total_chars, "MD 正文字符");
+      html += statCard(d.raw_json_count, "原始 JSON 份数");
+      html += statCard(d.docs_fts_count, "可全文检索文档数");
+      html += "</div>";
+
+      html += '<h2 class="sec">数据规模与分布</h2>';
+      html += '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(330px,1fr))">';
+      html += barChart("文献类型分布", d.by_doc_type, { limit: 12 });
+      html += barChart("语种分布", d.by_lang);
+      html += barChart("出版年份分布（文献出版年，非良渚分期年）", d.by_year, { limit: 15 });
+      html += barChart("数据来源类型分布", d.by_source_type, { limit: 15 });
+      html += barChart("开放类型 / 使用条件分布", d.by_open_type, { limit: 15 });
+      html += barChart("时间分期标签分布", d.by_period, { limit: 12 });
+      html += "</div>";
+
+      html += '<h2 class="sec">复核覆盖率</h2>';
+      html += '<div class="card">';
+      html += '<div class="bars" style="border:none;padding:0">';
+      var rk = [["已通过 / 已复核", review.pass], ["待复核", review.pending], ["其他 / 未标注", review.other]];
+      var rmax = 1;
+      rk.forEach(function (r) { if (Number(r[1]) > rmax) rmax = Number(r[1]); });
+      rk.forEach(function (r) {
+        var pct = rmax ? (Number(r[1]) / rmax * 100) : 0;
+        html += '<div class="barrow"><div class="lb">' + esc(r[0]) + "</div>" +
+          '<div class="tr"><div class="fl" style="width:' + pct.toFixed(2) + '%"></div></div>' +
+          '<div class="vl">' + esc(r[1] === undefined ? "—" : r[1]) + "</div></div>";
+      });
+      html += "</div>";
+      html += '<p class="small muted" style="margin:10px 0 0">复核覆盖率：<b>' +
+        (reviewRate() === null ? "—" : (reviewRate() * 100).toFixed(1) + "%") + "</b>。" +
+        esc(reviewNote()) + "　统计对象：" + esc(d.note || "review 字段") + "</p>";
+      html += "</div>";
+
+      /* 图版速览（/api/images）：只缩到 4 张，避免与详情页图版区重复 */
+      var im = res[1];
+      var imgTotal = (im.ok && im.data && im.data.total !== undefined) ? im.data.total : null;
+      html += '<h2 class="sec">图版速览' +
+        (imgTotal !== null ? ' <span class="small muted">（共 ' + fmtNum(imgTotal) + " 张）</span>" : "") + "</h2>";
+      html += '<div class="toolbar"><a class="btn ghost" href="/api/export/images.csv">⬇ 全部 ' +
+        (imgTotal !== null ? fmtNum(imgTotal) : "—") + ' 张图像登记表 CSV</a>' +
+        '<a class="btn ghost" href="/api/template/images" download>⬇ 下载图像登记表模板（xlsx）</a>' +
+        '<span class="small muted">完整图版见每条文献的「详情 → 图版」。</span></div>';
+      if (!im.ok) {
+        html += '<div class="errbox">图版速览加载失败：' + esc(im.error) + "</div>";
+      } else {
+        var items = (im.data && im.data.items) ? im.data.items : [];
+        if (!items.length) {
+          html += emptyBox("暂无图版记录");
+        } else {
+          html += '<div class="imgs">';
+          items.slice(0, 4).forEach(function (im2) { html += imgTile(im2); });
+          html += "</div>";
+        }
+      }
+
+      view.innerHTML = html;
+    });
+}
+function statCard(n, t) {
+  return '<div class="stat"><div class="n">' + esc(fmtNum(n)) + '</div><div class="t">' + esc(t) + "</div></div>";
+}
+
+/* ==================================================================
+ * 浏览
+ * ================================================================== */
+function optList(arr, valKey, txtFn, cur) {
+  var h = "";
+  h += '<option value="">（全部）</option>';
+  (arr || []).forEach(function (x) {
+    var isObj = x !== null && typeof x === "object";
+    var v = (valKey && isObj) ? x[valKey] : x;
+    var t;
+    if (txtFn) t = txtFn(x);
+    else if (isObj) t = String(valKey ? x[valKey] : x.k);
+    else t = String(x);
+    h += '<option value="' + esc(v) + '"' + (String(v) === String(cur) ? " selected" : "") + ">" + esc(t) + "</option>";
+  });
+  return h;
+}
+function dimLabel(x) {
+  if (!x || typeof x !== "object") return String(x);
+  var t = String(x.k);
+  if (x.n !== undefined) t += "（" + x.n + "）";
+  return t;
+}
+function dimOptions(dim) {
+  if (!state.ov) return [];
+  var src = null;
+  if (dim === "doc_type") src = state.ov.by_doc_type;
+  else if (dim === "lang") src = state.ov.by_lang;
+  else if (dim === "year") src = state.ov.by_year;
+  else if (dim === "open_type") src = state.ov.by_open_type;
+  else if (dim === "source_type") src = state.ov.by_source_type;
+  if (src) {
+    return src.slice().sort(function (a, b) { return String(a.k).localeCompare(String(b.k), "zh"); })
+      .map(function (x) { return { k: x.k, n: x.n }; });
+  }
+  return state.tagOpts[dim] || [];
+}
+/* ---------- 文献页控件（浏览 + 检索合并） ---------- */
+function listToolbarHtml() {
+  var p = state.list;
+  var dimSel = function (dim, label) {
+    var opts = state.tagOpts[dim] || [];
+    var h = '<option value="">（全部）</option>';
+    opts.forEach(function (t) {
+      /* ★ 空间分区用**名称**而不是 tags 表里的归一码。
+         后端 region_tags 存的是登记表原文（"R-0199 环太湖"），筛选走 LIKE 原文；
+         而 tags.code 是归一后的码（如 R-0205），原文里根本没有 → 用码筛会命中 0 条。
+         原文里都带名称，所以名称对 12 个分区都能正确命中。 */
+      var v = (dim === "region") ? t.name : (t.code || t.name);
+      h += '<option value="' + esc(v) + '"' + (String(p[dim]) === String(v) ? " selected" : "") + ">" +
+        esc(t.name) + (t.lit_count !== undefined ? "（" + t.lit_count + "）" : "") + "</option>";
+    });
+    return '<span><label class="fl">' + esc(label) + "</label><select data-f='" + dim + "'>" + h + "</select></span>";
+  };
+  return '<div class="toolbar">' +
+    '<span><label class="fl">关键词</label><input type="text" id="l-q" value="' + esc(p.q) + '" placeholder="留空＝浏览；填词＝检索（题名/作者/关键词/MD 全文/原始 JSON）" style="width:250px"></span>' +
+    '<span><label class="fl">类型</label><select data-f="doc_type">' + optList(dimOptions("doc_type"), "k", dimLabel, p.doc_type) + "</select></span>" +
+    '<span><label class="fl">语种</label><select data-f="lang">' + optList(dimOptions("lang"), "k", dimLabel, p.lang) + "</select></span>" +
+    '<span><label class="fl">年份</label><select data-f="year">' + optList(dimOptions("year"), "k", dimLabel, p.year) + "</select></span>" +
+    dimSel("period", "分期") + dimSel("region", "空间") + dimSel("topic", "主题") + dimSel("lineage", "谱系") +
+    '<span><label class="fl">排序</label><select id="l-sort">' +
+    [["lit_id", "编号"], ["year", "出版年"], ["title", "题名"]].map(function (o) {
+      return '<option value="' + o[0] + '"' + (p.sort === o[0] ? " selected" : "") + ">" + o[1] + "</option>";
+    }).join("") + "</select></span>" +
+    '<span><label class="fl">每页</label><select id="l-size">' +
+    [20, 50, 100].map(function (n) { return '<option value="' + n + '"' + (p.size === n ? " selected" : "") + ">" + n + "</option>"; }).join("") +
+    "</select></span>" +
+    '<button class="btn" id="l-apply">应用</button>' +
+    '<button class="btn ghost" id="l-reset">重置</button>' +
+    '<a class="btn ghost" id="l-export" href="#">⬇ 导出当前结果 CSV</a>' +
+    '<a class="btn ghost" id="l-export-xlsx" href="/api/export/literatures.xlsx" download>⬇ 导出 xlsx</a>' +
+    '<a class="btn" id="l-template" href="/api/template/literatures" download>⬇ 下载空白模板</a>' +
+    '<button class="btn ghost" id="l-import-btn">⬆ 导入登记表</button>' +
+    '<button class="btn ghost" id="l-entry-btn">＋ 录入一条</button>' +
+    '<span class="small muted">关键词与类别同时生效（AND）；关键词留空即按类别浏览。</span>' +
+    "</div>";
+}
+
+function renderList() {
+  view.innerHTML = listToolbarHtml() + '<div id="l-extra"></div><div id="l-scope"></div><div id="l-list"></div>';
+  bindList();
+  loadList();
+}
+function bindList() {
+  var p = state.list;
+  var apply = function () {
+    var q = $("#l-q");
+    if (q) p.q = q.value.trim();
+    Array.prototype.forEach.call(document.querySelectorAll("[data-f]"), function (s) {
+      p[s.getAttribute("data-f")] = s.value;
+    });
+    p.page = 1;
+    loadList();
+  };
+  var btn = $("#l-apply"); if (btn) btn.addEventListener("click", apply);
+  var rst = $("#l-reset");
+  if (rst) rst.addEventListener("click", function () {
+    state.list = { q: "", doc_type: "", lang: "", year: "", period: "", region: "", topic: "", lineage: "", sort: "lit_id", page: 1, size: p.size };
+    renderList();
+  });
+  var size = $("#l-size");
+  if (size) size.addEventListener("change", function () { p.size = parseInt(size.value, 10) || 20; p.page = 1; loadList(); });
+  var sort = $("#l-sort");
+  if (sort) sort.addEventListener("change", function () { p.sort = sort.value; p.page = 1; loadList(); });
+  var q = $("#l-q");
+  if (q) q.addEventListener("keydown", function (e) { if (e.key === "Enter") apply(); });
+  var imp = $("#l-import-btn");
+  if (imp) imp.addEventListener("click", openImportPanel);
+  var ent = $("#l-entry-btn");
+  if (ent) ent.addEventListener("click", openEntryPanel);
+  updateExportLink();
+}
+function updateExportLink() {
+  var p = state.list;
+  var exp = $("#l-export");
+  if (exp) {
+    exp.setAttribute("href", apiUrl("/api/export/literatures.csv", {
+      q: p.q, doc_type: p.doc_type, lang: p.lang, year: p.year,
+      period: p.period, region: p.region, topic: p.topic, lineage: p.lineage
+    }));
+    exp.setAttribute("download", "literatures.csv");
+  }
+}
+function loadList() {
+  var p = state.list;
+  var box = $("#l-list"), sc = $("#l-scope");
+  if (box) box.innerHTML = '<div class="loading"><span class="spin"></span>正在加载文献列表…</div>';
+  api("/api/literatures", listParams()).then(function (r) {
+    if (!r.ok) {
+      if (sc) sc.innerHTML = "";
+      if (box) box.innerHTML = '<div class="errbox">列表加载失败：' + esc(r.error) + "</div>";
+      return;
+    }
+    var d = r.data || {};
+    paintList(d, null);
+    /* 有关键词时补命中片段（列表口径仍以 /api/literatures 的 total 为准） */
+    if (p.q) {
+      api("/api/search", listParams()).then(function (r2) {
+        if (!r2.ok) return;
+        var hits = (r2.data && r2.data.hits) ? r2.data.hits : [];
+        paintList(d, hits);
+      });
+    }
+  });
+}
+function listParams() {
+  var p = state.list;
+  return {
+    page: p.page, size: p.size, q: p.q, doc_type: p.doc_type, lang: p.lang, year: p.year,
+    period: p.period, region: p.region, topic: p.topic, lineage: p.lineage, sort: p.sort
+  };
+}
+function paintList(d, hits) {
+  var p = state.list;
+  var box = $("#l-list"), sc = $("#l-scope");
+  var items = d.items || [];
+  var total = d.total === undefined ? items.length : d.total;
+  var libTotal = state.ov && state.ov.lit_count !== undefined ? state.ov.lit_count : "—";
+  var byLit = {};
+  (hits || []).forEach(function (h) {
+    if (!h || !h.lit_id) return;
+    (byLit[h.lit_id] = byLit[h.lit_id] || []).push(h);
+  });
+    if (sc) {
+      sc.innerHTML = scopeBar([
+        ["库内文献总数", fmtNum(libTotal), "条（/api/overview）"],
+        ["当前条件命中条数", fmtNum(total), "条（关键词 AND 类别，后端 total）"],
+        ["当前页显示", fmtNum(items.length) + " 条", "第 " + (d.page || p.page) + " 页 / 每页 " + (d.size || p.size)],
+        ["命中片段数", fmtNum((hits || []).length), "条"],
+        ["复核覆盖率", reviewRate() === null ? "—" : (reviewRate() * 100).toFixed(1) + "%", "按状态字段统计"]
+      ]);
+    }
+    if (!items.length) {
+      box.innerHTML = emptyBox("没有符合条件的文献。请放宽筛选条件，或把关键词清空改为浏览。");
+      return;
+    }
+    var h = '<div class="litlist"><div class="litrow head"><div>序号</div><div>题名 / 作者 / 标签</div>' +
+      '<div class="col-hide">年份</div><div class="col-hide">类型 / 语种</div><div class="col-hide">复核状态</div></div>';
+    items.forEach(function (it, i) {
+      var tags = [];
+      ["period_tags", "region_tags", "topic_tags", "lineage_tags"].forEach(function (k) {
+        tagNames(it[k]).slice(0, 2).forEach(function (n) { tags.push(n); });
+      });
+      var tsum = tags.length ? tags.slice(0, 4).map(function (t) {
+        return '<span class="pill">' + hl(t, p.q) + "</span>";
+      }).join("") : '<span class="muted small">—</span>';
+      var hh = byLit[it.lit_id] || [];
+      var snips = hh.length ? hh.map(function (x) {
+        var kindMap = { md: "MD 全文", json: "原始 JSON", title: "题名" };
+        return '<div class="small"><span class="pill">' + esc(kindMap[x.kind] || nz(x.kind)) + "</span> " +
+          hl(x.snippet || x.evidence || "", [p.q]) + "</div>";
+      }).join("") : "";
+      h += '<div class="litrow">' +
+        '<div class="idx">' + esc(it.seq !== undefined ? it.seq : ((d.page - 1) * d.size + i + 1)) + "</div>" +
+        '<div><div class="ttl"><a href="#/lit/' + esc(it.lit_id) + '">' + hl(it.title, p.q) + "</a></div>" +
+        '<div class="au">' + hl(nz(it.authors), p.q) + "　·　" + esc(nz(it.venue)) + "</div>" +
+        '<div class="tg">' + tsum + (snips ? "<br>" + snips : "") + "</div></div>" +
+        '<div class="col-hide">' + hl(nz(it.year), p.q) + "</div>" +
+        '<div class="col-hide small">' + hl(nz(it.doc_type), p.q) + "<br>" + hl(nz(it.lang), p.q) + "</div>" +
+        '<div class="col-hide"><span class="pill ' + reviewClass(it.review_status) + '">' + esc(nz(it.review_status)) + "</span></div>" +
+        "</div>";
+    });
+    h += "</div>";
+    /* 分页 */
+    var pages = Math.max(1, Math.ceil(total / (d.size || p.size)));
+    h += '<div class="pager">' +
+      '<button class="btn ghost" id="l-prev"' + ((d.page || 1) <= 1 ? " disabled" : "") + ">上一页</button>" +
+      '<span class="small muted">第 ' + (d.page || p.page) + " / " + pages + " 页　共 " + fmtNum(total) + " 条</span>" +
+      '<button class="btn ghost" id="l-next"' + ((d.page || 1) >= pages ? " disabled" : "") + ">下一页</button>" +
+      "</div>";
+    box.innerHTML = h;
+    var pv = $("#l-prev"), nx = $("#l-next");
+    if (pv) pv.addEventListener("click", function () { state.list.page = (d.page || 1) - 1; loadList(); });
+    if (nx) nx.addEventListener("click", function () { state.list.page = (d.page || 1) + 1; loadList(); });
+}
+/* （原「检索」页已并入「文献」页，见 renderList / loadList / paintList） */
+
+
+/* ---------------- 导入登记表（预检 → 批准） ----------------
+   POST /api/import/preview（multipart：file + kind=literatures）只做预检，不写主库；
+   批准走 POST /api/import/apply（staging_id + target_ids，空数组＝批准整批）。 */
+function openImportPanel() {
+  var box = $("#l-extra");
+  if (!box) return;
+  box.innerHTML = '<div class="wbblk"><h3>⬆ 导入登记表（预检）<span class="tag">POST /api/import/preview → /api/import/apply</span></h3>' +
+    '<div class="formrow"><input type="file" id="imp-file" accept=".xlsx,.xlsm">' +
+    '<span class="small muted">选好 xlsx 后点「开始预检」；预检只列差异，不写主库。</span>' +
+    '<button class="btn" id="imp-go">开始预检</button>' +
+    '<button class="btn ghost" id="imp-close">关闭</button></div>' +
+    '<div id="imp-msg"></div><div id="imp-out"></div></div>';
+  $("#imp-close").addEventListener("click", function () { box.innerHTML = ""; });
+  $("#imp-go").addEventListener("click", doImportPreview);
+}
+function doImportPreview() {
+  var f = $("#imp-file");
+  var msg = $("#imp-msg"), out = $("#imp-out");
+  if (!f || !f.files || !f.files.length) { setBlockMsg("#imp-msg", "请先选择一个 xlsx 文件", "bad"); return; }
+  setBlockMsg("#imp-msg", "正在预检…", "");
+  out.innerHTML = "";
+  var fd = new FormData();
+  fd.append("file", f.files[0]);
+  fd.append("kind", "literatures");
+  apiSend("POST", "/api/import/preview", fd).then(function (r) {
+    if (!r.ok) { setBlockMsg("#imp-msg", "预检失败：" + r.error, "bad"); return; }
+    var d = r.data || {};
+    setBlockMsg("#imp-msg", "", "");
+    out.innerHTML = importDiffHtml(d);
+    var applyBtn = $("#imp-apply");
+    if (applyBtn) applyBtn.addEventListener("click", function () { applyImport(d.staging_id, []); });
+  });
+}
+function importDiffHtml(d) {
+  var s = d.summary || {};
+  var h = '<div class="scope"><span><span class="k">批次</span><b>' + esc(nz(d.staging_id)) + "</b></span>" +
+    '<span><span class="k">文件</span><b>' + esc(nz(d.filename)) + "</b></span>" +
+    '<span><span class="k">识别列数</span><b>' + esc(nz(d.columns_found)) + " / " + esc(nz(d.columns_expected)) + "</b></span>" +
+    '<span><span class="k">总行</span><b>' + esc(nz(s.rows_total)) + "</b></span>" +
+    '<span><span class="k">新增</span><b>' + esc(nz(s.rows_new)) + "</b></span>" +
+    '<span><span class="k">有变化</span><b>' + esc(nz(s.rows_changed)) + "</b></span>" +
+    '<span><span class="k">无变化</span><b>' + esc(nz(s.rows_same)) + "</b></span></div>";
+  if ((d.missing_required || []).length) {
+    h += '<div class="notice bad">缺少必填列：' + esc((d.missing_required || []).join("、")) + "</div>";
+  }
+  if ((d.unknown_columns || []).length) {
+    h += '<div class="notice">未识别的列（会被忽略）：' + esc((d.unknown_columns || []).join("、")) + "</div>";
+  }
+  var diffs = d.diffs || [];
+  if (!diffs.length) {
+    h += emptyBox("没有检测到差异。");
+  } else {
+    h += '<div class="tablewrap"><table class="grid"><thead><tr><th>目标记录</th><th>操作</th><th>字段</th><th>旧值</th><th>新值</th></tr></thead><tbody>';
+    diffs.forEach(function (row) {
+      var fields = row.fields || [];
+      if (!fields.length) {
+        h += "<tr><td>" + esc(nz(row.target_id)) + "</td><td>" + esc(nz(row.op)) + "</td><td colspan=\"3\">（无字段级差异）</td></tr>";
+      }
+      fields.forEach(function (f, i) {
+        h += "<tr>" + (i === 0 ? "<td rowspan=\"" + fields.length + "\">" + esc(nz(row.target_id)) + "</td><td rowspan=\"" + fields.length + "\">" + esc(nz(row.op)) + "</td>" : "") +
+          "<td>" + esc(nz(f.col)) + (f.required ? " <b>*</b>" : "") + "</td>" +
+          '<td class="old">' + esc(nz(f.old)) + "</td>" +
+          '<td class="new">' + esc(nz(f.new)) + "</td></tr>";
+      });
+    });
+    h += "</tbody></table></div>";
+  }
+  h += '<div class="formrow" style="margin-top:10px"><button class="btn" id="imp-apply">批准全部（写入主库）</button>' +
+    '<span class="small muted">' + esc(nz(d.note)) + "</span></div>";
+  return h;
+}
+function applyImport(stagingId, targetIds) {
+  if (!stagingId) { setBlockMsg("#imp-msg", "缺少 staging_id，无法批准", "bad"); return; }
+  setBlockMsg("#imp-msg", "正在写入…", "");
+  apiSend("POST", "/api/import/apply", { staging_id: stagingId, target_ids: targetIds || [] }).then(function (r) {
+    if (!r.ok) { setBlockMsg("#imp-msg", "批准失败：" + r.error, "bad"); return; }
+    var d = r.data || {};
+    setBlockMsg("#imp-msg", "已批准写入 " + fmtNum(d.applied) + " 条（批次 " + nz(d.batch) + "，日志号 " + nz(d.log_id) + "）", "good");
+  });
+}
+/* ---------------- 录入一条（提案式，不直接写主库） ----------------
+   POST /api/entry：字段按**列名**给（不是列序）；后端写入 staging(status=pending)。
+
+   ★ 列名从后端取（/api/registry/columns），不在前端硬编码。
+     硬编码过的那一版和真实列名对不上——写的是「作者」，真实列叫「作者/责任者」；
+     写的是「文献类型」，真实列叫「文献类型代码*」。提交上去后端一个都认不出来。
+     列定义是**单一事实来源**（lzkg/schema/registry_columns.json），前端只能读，不能抄。 */
+var ENTRY_FIELDS_FALLBACK = [
+  ["题名*", 1], ["作者/责任者", 0], ["文献类型代码*", 0], ["语种*", 0], ["出版年", 0],
+  ["载体题名", 0], ["出版者/机构", 0], ["页码范围", 0], ["摘要", 0], ["关键词", 0],
+  ["来源链接", 0], ["开放类型", 0], ["数据来源类型*", 0], ["来源判据", 0],
+  ["时间分期标签*", 0], ["空间分区标签*", 0], ["主题分类标签*", 0], ["文化谱系标签*", 0],
+  ["审核状态", 0], ["著录人", 0], ["著录日期", 0], ["著录备注", 0]
+];
+var ENTRY_COLS_CACHE = null;
+function loadEntryColumns() {
+  if (ENTRY_COLS_CACHE) return Promise.resolve(ENTRY_COLS_CACHE);
+  return api("/api/registry/columns", { kind: "literatures" }).then(function (r) {
+    if (r && r.ok && r.data && r.data.columns && r.data.columns.length) {
+      ENTRY_COLS_CACHE = r.data.columns.map(function (c) {
+        return [c.name, c.required ? 1 : 0];
+      });
+      return ENTRY_COLS_CACHE;
+    }
+    return ENTRY_FIELDS_FALLBACK;
+  }, function () {
+    return ENTRY_FIELDS_FALLBACK;
+  });
+}
+function openEntryPanel() {
+  var box = $("#l-extra");
+  if (!box) return;
+  box.innerHTML = '<div class="wbblk"><h3>＋ 录入一条文献<span class="tag">POST /api/entry（提案—审核制，不直接写主库）</span></h3>' +
+    '<div class="loading"><span class="spin"></span>正在读取登记表列定义…</div></div>';
+  loadEntryColumns().then(function (fields) {
+    var rows = fields.map(function (f) {
+      return '<div class="formrow"><label class="fl">' + esc(f[0]) + "</label>" +
+        '<input type="text" data-col="' + esc(f[0]) + '"' + (f[1] ? ' required="required"' : "") + ' style="flex:1;min-width:240px"></div>';
+    }).join("");
+    box.innerHTML = '<div class="wbblk"><h3>＋ 录入一条文献<span class="tag">POST /api/entry（提案—审核制，不直接写主库）</span></h3>' +
+      '<div class="notice">字段按<b>登记表列名</b>填写（带 * 为必填）。列定义由后端 <code>/api/registry/columns</code> 提供（' +
+      fields.length + ' 列），不在前端硬编码。提交后进入待审队列，需管理员在「工作台 → 提案与审核」批准。</div>' +
+      rows +
+      '<div class="formrow"><label class="fl">其他列名</label><input type="text" id="ent-extra-col" placeholder="（可选）再补一个登记表列名" style="width:200px">' +
+      '<input type="text" id="ent-extra-val" placeholder="值" style="width:240px"></div>' +
+      '<div class="formrow"><button class="btn" id="ent-go">提交</button>' +
+      '<button class="btn ghost" id="ent-close">关闭</button></div>' +
+      '<div id="ent-msg"></div></div>';
+    var close = $("#ent-close");
+    if (close) close.addEventListener("click", function () { box.innerHTML = ""; });
+    var go = $("#ent-go");
+    if (go) go.addEventListener("click", submitEntry);
+  });
+}
+function submitEntry() {
+  var payload = {};
+  var miss = [];
+  Array.prototype.forEach.call(document.querySelectorAll("#l-extra [data-col]"), function (i) {
+    var col = i.getAttribute("data-col");
+    var v = i.value.trim();
+    if (v) payload[col] = v;
+    else if (i.getAttribute("required") !== null) miss.push(col);
+  });
+  var ec = $("#ent-extra-col"), ev = $("#ent-extra-val");
+  if (ec && ev && ec.value.trim() && ev.value.trim()) payload[ec.value.trim()] = ev.value.trim();
+  if (miss.length) { setBlockMsg("#ent-msg", "请填写必填字段：" + miss.join("、"), "bad"); return; }
+  if (!Object.keys(payload).length) { setBlockMsg("#ent-msg", "至少填一个字段", "bad"); return; }
+  setBlockMsg("#ent-msg", "正在提交…", "");
+  apiSend("POST", "/api/entry", payload).then(function (r) {
+    if (!r.ok) { setBlockMsg("#ent-msg", "提交失败：" + r.error, "bad"); return; }
+    var d = r.data || {};
+    setBlockMsg("#ent-msg", "已提交，等待管理员审核（提案号 " + nz(d.staging_id) + "，状态 " + nz(d.status) + "）。", "good");
+  });
+}
+
+/* ==================================================================
+ * 详情
+ * ================================================================== */
+/* 图版图像走后端代理：/media/img/{filename}（契约 §2.12）
+   images.path 形如 04_专题研究/04_文献图像/IMG-xxx.jpg，只取末段文件名，不自行拼目录 */
+function imgSrc(im) {
+  if (!im) return "";
+  var p = String(im.path || "");
+  var name = p.split(/[\\\/]/).pop() || "";
+  if (!name) name = String(im.filename || "");
+  if (!name) return "";
+  return "/media/img/" + encodeURIComponent(name);
+}
+function imgTile(im) {
+  var s = imgSrc(im);
+  var fig = im.fig_no ? ("图 " + im.fig_no) : (im.filename || "");
+  var h = '<div class="imgtile">';
+  h += '<img class="ph" loading="lazy" src="' + esc(s) + '" alt="' + esc(fig) + '" onerror="this.style.visibility=\'hidden\';this.nextElementSibling.style.display=\'block\';">';
+  h += '<div class="cap" style="display:none;color:#9aa7b1">图像文件未找到</div>';
+  h += '<div class="cap"><div class="fn">' + esc(nz(fig)) + "</div>" +
+    '<div>' + esc(nz(im.caption)) + "</div>" +
+    '<div class="meta">页码 ' + esc(nz(im.pdf_page !== undefined ? im.pdf_page : im.orig_page)) +
+    "　图型 " + esc(nz(im.img_type)) + "　对象 " + esc(nz(im.obj_type)) +
+    "　复核 " + esc(nz(im.review_status)) + "</div></div></div>";
+  return h;
+}
+function renderDetail(litId) {
+  if (!litId) { renderOverview(); return; }
+  state.detailId = litId;
+  showLoading("正在读取文献详情…");
+  api("/api/literatures/" + encodeURIComponent(litId)).then(function (r) {
+    if (!r.ok) { showError("详情加载失败", r.error); return; }
+    var d = r.data || {};
+    var lit = d.lit || {};
+    var imgs = d.images || [];
+    var raw = d.raw_json || [];
+    var tg = d.tags || {};
+    var md = d.md || {};
+    var sim = d.similar || [];
+
+    /* 浏览记录：只写**用户自己的浏览器**（localStorage），本站后端不保存任何人的浏览记录 */
+    browseRecord({ lit_id: lit.lit_id || litId, title: lit.title, year: lit.year });
+
+    var html = '<div class="toolbar"><a class="btn ghost" href="#/lit">← 返回文献列表</a>' +
+      '<button class="btn ghost" id="fav-btn" data-lit="' + esc(lit.lit_id || litId) + '">☆ 收藏</button>' +
+      '<span class="small muted" id="fav-msg"></span>' +
+      '<span class="small muted">当前文献编号：' + esc(lit.lit_id || litId) + "</span></div>";
+
+    /* 基本信息 */
+    html += '<div class="secblk"><h3 class="sub2" style="margin-top:0">基本信息</h3><dl class="dl">';
+    var pairs = [
+      ["题名", lit.title], ["作者", lit.authors], ["出版年", lit.year],
+      ["文献类型", lit.doc_type], ["语种", lit.lang], ["本组主题", lit.theme],
+      ["载体题名", lit.venue], ["出版者/机构", lit.publisher], ["页码范围", lit.pages_range],
+      ["CLC 分类号", lit.clc], ["汉语主题词", lit.subject_terms],
+      ["著录人", lit.recorder], ["著录日期", lit.record_date], ["审核状态", lit.review_status],
+      ["著录备注", lit.remark]
+    ];
+    pairs.forEach(function (p) {
+      html += "<dt>" + esc(p[0]) + "</dt><dd>" + (p[1] ? nl2br(p[1]) : '<span class="muted">—</span>') + "</dd>";
+    });
+    html += "</dl></div>";
+
+    /* 摘要 + 关键词 */
+    html += '<div class="secblk"><h3 class="sub2" style="margin-top:0">摘要</h3>' +
+      (lit.abstract ? '<div style="white-space:pre-wrap">' + nl2br(lit.abstract) + "</div>" : '<div class="muted">—</div>') +
+      '<h3 class="sub2">关键词（原文）</h3>' +
+      (lit.keywords ? '<div>' + String(lit.keywords).split(/[;；,，]/).filter(function (x) { return x.trim(); })
+        .map(function (x) { return '<span class="pill">' + esc(x.trim()) + "</span>"; }).join("") + "</div>"
+        : '<div class="muted">—</div>') + "</div>";
+
+    /* 四维标签 */
+    html += '<div class="secblk"><h3 class="sub2" style="margin-top:0">四维标签</h3><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr))">';
+    [["period", "时间分期"], ["region", "空间分区"], ["topic", "主题分类"], ["lineage", "文化谱系"]].forEach(function (dim) {
+      var list = tg[dim[0]] || [];
+      var rawv = lit[dim[0] + "_tags"];
+      html += '<div><div class="barhead">' + esc(dim[1]) + "</div>";
+      if (list && list.length) {
+        /* 后端返回的 tags 是对象数组 {tag_id, name, code}；
+           兼容字符串数组（别再直接 esc(对象) → 会印出 [object Object]） */
+        html += list.map(function (t) {
+          var label = (t && typeof t === "object") ? (t.name || t.code || t.tag_id || "") : String(t);
+          return '<span class="pill">' + esc(label) + "</span>";
+        }).join("");
+      } else {
+        html += '<span class="muted small">无</span>';
+      }
+      if (rawv) html += '<div class="small muted" style="margin-top:5px">登记表原文：' + esc(rawv) + "</div>";
+      html += "</div>";
+    });
+    html += "</div></div>";
+
+    /* 地图标记：内嵌小地图 + 文字说明（**分档标精度**，不混为一谈） */
+    html += '<div class="secblk"><h3 class="sub2" style="margin-top:0">地图标记</h3>' +
+      '<div class="small muted">坐标以文献为准（WGS84），<b>不做推测填充</b>；精度分四档：' +
+      '<span class="lz-tier lit_coord">文献坐标</span>由文献给出（本篇／他篇）　' +
+      '<span class="lz-tier public">公开权威坐标</span>公开资料　' +
+      '<span class="lz-tier region">分区代表点</span>区块统一坐标，约 ±1.1 km　' +
+      '<span class="lz-tier none">未定位</span>没有可定位坐标</div>' +
+      '<div id="litmap" style="margin-top:8px"><div class="loading"><span class="spin"></span>正在读取坐标标记…</div></div>' +
+      '<div id="litmap-txt" style="margin-top:8px"></div></div>';
+
+    /* 去哪核实 */
+    html += '<div class="secblk"><h3 class="sub2" style="margin-top:0">去哪核实</h3>' +
+      '<div class="notebox">使用条件以「开放类型」为准；标注为机构订阅/限内部使用的条目不得外传。</div>' +
+      '<dl class="dl" style="margin-top:10px">';
+    /* 值分两类：{h:...} 是**已经拼好的 HTML**（内部已 esc），其余是**纯文本**
+       （要走 nl2br 转义）。两者不能混用同一个转义器，否则 HTML 会被二次转义、
+       在页面上露出 <a href=...> 这样的源码。 */
+    var verify = [
+      ["来源链接", lit.source_url ? {h: linkOrText(lit.source_url)} : null],
+      ["来源类型", lit.source_type],
+      ["来源判据", lit.source_evidence],
+      ["原始 PDF", lit.pdf_path ? {h: '<span class="mono">' + esc(lit.pdf_path) + "</span>"} : null],
+      ["PDF 文件名", lit.pdf_name],
+      ["PDF 页数", lit.pdf_pages],
+      ["Markdown", lit.md_path ? {h: '<span class="mono">' + esc(lit.md_path) + "</span>"} : null],
+      ["开放类型", lit.open_type],
+      ["解析状态", lit.parse_status],
+      ["解析问题/备注", lit.parse_note]
+    ];
+    verify.forEach(function (p) {
+      var v = p[1];
+      var body;
+      if (v === null || v === undefined || v === "") {
+        body = '<span class="muted">—</span>';
+      } else if (typeof v === "object" && v.h !== undefined) {
+        body = v.h ? String(v.h).replace(/\r?\n/g, "<br>") : '<span class="muted">—</span>';
+      } else {
+        body = nl2br(v);
+      }
+      html += "<dt>" + esc(p[0]) + "</dt><dd>" + body + "</dd>";
+    });
+    html += "</dl></div>";
+
+    /* 正文摘要 */
+    if (md && (md.excerpt || md.chars)) {
+      html += '<div class="secblk"><h3 class="sub2" style="margin-top:0">正文（Markdown 摘录）</h3>' +
+        '<div class="small muted">路径 ' + esc(nz(md.path)) + "　字符 " + esc(fmtNum(md.chars)) +
+        "　页 " + esc(nz(md.pages)) + "　图版引用 " + esc(nz(md.img_refs)) + "</div>" +
+        (md.excerpt ? '<div style="white-space:pre-wrap;margin-top:8px">' + mdText(md.excerpt) + "</div>" : "") + "</div>";
+    }
+
+    /* 图版 */
+    var imgTotal = d.images_total !== undefined ? d.images_total : imgs.length;
+    html += '<h2 class="sec">图版（' + (d.images_truncated ? imgTotal + " 张（先显示前 " + imgs.length + " 张）" : imgs.length + " 张") + "）</h2>";
+    if (d.images_truncated) {
+      html += '<div class="small muted" style="margin:-4px 0 8px">图版已限量显示前 ' + imgs.length +
+        " 张，共 " + imgTotal + " 张（完整清单见「图像登记表」导出）。</div>";
+    }
+    html += '<div class="small muted" style="margin:-4px 0 8px">图版信息用空白登记表收集：' +
+      '<a href="/api/template/images" download>⬇ 下载图像登记表模板（xlsx）</a></div>';
+    if (!imgs.length) {
+      html += emptyBox("该文献暂无图版记录。");
+    } else {
+      html += '<div class="imgs">' + imgs.map(imgTile).join("") + "</div>";
+    }
+
+    /* 原始 JSON */
+    html += '<h2 class="sec">原始 JSON（' + raw.length + " 份）</h2>";
+    if (!raw.length) {
+      html += emptyBox("该文献暂无原始 JSON 存档。");
+    } else {
+      html += '<div class="jsonlist">';
+      raw.forEach(function (j) {
+        html += '<div class="jf"><div><b>' + esc(nz(j.filename)) + "</b>　<span class=\"small muted\">" + esc(fmtSize(j.size_bytes)) + "</span></div>" +
+          (j.snippet ? '<div class="small mono">' + esc(stripTags(j.snippet)).slice(0, 600) + "</div>" : "") + "</div>";
+      });
+      html += "</div>";
+    }
+
+    /* 相似文献 */
+    html += '<h2 class="sec">相似文献</h2>';
+    if (!sim.length) {
+      html += emptyBox("暂无共享标签的相似文献。");
+    } else {
+      html += '<div class="litlist">';
+      sim.forEach(function (s2) {
+        html += '<div class="litrow" style="grid-template-columns:1fr 200px">' +
+          '<div><div class="ttl"><a href="#/lit/' + esc(s2.lit_id) + '">' + esc(nz(s2.title)) + "</a></div>" +
+          '<div class="tg">' + (s2.shared_tags || []).map(function (t) { return '<span class="pill">' + esc(t) + "</span>"; }).join("") + "</div></div>" +
+          '<div class="small muted col-hide">' + esc(nz(s2.lit_id)) + "</div></div>";
+      });
+      html += "</div>";
+    }
+
+    view.innerHTML = html;
+    bindFavBtn(lit.lit_id || litId);
+    loadLitMap(lit.lit_id || litId);
+  });
+}
+/* ==================================================================
+ * 详情页 · 内嵌小地图（「地图标记」）
+ * ★ 为什么是**内嵌**而不是跳去地图页：
+ *   读者在详情页问的是「这一篇在哪儿」—— 让他跳页再自己找点是多余的。
+ *   小地图聚焦到该点，旁边给文字说明（出处／精度／命中依据）。
+ * ★ 精度必须**分档显示**：文献坐标（米级）／公开权威坐标／
+ *   分区代表点（±1.1 km）差一个数量级，混画会让人误以为
+ *   「每篇文献都有一个精确位置」—— 那是骗人。
+ * ================================================================ */
+var LITMAP = { map: null };
+var LITMAP_TIER_ICON = { lit_coord: "lz-mk-t1", public: "lz-mk-t2",
+                         region: "lz-mk-t3", none: "lz-mk-t0" };
+function litmapDestroy() {
+  if (LITMAP.map) {
+    try { LITMAP.map.remove(); } catch (e) { /* 容器已被换掉 */ }
+  }
+  LITMAP.map = null;
+}
+function loadLitMap(litId) {
+  var box = $("#litmap"), txt = $("#litmap-txt");
+  if (!box) return;
+  api("/api/literatures/" + encodeURIComponent(litId) + "/map").then(function (r) {
+    if (!r.ok) {
+      box.innerHTML = '<div class="notice bad" style="margin:12px">坐标标记读取失败：' + esc(r.error) + "</div>";
+      return;
+    }
+    var d = r.data || {};
+    var ms = d.markers || [];
+    litmapRenderText(d, ms, txt);
+    litmapDraw(d, ms, box);
+  });
+}
+function litmapRenderText(d, ms, txt) {
+  if (!txt) return;
+  var h = "";
+  if (!ms.length) {
+    h += '<div class="notice">本篇<b>未定位</b>：库里没有可定位到该文献的坐标点，' +
+      "也不做推测填充。若该文献确实有坐标，需人工补录到「遗址点位表」并登记出处。</div>";
+  } else {
+    h += '<div class="small muted">共 ' + ms.length + " 个坐标标记，按精度从高到低排列；" +
+      "最精确的一档是 <b>" + esc(d.level_label || "") + "</b>。</div>";
+    ms.forEach(function (m) {
+      h += '<div class="lz-mapmark t-' + esc(m.tier) + '">' +
+        '<div class="nm"><span class="lz-tier ' + esc(m.tier) + '">' + esc(m.tier_label) + "</span>" +
+        esc(m.name) + "</div>" +
+        '<div class="kv"><b>精度</b>：' + esc(m.precision || "") + "</div>" +
+        '<div class="kv"><b>坐标</b>：' + (m.lat === null || m.lat === undefined ? "—" :
+          esc(m.lat) + "°N, " + esc(m.lon) + "°E") + "</div>" +
+        (m.source ? '<div class="kv"><b>出处</b>：' + esc(m.source) +
+          (m.source_title && m.source_title !== m.source ? "（" + esc(m.source_title) + "）" : "") + "</div>" : "") +
+        (m.basis ? '<div class="kv"><b>坐标依据</b>：' + esc(m.basis) + "</div>" : "") +
+        (m.why ? '<div class="kv">' + esc(m.why) + "</div>" : "") +
+        (m.note ? '<div class="kv"><b>备注</b>：' + esc(m.note) + "</div>" : "") +
+        "</div>";
+    });
+  }
+  var ps = d.pending_sites || [];
+  if (ps.length) {
+    h += '<div class="small muted" style="margin-top:8px">正文提到但<b>坐标待补</b>的遗址：' +
+      ps.map(function (s) { return esc(s.name); }).join("、") + "（见「遗址点位表」，人工补录）</div>";
+  }
+  h += '<div class="small muted" style="margin-top:8px">' +
+    ((d.notes || []).map(function (n) { return "· " + esc(n); }).join("<br>")) + "</div>";
+  txt.innerHTML = h;
+}
+function litmapDraw(d, ms, box) {
+  litmapDestroy();
+  if (!window.L) {
+    box.innerHTML = '<div class="notice bad" style="margin:12px">Leaflet 未加载（vendor/leaflet/leaflet.js 缺失），小地图不可用。</div>';
+    return;
+  }
+  var sg = d.site_group || {};
+  var pts = [];
+  ms.forEach(function (m) {
+    if (m.lat === null || m.lat === undefined || m.lon === null || m.lon === undefined) return;
+    pts.push([Number(m.lat), Number(m.lon)]);
+  });
+  if (!pts.length) {
+    box.innerHTML = '<div class="notice" style="margin:12px">没有可落点的坐标，小地图留空。' +
+      "（未定位不等于「在某个地方」，不画图比画个假位置诚实。）</div>";
+    return;
+  }
+  box.innerHTML = "";
+  var c = pts[0];
+  var map = L.map(box, { zoomControl: true, attributionControl: true,
+                         scrollWheelZoom: false });
+  LITMAP.map = map;
+  map.setView(c, 13);
+  /* 上下文：良渚遗址群范围框（虚线）与钱塘江水系／余杭区界（本地 geojson，零联网） */
+  if (sg.lon_min !== undefined && sg.lon_min !== null && sg.lat_min !== undefined && sg.lat_min !== null &&
+      sg.lon_max !== undefined && sg.lon_max !== null && sg.lat_max !== undefined && sg.lat_max !== null) {
+    var rect = L.rectangle([[Number(sg.lat_min), Number(sg.lon_min)],
+                             [Number(sg.lat_max), Number(sg.lon_max)]], {
+      color: MAP_COLORS.accent, weight: 1.6, dashArray: "5 4",
+      fillColor: MAP_COLORS.accent, fillOpacity: 0.07
+    });
+    rect.bindTooltip("良渚遗址群范围框<br>出处：" + esc(sg.source || ""), { sticky: true, className: "lz-tip" });
+    rect.addTo(map);
+  }
+  mapstFetch("osm_qiantang_yuhang.geojson").then(function (gj) {
+    if (!LITMAP.map) return;
+    (gj.features || []).forEach(function (f) {
+      var k = String((f.properties || {}).kind || "");
+      if (k === "river") {
+        L.geoJSON(f, { style: { color: MAP_COLORS.river, weight: 1.6, fill: false } }).addTo(LITMAP.map);
+      } else if (k === "boundary") {
+        L.geoJSON(f, { style: { color: MAP_COLORS.border, weight: 1, dashArray: "4 3", fill: false } }).addTo(LITMAP.map);
+      }
+    });
+  }).catch(function () { /* 底图缺失不致命：标记照样画 */ });
+  ms.forEach(function (m) {
+    if (m.lat === null || m.lat === undefined || m.lon === null || m.lon === undefined) return;
+    var icon = L.divIcon({ className: "lz-mk " + (LITMAP_TIER_ICON[m.tier] || "lz-mk-t0"),
+      html: "<span></span>", iconSize: [14, 14], iconAnchor: [7, 7] });
+    var mk = L.marker([Number(m.lat), Number(m.lon)], { icon: icon, keyboard: false,
+                                                       riseOnHover: true, zIndexOffset: 1000 });
+    mk.bindTooltip("<b>" + esc(m.name) + "</b><br>精度档：" + esc(m.tier_label) +
+      "<br>" + esc(m.precision || "") + (m.source ? "<br>出处：" + esc(m.source) : ""),
+      { sticky: true, className: "lz-tip" });
+    mk.addTo(map);
+  });
+  if (pts.length > 1) {
+    map.fitBounds(L.latLngBounds(pts).pad(0.35));
+  }
+  setTimeout(function () { if (LITMAP.map) LITMAP.map.invalidateSize(); }, 150);
+}
+/* ---------------- 收藏 ---------------- */
+function favList() {
+  return api("/api/favorites").then(function (r) {
+    state.fav.loaded = true;
+    if (!r.ok) { state.fav.items = null; return { ok: false, error: r.error }; }
+    var d = r.data || {};
+    state.fav.items = d.items || d.list || [];
+    return { ok: true, data: d };
+  });
+}
+function isFav(litId) {
+  if (!state.fav.items) return false;
+  return state.fav.items.some(function (x) { return String(x.lit_id) === String(litId); });
+}
+function bindFavBtn(litId) {
+  var btn = $("#fav-btn"), msg = $("#fav-msg");
+  if (!btn) return;
+  var paint = function () {
+    var on = isFav(litId);
+    btn.textContent = on ? "★ 已收藏" : "☆ 收藏";
+    btn.setAttribute("data-on", on ? "1" : "0");
+  };
+  paint();
+  favList().then(function (r) {
+    paint();
+    if (!r.ok && msg) {
+      msg.textContent = (/404/.test(r.error) ? "（收藏功能后端未启用）" : "（收藏列表不可用：" + r.error + "）");
+    }
+  });
+  btn.addEventListener("click", function () {
+    if (!state.auth.user) {
+      if (msg) msg.textContent = "请先登录（工作台 → 登录）";
+      setBlockMsg("#fav-msg", "请先登录（工作台 → 登录）", "bad");
+      return;
+    }
+    var on = isFav(litId);
+    var p = on ? apiSend("DELETE", "/api/favorites/" + encodeURIComponent(litId), null)
+      : apiSend("POST", "/api/favorites/" + encodeURIComponent(litId), { note: "" });
+    p.then(function (r) {
+      if (!r.ok) {
+        setBlockMsg("#fav-msg", (/请先登录|401/.test(r.error) ? "请先登录（工作台 → 登录）" : "操作失败：" + r.error), "bad");
+        return;
+      }
+      state.fav.loaded = false;
+      favList().then(paint);
+      setBlockMsg("#fav-msg", on ? "已取消收藏" : "已加入收藏", "good");
+    });
+  });
+}
+
+/* ==================================================================
+ * 图谱
+ * ================================================================== */
+var KIND_LABEL = { lit: "文献", img: "图版", tag: "标签", objtype: "对象类型" };
+var KIND_COLOR = { lit: "#2f87ad", img: "#d95f0e", tag: "#238b45", objtype: "#756bb1" };
+var KIND_SHAPE = { lit: "dot", img: "square", tag: "triangle", objtype: "diamond" };
+
+function renderGraph() {
+  var g = state.graph;
+  /* 重画前先把上一轮的 scale 轮询停掉（否则会对着旧网络空转） */
+  if (g.scaleTimer) { clearInterval(g.scaleTimer); g.scaleTimer = null; }
+  g.lastScale = 0;
+  var html = '<div class="toolbar">';
+  ["lit", "img", "tag", "objtype"].forEach(function (k) {
+    html += '<label class="chk"><input type="checkbox" data-kind="' + k + '"' + (g.kinds[k] ? " checked" : "") + ">" +
+      esc(KIND_LABEL[k]) + "</label>";
+  });
+  html += '<span><label class="fl">最小度数</label><input type="number" id="g-deg" min="0" max="20" value="' + esc(g.min_degree) + '" style="width:74px"></span>' +
+    '<span><label class="fl">关键词</label><input type="text" id="g-kw" value="' + esc(g.keyword) + '" style="width:170px"></span>' +
+    '<span><label class="fl">聚焦节点</label><input type="text" id="g-focus" value="' + esc(g.focus) + '" placeholder="如 lit:LIT-000001" style="width:180px"></span>' +
+    '<span><label class="fl">跳数</label><select id="g-hop"><option value="1"' + (g.hop === 1 ? " selected" : "") + ">1</option><option value=\"2\"" + (g.hop === 2 ? " selected" : "") + ">2</option></select></span>" +
+    '<span><label class="fl">上限</label><input type="number" id="g-limit" min="50" max="5000" step="50" value="' + esc(g.limit) + '" style="width:90px"></span>' +
+    '<button class="btn" id="g-go">应用并绘图</button>' +
+    '<button class="btn ghost" id="g-an">分析指标</button>' +
+    '<button class="btn ghost" id="g-fit">复位视图</button>' +
+    '<button class="btn ghost gtoggle" id="g-gtoggle">☰ 边列表</button>' +
+    '<a class="btn ghost" href="/api/export/graph.html" target="_blank" rel="noopener">导出离线图谱 HTML</a>' +
+    "</div>";
+
+  html += '<div id="g-scope"></div>';
+  html += '<div class="graphwrap" id="g-wrap">' +
+    '<div class="sidepanel" id="g-edges"><b>边列表</b>' +
+    '<div style="margin:8px 0"><input type="text" id="g-edge-q" placeholder="搜索边：源 / 目标 / 关系 / 节点名" style="width:100%"></div>' +
+    '<ul class="edgelist" id="g-edge-list"><li class="placeholder">加载中…</li></ul>' +
+    '<div class="small muted" id="g-edge-more"></div></div>' +
+    '<div><div id="net"></div>' +
+    '<div class="legend" id="g-legend"></div>' +
+    '<div class="sidepanel" id="g-analysis" style="margin-top:12px;max-height:none"><b>图谱分析指标</b>' +
+    '<div class="small muted">点击「分析指标」加载度中心性 / 介数 / 社区（Louvain，seed 固定）。</div></div></div>' +
+    '<div class="sidepanel" id="g-side"><b>证据</b><div class="small muted">点击图中的边或左侧边列表的一行，这里显示该关系的原始证据与「打开文献」入口。</div></div></div>';
+  view.innerHTML = html;
+
+  var edgeQ = $("#g-edge-q");
+  if (edgeQ) {
+    edgeQ.value = state.graph.edgeQuery || "";
+    edgeQ.addEventListener("input", function () {
+      state.graph.edgeQuery = edgeQ.value;
+      renderEdgeList();
+    });
+  }
+  var gt = $("#g-gtoggle");
+  if (gt) gt.addEventListener("click", function () {
+    var w = $("#g-wrap");
+    if (w) w.classList.toggle("collapsed");
+  });
+  var fit = $("#g-fit");
+  if (fit) fit.addEventListener("click", function () {
+    if (state.graph.network && state.graph.network.fit) state.graph.network.fit({ animation: false });
+  });
+
+  $("#g-go").addEventListener("click", function () {
+    g.min_degree = parseInt($("#g-deg").value, 10) || 0;
+    g.keyword = $("#g-kw").value.trim();
+    g.focus = $("#g-focus").value.trim();
+    g.hop = parseInt($("#g-hop").value, 10) || 1;
+    g.limit = parseInt($("#g-limit").value, 10) || 600;
+    Array.prototype.forEach.call(document.querySelectorAll("[data-kind]"), function (cb) {
+      g.kinds[cb.getAttribute("data-kind")] = cb.checked;
+    });
+    loadGraph();
+  });
+  $("#g-an").addEventListener("click", loadGraphAnalysis);
+  loadGraph();
+}
+function graphParams() {
+  var g = state.graph;
+  var kinds = Object.keys(g.kinds).filter(function (k) { return g.kinds[k]; }).join(",");
+  return {
+    kinds: kinds, min_degree: g.min_degree, keyword: g.keyword,
+    focus: g.focus, hop: g.hop, limit: g.limit
+  };
+}
+function loadGraph() {
+  var sc = $("#g-scope");
+  if (sc) sc.innerHTML = '<div class="loading"><span class="spin"></span>正在构建图谱…</div>';
+  api("/api/graph", graphParams()).then(function (r) {
+    if (!r.ok) {
+      if (sc) sc.innerHTML = '<div class="errbox">图谱加载失败：' + esc(r.error) + "</div>";
+      var net = $("#net");
+      if (net) net.innerHTML = '<div class="empty">图谱数据不可用</div>';
+      return;
+    }
+    var d = r.data || {};
+    state.graph.data = d;
+    var nodes = d.nodes || [], edges = d.edges || [];
+    /* 标签清单：后端按「每社区一个」轮转排好 → 前 12 个正好覆盖所有社区。
+       前端按缩放级别渐进放出（见 applyLabelScale）。 */
+    state.graph.labelNodes = d.label_nodes || [];
+    state.graph.labelIndex = {};
+    for (var lgi = 0; lgi < state.graph.labelNodes.length; lgi++) {
+      state.graph.labelIndex[state.graph.labelNodes[lgi]] = lgi;
+    }
+    var stats = d.stats || {};
+    var returnedNodes = nodes.length, returnedEdges = edges.length;
+    var totalNodes = stats.nodes !== undefined ? stats.nodes : returnedNodes;
+    var totalEdges = stats.edges !== undefined ? stats.edges : returnedEdges;
+    var truncated = !!stats.truncated;
+    var withPos = nodes.filter(function (n) { return typeof n.x === "number" && typeof n.y === "number"; });
+    state.graph.hasPos = nodes.length > 0 && withPos.length === nodes.length;
+    state.graph.posCount = withPos.length;
+
+    var rnNote = (stats.returned_nodes === undefined) ? "后端未返回 returned_nodes，取图中实际渲染数"
+      : ("后端 returned_nodes=" + stats.returned_nodes + (Number(stats.returned_nodes) !== returnedNodes ? "（与图中渲染数不一致）" : ""));
+    var reNote = (stats.returned_edges === undefined) ? "后端未返回 returned_edges，取图中实际渲染数"
+      : ("后端 returned_edges=" + stats.returned_edges + (Number(stats.returned_edges) !== returnedEdges ? "（与图中渲染数不一致）" : ""));
+    if (sc) {
+      /* 降密信息必须**如实写出来**：用户要看得见「边被裁了多少、孤立点删了多少、
+         哪些节点才有名字」，否则「图变清爽了」会变成一件说不清的事。 */
+      var denseOn = stats.dense === true;
+      var items = [
+        ["实际返回节点", fmtNum(returnedNodes) + " 个", rnNote],
+        ["实际返回边", fmtNum(returnedEdges) + " 条", reNote]
+      ];
+      if (denseOn) {
+        if (stats.raw_nodes !== undefined) {
+          items.push(["节点截断后", fmtNum(stats.raw_nodes) + " 个",
+            "按度数取前 limit 个之后的结果"]);
+        }
+        if (stats.raw_edges !== undefined) {
+          items.push(["边裁剪前", fmtNum(stats.raw_edges) + " 条",
+            "度数上限 " + fmtNum(stats.edge_cap) + "：每个节点最多保留这么多条最强关系（孤点接回后最高 " +
+            fmtNum(stats.edge_cap * 2) + " 度）"]);
+        }
+        items.push(["边裁剪后", fmtNum(returnedEdges) + " 条",
+          "裁掉的都是弱关系；留下的边是图里的骨干"]);
+        if (stats.pruned_isolated) {
+          items.push(["剔除孤立点", fmtNum(stats.pruned_isolated) + " 个",
+            "裁剪后什么都没连上的节点 —— 留着没信息量，还会在画布上飘"]);
+        }
+        var lblCount = 0;
+        for (var li = 0; li < nodes.length; li++) {
+          if (nodes[li].show_label) lblCount += 1;
+        }
+        items.push(["显示名字的节点", fmtNum(lblCount) + " 个",
+          "只给**社区代表**起名字（度数最高的全是 hub，都挤在簇心）；其余名字悬停可见"]);
+        items.push(["标签渐进披露", "全图 12 → 中等 24 → 放大后 " + fmtNum(lblCount) + " 个",
+          "按缩放级别逐级放出：前 12 个正好每社区一个"]);
+      }
+      items.push(["筛选后总节点", fmtNum(totalNodes) + " 个", "后端 stats 口径"]);
+      items.push(["筛选后总边", fmtNum(totalEdges) + " 条", "后端 stats 口径"]);
+      items.push(["连通分量", fmtNum(stats.components) + " 个", "最大分量 " + fmtNum(stats.max_component) + " 节点"]);
+      items.push(["截断状态", truncated ? "已截断" : "未截断", truncated ? "已达 limit=" + state.graph.limit + " 上限，图中未全部显示" : ""]);
+      items.push(["布局方式",
+        state.graph.hasPos ? (denseOn ? "按当前子图重算（固定 seed）" : "固定坐标（physics 已关）") : "力导向兜底",
+        state.graph.hasPos
+          ? ("全部 " + fmtNum(returnedNodes) + " 个节点用后端给的 x/y，位置固定可复现"
+             + (denseOn ? "；坐标是按**裁剪后的子图**重算的（原坐标属全图，裁出来会挤在簇心）" : ""))
+          : ("后端本次只给 " + fmtNum(state.graph.posCount || 0) + "/" + fmtNum(returnedNodes) + " 个节点坐标，未给坐标的节点退回力导向")]);
+      sc.innerHTML = scopeBar(items);
+    }
+    drawGraph(nodes, edges);
+    renderEdgeList();
+  });
+}
+function drawGraph(nodes, edges) {
+  var box = $("#net");
+  if (!box) return;
+  if (!window.vis || !window.vis.Network) {
+    box.innerHTML = '<div class="empty">图谱渲染运行时（vis-network）未加载成功。<br>' +
+      '<span class="small">后端需提供 <span class="mono">/api/graph/vislib.js</span> 与 <span class="mono">/api/graph/vislib.css</span>；' +
+      '也可直接使用「导出离线图谱 HTML」。</span></div>';
+    return;
+  }
+  box.innerHTML = "";
+  /* 固定布局：节点带后端算好的 x/y 就用坐标、关掉力导向；
+     没有坐标（理论上不该有）才退回力导向，并在口径条里注明。 */
+  var withPos = nodes.filter(function (n) { return typeof n.x === "number" && typeof n.y === "number"; });
+  var hasPos = nodes.length > 0 && withPos.length === nodes.length;
+  state.graph.hasPos = hasPos;
+  var nd = new window.vis.DataSet(nodes.map(function (n) {
+    var lb = String(n.label || n.id || "");
+    if (lb.length > 18) lb = lb.slice(0, 17) + "…";
+    /* ★ 标签分级：只给后端点名的节点显示名字，其余**名字留在悬停提示里**。
+       为什么不全显示：600 个标签挤在 2000×2000 的画布上，字宽 60px 而节点
+       间距只有十几像素 → 文字糊成一片（实测 85% 的节点最近邻 < 20px）。
+       后端挑的是「社区代表」而不是度数最高的 —— 度数最高的全是 hub，
+       全挤在簇心（度数 top60 两两最近距中位 19.4px），社区代表则是 93.9px。 */
+    var showLbl = (n.show_label === undefined) ? true : !!n.show_label;
+    /* 节点按类型分级大小：文献是主体（大），图版是配角（小） */
+    var sz = (n.kind === "lit") ? 15 : (n.kind === "img" ? 8 : (n.kind === "tag" ? 12 : 13));
+    var o = {
+      id: n.id, label: showLbl ? lb : "", title: (n.label || n.id) + "（" + (KIND_LABEL[n.kind] || n.kind) + "）",
+      kind: n.kind, group: n.kind, value: n.weight, lit_id: n.lit_id,
+      show_label: showLbl, size: sz,
+      /* ★ 原始标签要**另存一份**：
+         渐进披露会把 `label` 置空来隐藏标签，一旦置空，
+         后面再放大时从 `label` 读回来就是空字符串 → 标签再也放不出来。
+         所以原值必须存在 `full_label` 里。 */
+      full_label: lb
+    };
+    /* ★ 标签字号要**按缩放级别补偿**：
+       vis-network 的文字画在 canvas 上，会跟着画布一起缩放 ——
+       全图视图时 scale≈0.55，12px 的标签实际只剩 6.6px，根本看不清。
+       所以这里给每个带标签的节点单独挂 font（节点级 font 覆盖 group 的），
+       再由 `applyLabelScale` 按当前缩放反算字号，让**屏幕上始终是 12px 左右**。 */
+    if (showLbl) {
+      o.font = { color: "#1d2733", size: 12, strokeWidth: 3, strokeColor: "#ffffff" };
+    }
+    if (typeof n.x === "number" && typeof n.y === "number") { o.x = n.x; o.y = n.y; }
+    return o;
+  }));
+  var ed = new window.vis.DataSet(edges.map(function (e, i) {
+    return {
+      id: i, from: e.src, to: e.dst, rel: e.rel, lit_id: e.lit_id,
+      title: e.rel, width: e.weight > 1 ? Math.min(3, e.weight) : 1
+    };
+  }));
+  var groups = {};
+  Object.keys(KIND_COLOR).forEach(function (k) {
+    /* ★ 标签加**白色描边**：不描边时 11px 的字压在淡灰线上根本看不清，
+       描边后字像浮在图上，是「图变清爽」最见效的一步。
+       字号比原来大 1px —— 标签只剩几十个，有地方显示得下。 */
+    groups[k] = { color: { background: KIND_COLOR[k], border: KIND_COLOR[k], highlight: { background: KIND_COLOR[k], border: "#123" } },
+      shape: KIND_SHAPE[k], font: { color: "#1d2733", size: 12, strokeWidth: 3, strokeColor: "#ffffff" } };
+  });
+  if (state.graph.network && state.graph.network.destroy) state.graph.network.destroy();
+  var network = new window.vis.Network(box, { nodes: nd, edges: ed }, {
+    groups: groups,
+    /* ★ 边画细一点、淡一点：降密后边少了很多，可以再淡一些减少视觉噪音 */
+    edges: { color: { color: "#c3d0d9", highlight: "#e08a2e", opacity: 0.5 },
+      smooth: { enabled: false } },
+    /* ★ 节点按类型分级大小：文献是大块（它是主体），图版小一点（它是配角） */
+    nodes: { size: 11, borderWidth: 1,
+      font: { size: 12, color: "#1d2733", strokeWidth: 3, strokeColor: "#ffffff" } },
+    physics: hasPos ? { enabled: false }
+      : { stabilization: { iterations: 160 }, barnesHut: { springLength: 130 } },
+    layout: hasPos ? {} : { improvedLayout: false },
+    interaction: { hover: true, tooltipDelay: 120 }
+  });
+  state.graph.network = network;
+  if (network.fit) network.fit({ animation: false });
+  /* ★ 缩放时补偿标签字号（见上面节点 font 的说明）。
+     必须在 fit **之后**按真实缩放算一次 —— fit 之前 scale 还是默认值，
+     算出来的字号会小一半（实测全图视图 scale 只有 0.28）。
+     只更新**有标签的那几十个**节点 —— 全量 update 在 600 节点时会卡。 */
+  applyLabelScale(network, network.getScale ? network.getScale() : 1);
+  network.on("zoom", function (p) { applyLabelScale(network, p.scale); });
+  /* ★ 兜底：vis-network 的 `moveTo({scale})` **不触发** zoom 事件（实测 fired=0），
+     于是「按缩放渐进放出标签」在**程序化缩放**时失效 —— 放大后标签数停在 12 个。
+     → 加一条 400ms 的 scale 轮询：只要 scale 变了就重算一次标签。
+       （用户滚轮缩放本来就会触发 zoom，这条只是补上程序化缩放这条路。） */
+  state.graph.lastScale = network.getScale ? network.getScale() : 1;
+  state.graph.scaleTimer = setInterval(function () {
+    var net = state.graph.network;
+    if (!net) { clearInterval(state.graph.scaleTimer); state.graph.scaleTimer = null; return; }
+    var s = net.getScale ? net.getScale() : 1;
+    if (Math.abs(s - (state.graph.lastScale || 0)) > 1e-6) {
+      state.graph.lastScale = s;
+      applyLabelScale(net, s);
+    }
+  }, 400);
+  network.on("click", function (params) {
+    if (params.edges && params.edges.length) {
+      var e = ed.get(params.edges[0]);
+      if (e) showEvidence(e);
+    } else if (params.nodes && params.nodes.length) {
+      var n = nd.get(params.nodes[0]);
+      state.graph.nodeSel = n ? n.id : null;
+      highlightEdgeRows(state.graph.nodeSel);
+      if (n && n.lit_id) location.hash = "#/lit/" + n.lit_id;
+    }
+  });
+  renderLegend();
+}
+/* 标签字号按缩放补偿 —— 让屏幕上的实际字号稳定在 12px 上下。
+   ★ 为什么需要：vis-network 的文字画在 canvas 上，会随画布一起缩放。
+     全图视图 scale≈0.28 → 12px 的标签实际只剩 3.4px，等于没有标签；
+     放大到 scale=3 时又变成 36px，糊成一团。
+     → 反算：字号 = 目标字号 / 当前缩放，并夹在 [11, 40] 之间。
+   ★ 同时做**渐进披露**：缩得越小，只放越少的标签。
+     48 个标签全放出来，在全图视图里必然叠字（实测中心区一片糊）。
+     后端把标签按「每社区一个」轮转排序 → 前 12 个正好覆盖所有社区，
+     于是「全图看结构（12 个名字，每社区都有）、放大看细节（名字逐级放出来）」。 */
+function applyLabelScale(network, scale) {
+  if (!network || !network.body || !network.body.data) return;
+  var sc = Number(scale);
+  if (!sc || sc <= 0) sc = 1;
+  /* 目标：屏幕上约 11px。夹在 [11, 40] —— 上限 40 是因为全图视图
+     实测 scale 只有 0.28，11/0.28≈40；再小就会盖不住密集处的线。 */
+  var fs = Math.max(11, Math.min(40, 11 / sc));
+  /* 放多少个名字：缩得越小放得越少 */
+  var total = (state.graph.labelNodes || []).length;
+  var quota = (sc < 0.35) ? 12 : (sc < 0.8 ? 24 : total);
+  if (!total) quota = 0;
+  var ds = network.body.data.nodes;
+  var ids = ds.getIds();
+  var upd = [];
+  for (var i = 0; i < ids.length; i++) {
+    var n = ds.get(ids[i]);
+    if (!n || !n.show_label) continue;
+    var rank = (state.graph.labelIndex || {})[n.id];
+    var on = (rank !== undefined && rank < quota);
+    upd.push({
+      id: n.id,
+      /* ★ 用 full_label 取原值 —— label 此刻可能已被上一轮隐藏成 "" */
+      label: on ? (n.full_label || n.label || "") : "",
+      font: { color: "#1d2733", size: fs, strokeWidth: 3, strokeColor: "#ffffff" }
+    });
+  }
+  if (upd.length) ds.update(upd);
+}
+/* 图例（节点配色） */
+function renderLegend() {
+  var box = $("#g-legend");
+  if (!box) return;
+  var h = "";
+  Object.keys(KIND_LABEL).forEach(function (k) {
+    var shape = KIND_SHAPE[k] === "square" ? "sq" : (KIND_SHAPE[k] === "triangle" ? "tri" : (KIND_SHAPE[k] === "diamond" ? "dia" : "dot"));
+    h += '<span class="lg"><span class="' + shape + '" style="background:' + KIND_COLOR[k] + '"></span>' +
+      esc(KIND_LABEL[k]) + "</span>";
+  });
+  h += '<span class="small muted">节点配色＝节点类型；布局＝' +
+    (state.graph.hasPos ? "后端固定坐标（不开力导向，位置可复现）" : "力导向兜底（后端本次未给坐标）") + "。</span>";
+  box.innerHTML = h;
+}
+/* 边列表：用 /api/graph 已返回的 edges，不再额外发请求；最多渲染 300 行 */
+var EDGE_ROW_MAX = 300;
+function graphLabelMap() {
+  var m = {};
+  var nodes = (state.graph.data && state.graph.data.nodes) ? state.graph.data.nodes : [];
+  nodes.forEach(function (n) { m[n.id] = n.label || n.id; });
+  return m;
+}
+function renderEdgeList() {
+  var ul = $("#g-edge-list"), more = $("#g-edge-more");
+  if (!ul) return;
+  var d = state.graph.data || {};
+  var edges = d.edges || [];
+  var relLabels = d.rel_labels || {};
+  var labels = graphLabelMap();
+  var q = String(state.graph.edgeQuery || "").trim().toLowerCase();
+  var filtered = edges;
+  if (q) {
+    filtered = edges.filter(function (e) {
+      var blob = [e.src, e.dst, e.rel, labels[e.src], labels[e.dst], relLabels[e.rel]]
+        .filter(function (x) { return x !== undefined && x !== null; })
+        .join(" ").toLowerCase();
+      return blob.indexOf(q) >= 0;
+    });
+  }
+  var shown = filtered.slice(0, EDGE_ROW_MAX);
+  if (!shown.length) {
+    ul.innerHTML = '<li class="placeholder">' + (q ? "没有匹配的边（搜索：" + esc(q) + "）" : "本次筛选没有返回任何边。") + "</li>";
+    if (more) more.textContent = "";
+    return;
+  }
+  ul.innerHTML = shown.map(function (e) {
+    var s = labels[e.src] || e.src, t = labels[e.dst] || e.dst;
+    var relCn = relLabels[e.rel] || e.rel;
+    return '<li data-src="' + esc(e.src) + '" data-dst="' + esc(e.dst) + '" data-rel="' + esc(e.rel) + '">' +
+      '<div class="pair">' + esc(s) + " → " + esc(t) + "</div>" +
+      '<div class="rel">' + esc(relCn) + ' <span class="mono">(' + esc(e.rel) + ")</span></div></li>";
+  }).join("");
+  Array.prototype.forEach.call(ul.querySelectorAll("li[data-src]"), function (li) {
+    li.addEventListener("click", function () {
+      var src = li.getAttribute("data-src"), dst = li.getAttribute("data-dst"), rel = li.getAttribute("data-rel");
+      state.graph.edgeSel = { src: src, dst: dst, rel: rel };
+      highlightEdgeRows(null);
+      li.classList.add("hl");
+      showEvidence({ from: src, to: dst, rel: rel });
+    });
+  });
+  if (more) {
+    more.textContent = "共 " + fmtNum(filtered.length) + " 条" +
+      (filtered.length > EDGE_ROW_MAX ? "，已显示前 " + EDGE_ROW_MAX + " 条" : "") +
+      (q ? "（在 " + fmtNum(edges.length) + " 条中搜索）" : "（/api/graph 返回的边）");
+  }
+}
+/* 点节点时高亮边列表里对应的边 */
+function highlightEdgeRows(nodeId) {
+  var ul = $("#g-edge-list");
+  if (!ul) return;
+  Array.prototype.forEach.call(ul.querySelectorAll("li[data-src]"), function (li) {
+    var hit = nodeId && (li.getAttribute("data-src") === nodeId || li.getAttribute("data-dst") === nodeId);
+    li.classList.toggle("hl", !!hit);
+  });
+}
+function showEvidence(edge) {
+  var side = $("#g-side");
+  if (!side) return;
+  side.innerHTML = '<b>证据</b><div class="loading" style="padding:12px"><span class="spin"></span>正在读取证据…</div>';
+  api("/api/graph/evidence", { src: edge.from, dst: edge.to, rel: edge.rel }).then(function (r) {
+    if (!r.ok) {
+      side.innerHTML = '<b>证据</b><div class="errbox">' + esc(r.error) + "</div>";
+      return;
+    }
+    var items = (r.data && r.data.items) ? r.data.items : [];
+    var h = '<b>证据</b><div class="small muted" style="margin:4px 0 10px">关系 <span class="mono">' +
+      esc(edge.from) + " → " + esc(edge.to) + "</span>（<span class=\"mono\">" + esc(edge.rel) + "</span>）</div>";
+    if (!items.length) {
+      h += emptyBox("该关系没有可展示的证据条目。");
+    } else {
+      items.forEach(function (it) {
+        h += '<div class="ev"><div class="t">' + esc(nz(it.title)) + "</div>" +
+          '<div class="meta">图号 ' + esc(nz(it.fig_no)) + "　页码 " + esc(nz(it.pdf_page)) +
+          "　路径 <span class='mono'>" + esc(nz(it.path)) + "</span></div>" +
+          (it.caption ? '<div class="small">图注：' + esc(it.caption) + "</div>" : "") +
+          '<div class="small">证据：' + esc(nz(it.evidence)) + "</div>" +
+          (it.lit_id ? '<div style="margin-top:6px"><a class="btn ghost" href="#/lit/' + esc(it.lit_id) + '">打开文献</a></div>' : "") +
+          "</div>";
+      });
+    }
+    side.innerHTML = h;
+  });
+}
+function loadGraphAnalysis() {
+  var box = $("#g-analysis");
+  if (!box) return;
+  box.innerHTML = '<b>图谱分析指标</b><div class="loading" style="padding:12px"><span class="spin"></span>正在计算…</div>';
+  api("/api/graph/analysis").then(function (r) {
+    if (!r.ok) {
+      box.innerHTML = '<b>图谱分析指标</b><div class="errbox">' + esc(r.error) + "</div>";
+      return;
+    }
+    var d = r.data || {};
+    var h = '<b>图谱分析指标</b>';
+    if (d.note) h += '<div class="small muted">' + esc(d.note) + "</div>";
+    var deg = d.degree_top || [], btw = d.betweenness_top || [], com = d.communities || [];
+    h += '<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin-top:8px">';
+    h += '<div><div class="barhead">度中心性 Top（≠ 权责边界）</div><table style="width:100%;font-size:12.5px">';
+    deg.slice(0, 10).forEach(function (x) {
+      h += "<tr><td>" + esc(nz(x.label || x.id)) + '</td><td style="text-align:right">' + esc(nz(x.degree)) + "</td></tr>";
+    });
+    h += "</table></div>";
+    h += '<div><div class="barhead">介数中心性 Top（权责边界参考）</div><table style="width:100%;font-size:12.5px">';
+    btw.slice(0, 10).forEach(function (x) {
+      h += "<tr><td>" + esc(nz(x.label || x.id)) + '</td><td style="text-align:right">' + esc(nz(x.betweenness)) + "</td></tr>";
+    });
+    h += "</table></div>";
+    h += '<div><div class="barhead">社区（Louvain）</div>';
+    if (!com.length) h += '<div class="small muted">无</div>';
+    com.forEach(function (c) {
+      h += '<div class="small"><b>#' + esc(c.cid) + "</b>　size " + esc(nz(c.size)) + "　members " + esc(nz(c.members)) +
+        "<br>" + (c.sample_labels || []).map(function (l) { return '<span class="pill">' + esc(l) + "</span>"; }).join("") + "</div>";
+    });
+    h += "</div></div>";
+    box.innerHTML = h;
+  });
+}
+
+/* ==================================================================
+ * 工作台（登录 / 收藏 / 提案与审核 / 统计与地图 / AI 问答 / 导入历史）
+ * ================================================================== */
+/* 工作台：入口页 + 各功能独立界面（接口契约-v3 §1.1） */
+function renderWorkbench(sub) {
+  sub = sub || "";
+  if (sub === "account") return renderAccountPage();
+  if (sub === "favorites") return renderFavPage();
+  if (sub === "review") return renderReviewPage();
+  if (sub === "stats") return renderStatsPage();
+  if (sub === "parse") return renderParsePage();
+  if (sub === "ai") return renderAiPage();
+  if (sub === "history") return renderHistoryPage();
+  if (sub === "webdev") return renderWebDevPage();
+  return renderWorkbenchHome();
+}
+/* 子界面统一的顶部条：← 返回工作台 */
+function subBar(title, eps) {
+  return '<div class="subbar"><a class="btn ghost" href="#/work">← 返回工作台</a>' +
+    "<h3>" + esc(title) + "</h3>" +
+    (eps ? '<span class="small muted mono">' + esc(eps) + "</span>" : "") + "</div>";
+}
+/* 工作台入口页：功能卡片网格（每张卡写清 干什么 / 调哪些端点 / 需要什么权限 / 当前状态） */
+function renderWorkbenchHome() {
+  /* 卡片显隐依赖总闸状态 → 状态没到之前先别渲染（否则关掉后入口会闪一下） */
+  if (state.webdev === undefined) {
+    api("/api/webdev/status").then(function (r) {
+      state.webdev = (r && r.ok) ? (r.data || {}) : { enabled: true };
+      renderWorkbenchHome();
+    });
+    return;
+  }
+  var u = state.auth.user;
+  var cards = [
+    { id: "account", t: "① 登录 / 账号",
+      what: "登录、退出，查看当前身份与角色。",
+      eps: "/api/auth/login · /api/auth/logout · /api/auth/me",
+      perm: "无需登录" },
+    { id: "favorites", t: "② 我的收藏",
+      what: "查看收藏的文献，点进去或取消收藏。",
+      eps: "GET /api/favorites · DELETE /api/favorites/{lit_id}",
+      perm: "需登录" },
+    { id: "review", t: "③ 提案与审核",
+      what: "逐条批准/驳回待审提案（导入与录入产生的提案都在这里）。",
+      eps: "GET /api/staging?status=pending · POST /api/staging/{id}/approve|reject",
+      perm: "仅管理员可见", adminOnly: true },
+    { id: "stats", t: "④ 统计与地图",
+      what: "时间分期 / 出版年份 / 文献类型 / 空间分区的条形图，以及后端出的空间分布图。",
+      eps: "/api/stats/timeline · /api/stats/region · /api/stats/map.png",
+      perm: "无需登录" },
+    { id: "parse", t: "⑤ MinerU 解析与录入",
+      what: "上传 PDF 解析成 Markdown＋图版，填题录后作为提案提交入库。",
+      eps: "/api/mineru/status · /api/mineru/parse · /api/mineru/jobs · /api/mineru/submit",
+      perm: "需登录（提交提案要审核）" },
+    { id: "ai", t: "⑥ AI 问答",
+      what: "用自然语言问本库；接口配置存在各自浏览器里，不填则降级为本地检索摘要。",
+      eps: "POST /api/ai/ask · /api/ai/providers · /api/ai/test",
+      perm: "无需登录" },
+    { id: "history", t: "⑦ 导入历史",
+      what: "历次登记表导入的批次、时间与写入条数。",
+      eps: "GET /api/import/log",
+      perm: "无需登录" },
+    { id: "webdev", t: "⑧ Web Dev（浏览数据与同步）", gated: true,
+      what: "浏览记录存在自己浏览器里（各存各的，本站不保存），可同步到自己的 WebDAV 网盘（坚果云等），换设备也能带走。",
+      eps: "POST /api/webdav/test · /api/webdav/put · /api/webdav/get",
+      perm: "需登录" }
+  ];
+  var html = '<div class="subbar"><h3>工作台</h3>' +
+    '<span class="small muted">入口页：每个功能点进去是独立界面。' +
+    (u ? ("当前身份：" + esc(nz(u.username)) + "（" + esc(nz(u.role)) + "）") : "当前未登录") +
+    "</span></div>";
+  html += '<div class="wbgrid">';
+  cards.forEach(function (c) {
+    if (c.adminOnly && !isAdmin()) return;      /* 界面层过滤：非管理员整张卡不出现 */
+    /* Web Dev 总闸：管理员关掉后，**成员**看不到入口（接口层也会 403）；
+       ★ 管理员仍要能看到 —— 否则关了就再也打不开了。 */
+    if (c.gated && state.webdev && state.webdev.enabled === false && !isAdmin()) return;
+    html += '<div class="wcard"><h4>' + esc(c.t) + "</h4>" +
+      '<div class="what">' + esc(c.what) + "</div>" +
+      '<div class="statline" id="st-' + c.id + '">状态读取中…</div>' +
+      '<div class="eps">' + esc(c.eps) + "</div>" +
+      '<div class="perm">权限：' + esc(c.perm) + "</div>" +
+      '<a class="btn ghost go" href="#/work/' + c.id + '">进入 →</a></div>';
+  });
+  html += "</div>";
+  view.innerHTML = html;
+  loadHomeStatuses();
+}
+/* 入口页每张卡的当前状态（各端点分别取，出一个填一个，不互相阻塞） */
+function setStatus(id, txt) {
+  var e = document.getElementById("st-" + id);
+  if (e) e.textContent = txt;
+}
+function loadHomeStatuses() {
+  var u = state.auth.user;
+  setStatus("account", u ? ("已登录：" + nz(u.username) + "（" + nz(u.role) + "）") : "未登录（可在本机免登录模式下直接用）");
+  api("/api/favorites").then(function (r) {
+    if (!r.ok) { setStatus("favorites", "收藏列表不可用（" + r.error + "）"); return; }
+    var d = r.data || {};
+    setStatus("favorites", "我的收藏 " + fmtNum((d.items || d.list || []).length) + " 条");
+  });
+  if (isAdmin()) {
+    api("/api/staging", { status: "pending", page: 1, size: 50 }).then(function (r) {
+      if (!r.ok) { setStatus("review", "待审列表不可用（" + r.error + "）"); return; }
+      var d = r.data || {};
+      setStatus("review", "待审提案 " + fmtNum(d.total !== undefined ? d.total : (d.items || []).length) + " 条");
+    });
+  }
+  if (state.ov) {
+    setStatus("stats", "文献 " + fmtNum(state.ov.lit_count) + " 条 · 图像 " + fmtNum(state.ov.img_count) + " 张");
+  } else {
+    api("/api/overview").then(function (r) {
+      if (!r.ok) { setStatus("stats", "总览不可用（" + r.error + "）"); return; }
+      state.ov = r.data;
+      setStatus("stats", "文献 " + fmtNum(r.data.lit_count) + " 条 · 图像 " + fmtNum(r.data.img_count) + " 张");
+    });
+  }
+  var cfg = aiCfgLoad();
+  setStatus("ai", cfg && cfg.api_key ? ("已配置接口：" + nz(cfg.provider) + "（key 存在本浏览器）") : "未配置接口（提问将降级为本地检索摘要）");
+  api("/api/mineru/status").then(function (r) {
+    if (!r.ok) { setStatus("parse", "解析服务不可用（" + r.error + "）"); return; }
+    var d = r.data || {};
+    var cli = d.cli || {};
+    setStatus("parse", "MinerU " + (cli.installed ? (cli.version || "已安装") : "未安装") +
+      " · 本地API " + ((d.local && d.local.reachable) ? "通" : "不通") +
+      " · 最近任务 " + fmtNum((d.jobs_total !== undefined) ? d.jobs_total : 0) + " 个");
+  });
+  api("/api/import/log", { page: 1, size: 1 }).then(function (r) {
+    if (!r.ok) { setStatus("history", "导入历史不可用（" + r.error + "）"); return; }
+    var d = r.data || {};
+    setStatus("history", "导入批次 " + fmtNum(d.total !== undefined ? d.total : (d.items || []).length) + " 批");
+  });
+  /* Web Dev：浏览记录是**本地**的（不在服务器），所以这里直接数 localStorage */
+  setStatus("webdev", "我的浏览记录 " + fmtNum(browseCount()) + " 条（存在本浏览器）");
+  /* 总闸状态（开/关）也显示出来，管理员一眼能看到 */
+  api("/api/webdev/status").then(function (r) {
+    if (!r.ok) return;
+    state.webdev = r.data || {};
+    if (state.webdev.enabled === false) {
+      setStatus("webdev", "已被管理员关闭");
+    }
+  });
+}
+/* ==================================================================
+ * 工作台 · 子界面：① 账号 / ② 收藏 / ③ 提案与审核
+ * ================================================================== */
+function renderAccountPage() {
+  var u = state.auth.user;
+  var html = subBar("① 登录 / 账号", "/api/auth/login · /api/auth/logout · /api/auth/me");
+  html += '<div class="fullblk">';
+  if (u) {
+    var via = (u.via === "cloudflare-access");
+    html += '<div class="notice good">当前用户：<b>' + esc(nz(u.username)) + "</b>　角色：<b>" + esc(nz(u.role)) + "</b></div>";
+    if (via) {
+      html += '<div class="notice">身份由 <b>Cloudflare Access</b> 验证：登录页用这个邮箱收了一次性 PIN 码，' +
+        '本站据此<b>自动开号</b>（开放注册）。角色是 <b>member</b>，管理员由管理员指定。</div>';
+    }
+    html += '<div class="formrow"><button class="btn ghost" id="w-logout">退出登录</button>' +
+      '<span class="small muted">' + (isAdmin() ? "管理员：可见「提案与审核」" : "非管理员：不显示「提案与审核」") + "</span></div>";
+  } else {
+    html += '<div class="formrow"><label class="fl">用户名</label><input type="text" id="w-user" style="width:160px">' +
+      '<label class="fl">密码</label><input type="password" id="w-pass" style="width:160px">' +
+      '<button class="btn" id="w-login">登录</button></div>' +
+      '<div id="w-login-msg"></div>' +
+      '<div class="small muted">本机 auth.enabled=false 时后端按免登录管理员放行（/api/auth/me 可能直接返回默认 admin，或返回 401）。</div>' +
+      '<div class="notice">从公网地址进来时会先经过 <b>Cloudflare Access</b>：在登录页用邮箱收一次性 PIN 码，' +
+      '通过后本站会<b>按这个邮箱自动开号</b>，不需要再注册一次。</div>';
+  }
+  html += "</div>";
+  view.innerHTML = html;
+  var lg = $("#w-login"); if (lg) lg.addEventListener("click", loginUser);
+  var lo = $("#w-logout"); if (lo) lo.addEventListener("click", logoutUser);
+}
+function renderFavPage() {
+  view.innerHTML = subBar("② 我的收藏", "GET /api/favorites · DELETE /api/favorites/{lit_id}") +
+    '<div class="fullblk"><div id="w-fav"><div class="loading"><span class="spin"></span>加载中…</div></div></div>';
+  loadFavBlock();
+}
+function renderReviewPage() {
+  if (!isAdmin()) {
+    /* 界面层过滤：非管理员整块不出现（接口层后端也会 403） */
+    view.innerHTML = subBar("③ 提案与审核", "GET /api/staging?status=pending") +
+      '<div class="fullblk"><div class="notice">「提案与审核」仅管理员可见。当前身份：' +
+      (state.auth.user ? esc(nz(state.auth.user.username)) + "（" + esc(nz(state.auth.user.role)) + "）" : "未登录") +
+      '，没有审核权限。<br><a class="btn ghost" href="#/work/account">去登录 →</a></div></div>';
+    return;
+  }
+  view.innerHTML = subBar("③ 提案与审核", "GET /api/staging?status=pending · POST /api/staging/{id}/approve|reject") +
+    '<div class="fullblk"><div id="w-staging"><div class="loading"><span class="spin"></span>加载中…</div></div></div>';
+  loadStagingBlock();
+}
+function loadFavBlock() {
+  var box = $("#w-fav");
+  if (!box) return;
+  api("/api/favorites").then(function (r) {
+    if (!r.ok) {
+      box.innerHTML = '<div class="notice bad">收藏列表不可用：' + esc(r.error) + "</div>";
+      return;
+    }
+    var d = r.data || {};
+    var items = d.items || d.list || [];
+    state.fav.items = items;
+    if (!items.length) {
+      box.innerHTML = emptyBox("还没有收藏。在文献详情页点「☆ 收藏」即可加入。");
+      return;
+    }
+    var h = '<div class="notice">共 ' + fmtNum(items.length) + " 条（/api/favorites）</div>";
+    h += '<div class="litlist">';
+    items.forEach(function (it) {
+      h += '<div class="litrow" style="grid-template-columns:1fr 150px">' +
+        '<div><div class="ttl"><a href="#/lit/' + esc(it.lit_id) + '">' + esc(nz(it.title)) + "</a></div>" +
+        '<div class="tg">' + esc(nz(it.note)) + (it.created_at ? "　" + esc(it.created_at) : "") + "</div></div>" +
+        '<div><button class="btn ghost" data-unfav="' + esc(it.lit_id) + '">取消收藏</button></div></div>';
+    });
+    h += "</div>";
+    box.innerHTML = h;
+    Array.prototype.forEach.call(box.querySelectorAll("[data-unfav]"), function (btn) {
+      btn.addEventListener("click", function () {
+        var id = btn.getAttribute("data-unfav");
+        apiSend("DELETE", "/api/favorites/" + encodeURIComponent(id), null).then(function (r2) {
+          if (!r2.ok) { box.insertAdjacentHTML("afterbegin", '<div class="notice bad">取消失败：' + esc(r2.error) + "</div>"); return; }
+          loadFavBlock();
+        });
+      });
+    });
+  });
+}
+/* ==================================================================
+ * 工作台 · ③ 提案与审核（仅管理员，界面层过滤）
+ * ================================================================== */
+function loadStagingBlock() {
+  var box = $("#w-staging");
+  if (!box) return;
+  api("/api/staging", { status: "pending", page: 1, size: 50 }).then(function (r) {
+    if (!r.ok) {
+      box.innerHTML = '<div class="notice bad">待审列表不可用：' + esc(r.error) + "</div>";
+      return;
+    }
+    var d = r.data || {};
+    var items = d.items || [];
+    if (!items.length) { box.innerHTML = emptyBox("没有待审提案。"); return; }
+    var h = '<div class="notice">待审 ' + fmtNum(d.total !== undefined ? d.total : items.length) + " 条（/api/staging?status=pending）</div>";
+    items.forEach(function (it) {
+      var diff = it.diff || {};
+      var fields = diff.fields || (Array.isArray(diff) ? diff : []);
+      h += '<div class="ev"><div class="t">' + esc(nz(it.target_id)) + "　<span class=\"rel\">" + esc(nz(it.kind)) + " / " + esc(nz(it.status)) + "</span></div>" +
+        '<div class="meta">提案号 ' + esc(nz(it.id)) + "　提出人 " + esc(nz(it.proposer)) + "　" + esc(nz(it.created_at)) + "</div>";
+      if (fields.length) {
+        h += '<div class="tablewrap" style="margin:6px 0"><table class="grid"><thead><tr><th>字段</th><th>旧值</th><th>新值</th></tr></thead><tbody>';
+        fields.forEach(function (f) {
+          h += "<tr><td>" + esc(nz(f.col)) + (f.required ? " <b>*</b>" : "") + '</td><td class="old">' + esc(nz(f.old)) + '</td><td class="new">' + esc(nz(f.new)) + "</td></tr>";
+        });
+        h += "</tbody></table></div>";
+      }
+      h += '<div class="formrow"><input type="text" id="rv-note-' + esc(it.id) + '" placeholder="审核意见（可选）" style="flex:1;min-width:200px">' +
+        '<button class="btn" data-ap="' + esc(it.id) + '">批准</button>' +
+        '<button class="btn ghost" data-rj="' + esc(it.id) + '">驳回</button></div></div>';
+    });
+    box.innerHTML = h;
+    Array.prototype.forEach.call(box.querySelectorAll("[data-ap]"), function (btn) {
+      btn.addEventListener("click", function () { reviewStaging(btn.getAttribute("data-ap"), "approve", btn); });
+    });
+    Array.prototype.forEach.call(box.querySelectorAll("[data-rj]"), function (btn) {
+      btn.addEventListener("click", function () { reviewStaging(btn.getAttribute("data-rj"), "reject", btn); });
+    });
+  });
+}
+function reviewStaging(id, act, btn) {
+  var noteEl = document.getElementById("rv-note-" + id);
+  var body = { reviewer: (state.auth.user && state.auth.user.username) || "", note: noteEl ? noteEl.value : "" };
+  btn.disabled = true;
+  apiSend("POST", "/api/staging/" + encodeURIComponent(id) + "/" + act, body).then(function (r) {
+    if (!r.ok) { btn.disabled = false; setBlockMsg("#w-staging-msg", (act === "approve" ? "批准" : "驳回") + "失败：" + r.error, "bad"); return; }
+    loadStagingBlock();
+  });
+}
+/* ==================================================================
+ * 工作台 · ④ 统计与地图（原生 SVG 条形图，不引任何外部库）
+ * ================================================================== */
+function pickCount(o) {
+  if (o === null || o === undefined) return null;
+  if (typeof o === "number") return o;
+  var c = o.n !== undefined ? o.n : (o.count !== undefined ? o.count : (o.value !== undefined ? o.value : (o.total !== undefined ? o.total : null)));
+  return (c === null || c === undefined) ? null : c;
+}
+function pickKey(o, i) {
+  if (o === null || o === undefined) return String(i + 1);
+  if (typeof o !== "object") return String(o);
+  var k = o.k !== undefined ? o.k : (o.name !== undefined ? o.name : (o.label !== undefined ? o.label : (o.key !== undefined ? o.key : (o.region !== undefined ? o.region : String(i + 1)))));
+  return String(k);
+}
+function normSeries(arr) {
+  if (!arr) return [];
+  if (!Array.isArray(arr) && Array.isArray(arr.items)) arr = arr.items;
+  if (!Array.isArray(arr)) return [];
+  return arr.map(function (o, i) { return { k: pickKey(o, i), n: pickCount(o) }; })
+    .filter(function (x) { return x.n !== null; });
+}
+/* 纯 SVG 条形图
+   ★ 可点击 + 高亮（统计图 ↔ 地图联动用）
+     opts.onPick     : function(name){...}  柱子可点击；命中时给 rect 加 class="barhit"
+                       + data-name="<名称>" + cursor:pointer
+     opts.highlight  : [名称, ...]          命中的柱子换成强调色（地图选中分区时用）
+     opts.group      : 组 id（同一组重画时复用，避免注册表无限增长）
+   事件用**文档级事件委托**统一处理（SVG 里 data-name 必须走 esc() 转义）。 */
+var BAR_GROUPS = {};
+var BAR_SEQ = 0;
+function svgBars(title, series, opts) {
+  opts = opts || {};
+  var gid = opts.group || ("bg" + (++BAR_SEQ));
+  if (opts.onPick) BAR_GROUPS[gid] = opts.onPick;
+  var hl = opts.highlight || [];
+  var data = (series || []).filter(function (x) { return x && x.n !== null; });
+  if (!data.length) return '<div class="barhead">' + esc(title) + "</div>" + emptyBox("暂无数据");
+  var max = 0;
+  data.forEach(function (d) { if (Number(d.n) > max) max = Number(d.n); });
+  var W = 640, rowH = 22, padL = 140, padR = 46, padT = 8;
+  var H = padT + data.length * rowH + 8;
+  var bw = Math.max(60, W - padL - padR);
+  var s = '<svg class="svgchart" data-bar-group="' + esc(gid) + '" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + esc(title) + '">';
+  data.forEach(function (d, i) {
+    var y = padT + i * rowH;
+    var w = max ? (Number(d.n) / max * bw) : 0;
+    var isHl = hl.length > 0 && hl.indexOf(d.k) >= 0;
+    var cls = "bl" + (isHl ? " hl" : "") + (opts.onPick ? " barhit" : "");
+    var extra = opts.onPick
+      ? ' data-name="' + esc(d.k) + '" data-bar-group="' + esc(gid) + '" style="cursor:pointer"'
+      : "";
+    s += '<text class="tx" x="' + (padL - 6) + '" y="' + (y + 14) + '" text-anchor="end">' + esc(d.k) + "</text>";
+    s += '<rect class="' + cls + '"' + extra + ' x="' + padL + '" y="' + (y + 3) + '" width="' + w.toFixed(1) + '" height="' + (rowH - 8) + '"></rect>';
+    s += '<text class="tx" x="' + (padL + w + 5) + '" y="' + (y + 14) + '">' + esc(fmtNum(d.n)) + "</text>";
+  });
+  s += "</svg>";
+  return '<div class="barhead">' + esc(title) +
+    (opts.note ? ' <span class="small muted">' + esc(opts.note) + "</span>" : "") + "</div>" + s;
+}
+/* 柱子点击：文档级事件委托（只装一次） */
+document.addEventListener("click", function (e) {
+  var el = e.target;
+  if (!el || !el.getAttribute) return;
+  var gid = el.getAttribute("data-bar-group");
+  if (!gid) return;
+  var nm = el.getAttribute("data-name");
+  if (!nm) return;
+  var h = BAR_GROUPS[gid];
+  if (h) h(nm);
+});
+function loadStatsBlock() {
+  var box = $("#w-stats");
+  if (!box) return;
+  Promise.all([api("/api/stats/timeline"), api("/api/stats/region")]).then(function (res) {
+    var tl = res[0], rg = res[1];
+    var h = "";
+    if (tl.ok) {
+      var d = tl.data || {};
+      h += svgBars("时间分期（periods）", normSeries(d.periods), { note: "/api/stats/timeline" });
+      h += svgBars("出版年份（years）", normSeries(d.years), { note: "文献出版年，非良渚分期年" });
+      h += svgBars("文献类型（doc_types）", normSeries(d.doc_types));
+    } else {
+      h += '<div class="notice bad">时间线统计不可用：' + esc(tl.error) + "</div>";
+    }
+    if (rg.ok) {
+      var rd = rg.data || {};
+      h += svgBars("空间分区", normSeries(rd.items || rd.regions || rd), { note: "/api/stats/region" });
+    } else {
+      h += '<div class="notice bad">空间分区统计不可用：' + esc(rg.error) + "</div>";
+    }
+    h += '<div class="barhead">后端出图<span class="tag">/api/stats/map.png</span></div>' +
+      '<img class="mapimg" src="/api/stats/map.png" alt="后端生成的空间分布图（坐标未补齐时后端自动退化为分区统计柱状图）" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\';">' +
+      '<div class="notice" style="display:none">后端出图不可用（/api/stats/map.png 未就绪或未实现）。</div>' +
+      '<div class="small muted">坐标未补齐前，后端会自动出「分区统计」柱状图并在图上注明；前端不自行编造地图。</div>';
+    box.innerHTML = h;
+  });
+}
+/* ==================================================================
+ * 工作台 · ⑤ AI 问答
+ * ================================================================== */
+/* ★ AI 接口配置存在**浏览器**里（localStorage），每人各填各的：
+ *   费用与额度各归各人，谁用谁负责；服务端不落盘、不写日志 key。
+ *   代价要说清：提问时 key 会随请求发给本机后端再转发给模型服务商；
+ *   同一台机器上的其他人（共用电脑）能读到 localStorage 里的 key。
+ */
+var AI_CFG_KEY = "lzkg.ai.provider.v1";
+var AI_PROVIDERS = [];
+function aiCfgLoad() {
+  try {
+    var raw = localStorage.getItem(AI_CFG_KEY);
+    if (!raw) return null;
+    var o = JSON.parse(raw);
+    return (o && typeof o === "object") ? o : null;
+  } catch (e) { return null; }
+}
+function aiCfgSave(o) {
+  try {
+    localStorage.setItem(AI_CFG_KEY, JSON.stringify(o));
+    return true;
+  } catch (e) { return false; }
+}
+function aiCfgClear() {
+  try { localStorage.removeItem(AI_CFG_KEY); } catch (e) {}
+}
+function loadAiSettings() {
+  var box = $("#w-ai-settings");
+  if (!box) return;
+  api("/api/ai/providers").then(function (r) {
+    if (!r.ok) {
+      box.innerHTML = '<div class="notice">协议清单读取失败（' + esc(r.error) + '），仍可直接提问——' +
+        '未配置时会降级为本地检索摘要。</div>';
+      return;
+    }
+    AI_PROVIDERS = (r.data && r.data.items) || [];
+    var saved = aiCfgLoad() || {};
+    var cur = saved.provider || (AI_PROVIDERS[0] && AI_PROVIDERS[0].provider) || "openai";
+    var spec = null;
+    for (var i = 0; i < AI_PROVIDERS.length; i++) {
+      if (AI_PROVIDERS[i].provider === cur) { spec = AI_PROVIDERS[i]; break; }
+    }
+    var defBase = spec ? spec.default_base : "";
+    var defModel = spec ? spec.default_model : "";
+    var opts = AI_PROVIDERS.map(function (p) {
+      return '<option value="' + esc(p.provider) + '"' + (p.provider === cur ? " selected" : "") + ">" + esc(p.label) + "</option>";
+    }).join("");
+    box.innerHTML =
+      '<div class="barhead">AI 接口设置<span class="tag">保存在你的浏览器里</span></div>' +
+      '<div class="formrow"><label class="fl">协议</label><select id="ai-prov" style="width:340px">' + opts + "</select></div>" +
+      '<div class="formrow"><label class="fl">接口地址</label><input type="text" id="ai-base" style="flex:1;min-width:280px" value="' +
+        esc(saved.api_base || defBase) + '" placeholder="OpenAI 兼容一般以 /v1 结尾"></div>' +
+      '<div class="formrow"><label class="fl">API Key</label><input type="password" id="ai-key" style="flex:1;min-width:280px" value="' +
+        esc(saved.api_key || "") + '" placeholder="本地接口可留空"><span class="small muted" id="ai-key-hint">' +
+        esc(spec ? spec.key_hint : "") + "</span></div>" +
+      '<div class="formrow"><label class="fl">模型名</label><input type="text" id="ai-model" style="width:220px" value="' +
+        esc(saved.model || defModel) + '">' +
+        '<button class="btn" id="ai-save">保存到浏览器</button>' +
+        '<button class="btn ghost" id="ai-test">测试连接</button>' +
+        '<button class="btn ghost" id="ai-clear">清除</button>' +
+        '<span class="small muted" id="ai-msg"></span></div>' +
+      '<div class="small muted">配置只存在这台机器的浏览器里；提问时随请求发给本机后端代理，' +
+        '<b>后端不落盘、不写日志、不回显</b>。公用电脑上不要填 key。</div>' +
+      '<div id="ai-test-out"></div>';
+
+    var ps = $("#ai-prov");
+    if (ps) ps.addEventListener("change", function () {
+      var s2 = null;
+      for (var j = 0; j < AI_PROVIDERS.length; j++) {
+        if (AI_PROVIDERS[j].provider === ps.value) { s2 = AI_PROVIDERS[j]; break; }
+      }
+      if (!s2) return;
+      /* 换协议时把地址/模型换成该协议的默认值——但**不覆盖**已填的 key */
+      var b = $("#ai-base"), m = $("#ai-model"), h = $("#ai-key-hint");
+      if (b) b.value = s2.default_base;
+      if (m) m.value = s2.default_model;
+      if (h) h.textContent = s2.key_hint;
+    });
+    var sv = $("#ai-save");
+    if (sv) sv.addEventListener("click", function () {
+      var o = {
+        provider: ($("#ai-prov") || {}).value || "openai",
+        api_base: (($("#ai-base") || {}).value || "").trim(),
+        api_key: (($("#ai-key") || {}).value || "").trim(),
+        model: (($("#ai-model") || {}).value || "").trim()
+      };
+      var msg = $("#ai-msg");
+      if (aiCfgSave(o)) { if (msg) msg.textContent = "已保存到本浏览器"; }
+      else if (msg) msg.textContent = "保存失败（浏览器禁用了本地存储？）";
+    });
+    var cl = $("#ai-clear");
+    if (cl) cl.addEventListener("click", function () {
+      aiCfgClear();
+      var b = $("#ai-base"), m = $("#ai-model"), k = $("#ai-key");
+      if (b) b.value = ""; if (m) m.value = ""; if (k) k.value = "";
+      var msg = $("#ai-msg");
+      if (msg) msg.textContent = "已清除";
+      var out = $("#ai-test-out");
+      if (out) out.innerHTML = "";
+    });
+    var ts = $("#ai-test");
+    if (ts) ts.addEventListener("click", function () {
+      var out = $("#ai-test-out");
+      if (out) out.innerHTML = '<div class="loading"><span class="spin"></span>正在连…</div>';
+      apiSend("POST", "/api/ai/test", { provider: {
+        provider: ($("#ai-prov") || {}).value || "openai",
+        api_base: (($("#ai-base") || {}).value || "").trim(),
+        api_key: (($("#ai-key") || {}).value || "").trim(),
+        model: (($("#ai-model") || {}).value || "").trim()
+      } }).then(function (r) {
+        if (!out) return;
+        if (!r.ok) { out.innerHTML = '<div class="notice bad">测试失败：' + esc(r.error) + "</div>"; return; }
+        var d = r.data || {};
+        out.innerHTML = '<div class="notice ' + (d.ok ? "good" : "bad") + '">' +
+          esc(d.message || (d.ok ? "连通了" : "没连上")) +
+          (d.latency_ms !== undefined ? "　耗时 " + esc(d.latency_ms) + " ms" : "") +
+          (d.model ? "　模型 " + esc(d.model) : "") + "</div>";
+      });
+    });
+  });
+}
+function askAi() {
+  var q = $("#w-q"), box = $("#w-ai");
+  if (!q || !box) return;
+  var question = q.value.trim();
+  if (!question) { box.innerHTML = '<div class="notice bad">请先输入问题</div>'; return; }
+  box.innerHTML = '<div class="loading"><span class="spin"></span>正在检索并作答…</div>';
+  var body = { question: question, top_k: 5 };
+  /* 把浏览器里存的接口配置带上（没存就不带 → 后端降级成检索摘要） */
+  var cfg = aiCfgLoad();
+  if (cfg) body.provider = cfg;
+  apiSend("POST", "/api/ai/ask", body).then(function (r) {
+    if (!r.ok) { box.innerHTML = '<div class="notice bad">问答失败：' + esc(r.error) + "</div>"; return; }
+    var d = r.data || {};
+    var h = "";
+    if (d.degraded) {
+      h += '<div class="notice bad"><b>未配置大模型，以下是本地检索结果，不是模型生成的回答。</b></div>';
+    }
+    h += '<div style="white-space:pre-wrap">' + nl2br(d.answer) + "</div>";
+    var cits = d.citations || [];
+    if (cits.length) {
+      h += '<div class="barhead" style="margin-top:10px">引用文献（' + cits.length + " 条）</div>";
+      cits.forEach(function (c) {
+        h += '<div class="cite"><div class="t"><a href="#/lit/' + esc(c.lit_id) + '">' + esc(nz(c.title)) + "</a></div>" +
+          (c.snippet ? '<div class="small muted">' + hl(c.snippet, [question]) + "</div>" : "") + "</div>";
+      });
+    }
+    if (d.provider) h += '<div class="small muted" style="margin-top:6px">模型来源：' + esc(d.provider) +
+      (d.model ? "　模型 " + esc(d.model) : "") + "</div>";
+    box.innerHTML = h;
+  });
+}
+/* ==================================================================
+ * 工作台 · 子界面：⑥ AI 问答 / ⑦ 导入历史
+ * ================================================================== */
+function renderAiPage() {
+  view.innerHTML = subBar("⑥ AI 问答", "POST /api/ai/ask · /api/ai/providers · /api/ai/test") +
+    '<div class="fullblk"><div class="barhead">提问</div>' +
+    '<div class="formrow"><input type="text" id="w-q" placeholder="例如：良渚的玉琮分期研究有哪些？" style="flex:1;min-width:260px">' +
+    '<button class="btn" id="w-ask">提问</button></div>' +
+    '<div id="w-ai"></div></div>' +
+    '<div class="fullblk"><div id="w-ai-settings"><div class="loading"><span class="spin"></span>读取 AI 协议清单…</div></div></div>';
+  var ask = $("#w-ask"); if (ask) ask.addEventListener("click", askAi);
+  var qi = $("#w-q"); if (qi) qi.addEventListener("keydown", function (e) { if (e.key === "Enter") askAi(); });
+  loadAiSettings();
+}
+function renderHistoryPage() {
+  view.innerHTML = subBar("⑦ 导入历史", "GET /api/import/log") +
+    '<div class="fullblk"><div id="w-importlog"><div class="loading"><span class="spin"></span>加载中…</div></div></div>';
+  loadImportLogBlock();
+}
+/* ==================================================================
+ * 工作台 · 子界面：④ 统计与地图（独立整页，块与块不并排）
+ * ================================================================== */
+function renderStatsPage() {
+  view.innerHTML = subBar("④ 统计与地图", "/api/stats/timeline · /api/stats/region · /api/stats/mapdata · /api/stats/map.png") +
+    '<div id="w-stats"></div>';
+  loadStatsPage();
+}
+function loadStatsPage() {
+  var box = $("#w-stats");
+  if (!box) return;
+  box.innerHTML = '<div class="loading"><span class="spin"></span>正在读取统计…</div>';
+  Promise.all([api("/api/stats/timeline"), api("/api/stats/region"), api("/api/stats/mapdata")]).then(function (res) {
+    var tl = res[0], rg = res[1], md = res[2];
+    var h = "";
+    /* 1 时间分期 */
+    h += '<div class="fullblk">' + (tl.ok
+      ? svgBars("① 时间分期（periods）", normSeries((tl.data || {}).periods), { note: "/api/stats/timeline" })
+      : '<div class="barhead">① 时间分期（periods）</div><div class="notice bad">不可用：' + esc(tl.error) + "</div>") +
+      '<div class="small muted" style="margin-top:6px">口径：登记表「时间分期标签」维度的文献计数（/api/stats/timeline → periods）。</div></div>';
+    /* 2 出版年份 */
+    h += '<div class="fullblk">' + (tl.ok
+      ? svgBars("② 出版年份（years）", normSeries((tl.data || {}).years), { note: "/api/stats/timeline" })
+      : '<div class="barhead">② 出版年份（years）</div><div class="notice bad">不可用：' + esc(tl.error) + "</div>") +
+      '<div class="small muted" style="margin-top:6px">口径：<b>文献出版年，不是良渚分期年</b>（/api/stats/timeline → years）。</div></div>';
+    /* 3 文献类型 */
+    h += '<div class="fullblk">' + (tl.ok
+      ? svgBars("③ 文献类型（doc_types）", normSeries((tl.data || {}).doc_types), { note: "/api/stats/timeline" })
+      : '<div class="barhead">③ 文献类型（doc_types）</div><div class="notice bad">不可用：' + esc(tl.error) + "</div>") +
+      '<div class="small muted" style="margin-top:6px">口径：登记表「文献类型」列的受控词表计数（/api/stats/timeline → doc_types）。</div></div>';
+    /* 4 空间分区（可点击：与地图双向联动，整块由 mapstRenderRegionChart 填） */
+    h += '<div class="fullblk" id="w-region-blk"></div>';
+    /* 5 交互地图（Leaflet，本地底图；替换原来的静态 PNG 块） */
+    h += '<div class="fullblk"><div class="barhead">⑤ 交互地图<span class="tag">/api/stats/mapdata · /basemap/*.geojson</span></div>' +
+      '<div class="lz-wrap"><div id="stats-map"></div></div>' +
+      '<div id="w-map-info"><div class="small muted">点地图上的任一标记（文献坐标点 / 空间分区代表点 / 良渚遗址群范围框），' +
+      '这里会显示它的类型、出处与关联文献；也可以直接点上面的「④ 空间分区」柱子定位。</div></div>' +
+      '<div class="small muted" style="margin-top:8px">底图：Natural Earth（公共域）+ Overpass/OSM，<b>本地文件、零联网、零 CDN</b>；' +
+      '缩放时自动切换「世界 → 中国 → 良渚区域」三档底图。中国一律画 <b>31 省 + 台湾的省级拼图</b>，' +
+      '<b>不画 admin_0 国界多边形</b>；台湾与大陆同色同边线、不单独配色、不单独标注；边界仅作位置示意，<b>不作为官方界线依据</b>。</div>' +
+      '<div style="margin-top:8px"><a class="btn ghost" href="/api/stats/map.png" target="_blank" rel="noopener">导出静态图（用于报告/PPT）</a> ' +
+      '<span class="small muted mono">/api/stats/map.png</span></div></div>';
+    box.innerHTML = h;
+    /* ④ 的柱状图（带点击与高亮） */
+    MAPST.regionSeries = rg.ok
+      ? normSeries((rg.data || {}).items || (rg.data || {}).regions || (rg.data || {}))
+      : [];
+    MAPST.regionOk = !!rg.ok;
+    MAPST.regionErr = rg.ok ? "" : rg.error;
+    mapstRenderRegionChart();
+    /* ⑤ 的地图 */
+    if (md.ok) {
+      MAPST.data = md.data || null;
+      mapstInit();
+    } else {
+      MAPST.data = null;
+      var w = $("#stats-map");
+      if (w) w.innerHTML = '<div class="notice bad" style="margin:12px">地图数据不可用：' + esc(md.error) + "</div>";
+    }
+  });
+}
+/* ==================================================================
+ * 工作台 · 统计页「交互地图」模块（Leaflet 1.9.4，本地 vendor）
+ * ------------------------------------------------------------------
+ * ★ 合规（硬约束，别改坏）
+ *   Natural Earth 的行政边界按国际普遍认知绘制，**不能当我国官方界线依据**。
+ *   所以中国层只画「31 省 + 台湾」的**省级拼图**：
+ *     · admin_1 里 adm0_a3 === 'CHN' 的要素（31 个）
+ *     · ＋ admin_0 里 ADM0_A3 === 'TWN' 的要素（1 个）
+ *   **绝不画 admin_0 里 CHN 那个国界多边形**（那条带国际通行的争议处理）。
+ *   台湾与大陆**同色同边线、不单独配色、不单独标注**；浙江省单独高亮。
+ * ★ 不编造坐标
+ *   · regions 里 on_map=false 的分区（主题类/范围类）**不画点**
+ *   · sites 里 lat/lon 为 null 的候选遗址**不画点**
+ * ★ 零外链：底图从同源 /basemap/*.geojson 取，Leaflet 用本地 vendor。
+ * ================================================================== */
+var MAPST = {
+  map: null,          /* Leaflet 实例 */
+  data: null,         /* /api/stats/mapdata 的 data */
+  base: {},           /* 文件名 → GeoJSON（缓存，避免重复下载） */
+  tier: "",           /* 当前底图档位：world / china / region */
+  tierLayers: [],     /* 当前档位的图层（切档时整批移除） */
+  ov: null,           /* 数据覆盖层（点、范围框……始终显示，不随底图切档） */
+  pts: {},            /* point id → marker */
+  regs: {},           /* 分区名 → marker */
+  sgs: {},            /* 候选遗址名 → marker */
+  grp: null,          /* 良渚遗址群范围框 */
+  hl: null,           /* 当前高亮的分区名 */
+  regionSeries: [],   /* ④ 柱状图数据 */
+  regionOk: true,
+  regionErr: ""
+};
+var MAP_COLORS = {
+  land: "#F4F6F8", border: "#C2CBD3", water: "#DCEAF4", river: "#9CC3DE",
+  brand: "#4C78A8", accent: "#C0392B", region: "#E08A1E", site: "#178A7B"
+};
+function mapstHasCoord(o) {
+  if (!o) return false;
+  var la = o.lat, lo = o.lon;
+  if (la === null || la === undefined || la === "") return false;
+  if (lo === null || lo === undefined || lo === "") return false;
+  return isFinite(Number(la)) && isFinite(Number(lo));
+}
+/* 底图文件：一次性 fetch 后缓存 */
+function mapstFetch(name) {
+  if (MAPST.base[name]) return Promise.resolve(MAPST.base[name]);
+  return fetch("/basemap/" + name).then(function (r) {
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return r.json();
+  }).then(function (j) { MAPST.base[name] = j; return j; });
+}
+function mapstTierFor(zoom) {
+  if (zoom < 3) return "world";
+  if (zoom < 7) return "china";
+  return "region";
+}
+function mapstPlainStyle() {
+  return { color: MAP_COLORS.border, weight: 0.7, fillColor: MAP_COLORS.land, fillOpacity: 1 };
+}
+function mapstRegionIcon(hl) {
+  return L.divIcon({
+    className: "lz-mk lz-mk-region" + (hl ? " lz-hl" : ""),
+    html: "<span></span>", iconSize: [13, 13], iconAnchor: [7, 7]
+  });
+}
+/* 文献坐标点图标（红点）。
+   ★ 为什么不用 L.circleMarker：circleMarker 画在 SVG 的 overlayPane，
+     而分区方块是 HTML 的 markerPane（**在上层**）→ 同址时红点被方块盖住，
+     鼠标点到的永远是方块，文献坐标点根本点不动。
+     改成 divIcon + zIndexOffset，才能保证红点在最上层、点得到。 */
+function mapstPointIcon() {
+  return L.divIcon({
+    className: "lz-mk lz-mk-pt",
+    html: "<span></span>",
+    iconSize: [14, 14],
+    iconAnchor: [7, 7]
+  });
+}
+function mapstSiteIcon() {  return L.divIcon({
+    className: "lz-mk lz-mk-site",
+    html: "<span></span>", iconSize: [14, 14], iconAnchor: [7, 13]
+  });
+}
+/* 良渚位置参照点（品牌蓝；每档底图都标，不算数据点） */
+function mapstAddLzRef(tier) {
+  var sg = (MAPST.data || {}).site_group || {};
+  var la = sg.center_lat, lo = sg.center_lon;
+  if (la === null || la === undefined || la === "" || lo === null || lo === undefined || lo === "") return;
+  var m = L.circleMarker([la, lo], {
+    radius: 7, color: "#ffffff", weight: 2, fillColor: MAP_COLORS.brand, fillOpacity: 0.9
+  });
+  if (tier !== "region") m.bindTooltip("良渚遗址群（位置参照）", { direction: "top", className: "lz-tip" });
+  m.addTo(MAPST.map);
+  MAPST.tierLayers.push(m);
+}
+/* 切档：移除上一档图层 → 加新一档 */
+function mapstSetTier(tier) {
+  if (!MAPST.map) return;
+  if (MAPST.tier === tier) return;
+  MAPST.tierLayers.forEach(function (l) { MAPST.map.removeLayer(l); });
+  MAPST.tierLayers = [];
+  MAPST.tier = tier;
+  /* 背景随档位切换：世界/中国层是海洋视角（水色），区域层是陆地视角（陆地色） */
+  var cont = MAPST.map.getContainer();
+  if (cont && cont.classList) cont.classList.toggle("lz-land", tier === "region");
+  var add = function (ly) {
+    if (!MAPST.map || MAPST.tier !== tier) return;   /* 期间又切档了就丢弃 */
+    ly.addTo(MAPST.map);
+    MAPST.tierLayers.push(ly);
+  };
+  if (tier === "world") {
+    mapstFetch("ne_110m_admin_0_countries.geojson").then(function (gj) {
+      add(L.geoJSON(gj, { style: mapstPlainStyle }));
+    }).catch(function () {});
+  } else if (tier === "china") {
+    /* 31 省（admin_1，adm0_a3 === 'CHN'） */
+    mapstFetch("ne_50m_admin_1_states_provinces.geojson").then(function (gj) {
+      var prov = [], zj = [];
+      (gj.features || []).forEach(function (f) {
+        var pr = f.properties || {};
+        if (pr.adm0_a3 !== "CHN") return;
+        prov.push(f);
+        if (String(pr.name_zh || "").indexOf("浙江") === 0) zj.push(f);
+      });
+      add(L.geoJSON(prov, { style: mapstPlainStyle }));
+      if (zj.length) {
+        var zly = L.geoJSON(zj, {
+          style: { color: MAP_COLORS.brand, weight: 1.6, fillColor: "#DCE7F2", fillOpacity: 1 }
+        });
+        zly.bindTooltip("浙江省", { permanent: true, direction: "center", className: "lz-tip" });
+        add(zly);
+      }
+    }).catch(function () {});
+    /* 台湾：与大陆同色同边线，不单独配色、不单独标注 */
+    mapstFetch("ne_50m_admin_0_countries.geojson").then(function (gj) {
+      var tw = [];
+      (gj.features || []).forEach(function (f) {
+        var pr = f.properties || {};
+        if (pr.ADM0_A3 === "TWN") tw.push(f);
+      });
+      if (tw.length) add(L.geoJSON(tw, { style: mapstPlainStyle }));
+    }).catch(function () {});
+  } else {
+    /* 太湖 */
+    mapstFetch("ne_10m_lakes.geojson").then(function (gj) {
+      var fs = [];
+      (gj.features || []).forEach(function (f) {
+        var pr = f.properties || {};
+        var n = String(pr.name || pr.NAME || pr.name_en || "");
+        if (n.toLowerCase().indexOf("tai hu") >= 0) fs.push(f);
+      });
+      if (fs.length) {
+        var ly = L.geoJSON(fs, {
+          style: { color: MAP_COLORS.river, weight: 0.8, fillColor: MAP_COLORS.water, fillOpacity: 1 }
+        });
+        ly.bindTooltip("太湖", { permanent: true, direction: "center", className: "lz-tip" });
+        add(ly);
+      }
+    }).catch(function () {});
+    /* 海洋面：用它区分「海」与「陆」。
+       ★ 原来这里用的是 ne_10m_coastline —— 10 MB / 4000+ 个 path，
+         浏览器渲染直接卡死（实测截图超时 120 s）。海洋面只有 1 个要素，秒开。 */
+    mapstFetch("ne_50m_ocean.geojson").then(function (gj) {
+      add(L.geoJSON(gj, { style: { color: MAP_COLORS.water, weight: 0.8,
+                                   fillColor: MAP_COLORS.water, fillOpacity: 1 } }));
+    }).catch(function () {});
+    /* 钱塘江水系 + 余杭区界 */
+    mapstFetch("osm_qiantang_yuhang.geojson").then(function (gj) {
+      var riv = [], bnd = [];
+      (gj.features || []).forEach(function (f) {
+        var k = String((f.properties || {}).kind || "");
+        if (k === "river") riv.push(f);
+        else if (k === "boundary") bnd.push(f);
+      });
+      if (riv.length) add(L.geoJSON(riv, { style: { color: MAP_COLORS.river, weight: 2.2, fill: false } }));
+      if (bnd.length) add(L.geoJSON(bnd, { style: { color: MAP_COLORS.border, weight: 1.3, dashArray: "4 3", fill: false } }));
+    }).catch(function () {});
+  }
+  mapstAddLzRef(tier);
+}
+/* 数据覆盖层：范围框 / 文献坐标点 / 分区代表点 / 候选遗址 */
+function mapstAddOverlays() {
+  var d = MAPST.data || {};
+  var ov = L.layerGroup().addTo(MAPST.map);
+  MAPST.ov = ov;
+  /* 1 良渚遗址群范围框（红色虚线 + 半透明填充） */
+  var sg = d.site_group || {};
+  var hasBox = sg.lon_min !== undefined && sg.lon_min !== null && sg.lon_min !== "" &&
+               sg.lat_min !== undefined && sg.lat_min !== null && sg.lat_min !== "" &&
+               sg.lon_max !== undefined && sg.lon_max !== null && sg.lon_max !== "" &&
+               sg.lat_max !== undefined && sg.lat_max !== null && sg.lat_max !== "";
+  if (hasBox) {
+    var rect = L.rectangle([[sg.lat_min, sg.lon_min], [sg.lat_max, sg.lon_max]], {
+      color: MAP_COLORS.accent, weight: 2, dashArray: "6 4",
+      fillColor: MAP_COLORS.accent, fillOpacity: 0.08
+    });
+    rect.bindTooltip("良渚遗址群范围框<br>据文献调查简报（浙江省文物考古研究所）<br>" +
+      "东经 " + esc(sg.lon_min) + "～" + esc(sg.lon_max) +
+      "，北纬 " + esc(sg.lat_min) + "～" + esc(sg.lat_max), { sticky: true, className: "lz-tip" });
+    rect.on("click", function () { mapstShowGroup(); });
+    rect.addTo(ov);
+    MAPST.grp = rect;
+  }
+  /* 2 文献坐标点（红色圆点；divIcon + zIndexOffset 保证盖在分区方块之上、点得到） */
+  (d.points || []).forEach(function (p) {
+    if (!mapstHasCoord(p)) return;
+    var m = L.marker([p.lat, p.lon], {
+      icon: mapstPointIcon(), keyboard: false, riseOnHover: true, zIndexOffset: 1000
+    });
+    m.bindTooltip(esc(p.name) + "<br>类型：" + esc(p.kind) +
+      "<br>出处：" + esc(p.source) +
+      "<br>关联文献：" + esc(p.lit_count) + " 篇", { sticky: true, className: "lz-tip" });
+    m.on("click", function () { mapstShowPoint(p); });
+    m.addTo(ov);
+    MAPST.pts[p.id] = m;
+  });
+  /* 3 空间分区代表点（橙色方块；on_map=false 的分区不画） */
+  (d.regions || []).forEach(function (r) {
+    if (!r.on_map) return;
+    if (!mapstHasCoord(r)) return;
+    var mk = L.marker([r.lat, r.lon], { icon: mapstRegionIcon(false), keyboard: false, riseOnHover: true });
+    mk.bindTooltip(esc(r.name) + "<br>空间分区代表点：<b>示意，±1.1 km，非实测坐标</b>" +
+      "<br>依据：" + esc(r.basis), { sticky: true, className: "lz-tip" });
+    mk.on("click", function () { mapstPickRegion(r.name); });
+    mk.addTo(ov);
+    MAPST.regs[r.name] = mk;
+  });
+  /* 4 候选遗址（只有实测坐标非空的才画；青绿三角） */
+  (d.sites || []).forEach(function (s) {
+    if (!mapstHasCoord(s)) return;
+    var mk = L.marker([s.lat, s.lon], { icon: mapstSiteIcon(), keyboard: false, riseOnHover: true });
+    mk.bindTooltip(esc(s.name) + "<br>候选遗址（实测坐标）<br>" + esc(s.note || ""), { sticky: true, className: "lz-tip" });
+    mk.on("click", function () { mapstShowSite(s); });
+    mk.addTo(ov);
+    MAPST.sgs[s.name] = mk;
+  });
+}
+/* 图例（自绘 HTML 覆盖层） */
+function mapstLegend() {
+  var d = MAPST.data || {};
+  var nPt = 0, nRg = 0, nSt = 0;
+  (d.points || []).forEach(function (p) { if (mapstHasCoord(p)) nPt++; });
+  (d.regions || []).forEach(function (r) { if (r.on_map && mapstHasCoord(r)) nRg++; });
+  (d.sites || []).forEach(function (s) { if (mapstHasCoord(s)) nSt++; });
+  var el = document.createElement("div");
+  el.className = "lz-legend";
+  el.innerHTML =
+    '<div class="t">图例</div>' +
+    '<div class="li"><span class="sw"></span><span>文献坐标点（' + nPt + ' 个）</span></div>' +
+    '<div class="li"><span class="sw rg"></span><span>空间分区代表点（' + nRg + ' 个）：<b>示意，±1.1 km，非实测坐标</b></span></div>' +
+    '<div class="li"><span class="sw st"></span><span>候选遗址·实测坐标（' + nSt + ' 个）</span></div>' +
+    '<div class="li"><span class="sw box"></span><span>良渚遗址群范围框</span></div>' +
+    '<div class="li"><span class="sw lz"></span><span>良渚位置参照</span></div>' +
+    '<div class="nt">底图：Natural Earth（公共域）+ Overpass/OSM，本地文件、零联网。' +
+    '中国采用 31 省 + 台湾省级拼图，仅作位置示意，不作为官方界线依据。</div>';
+  MAPST.map.getContainer().appendChild(el);
+}
+/* ---------------- 信息面板 ---------------- */
+function mapstPanel(title, rows, lits, litCount, filterFn, filterLabel) {
+  var box = $("#w-map-info");
+  if (!box) return;
+  var h = '<div class="lz-info"><h4>' + esc(title) + "</h4>";
+  rows.forEach(function (r) {
+    h += '<div class="kv"><b>' + esc(r[0]) + "：</b>" + r[1] + "</div>";
+  });
+  if (filterFn) {
+    h += '<div style="margin-top:9px"><button class="btn" id="lz-filter">' + esc(filterLabel || "在文献页筛选") + "</button></div>";
+  }
+  if (lits && lits.length) {
+    h += '<div class="lits"><div class="small muted">关联文献（列表 ' + lits.length +
+      (litCount && Number(litCount) > lits.length ? " 条，关联文献共 " + esc(litCount) + " 篇" : " 篇") + "）</div>";
+    lits.forEach(function (l) {
+      h += '<a class="lit" href="#/lit/' + esc(l.lit_id) + '">' + esc(l.title) +
+        (l.year ? '<span class="yr">（' + esc(l.year) + "）</span>" : "") + "</a>";
+    });
+    h += "</div>";
+  }
+  h += "</div>";
+  box.innerHTML = h;
+  var btn = $("#lz-filter");
+  if (btn) btn.addEventListener("click", filterFn);
+}
+function mapstShowPoint(p) {
+  var rows = [
+    ["类型", esc(p.kind || "")],
+    ["出处", esc(p.source || "")],
+    ["坐标", esc(p.lon) + ", " + esc(p.lat) + "（WGS84 十进制度）"],
+    ["关联文献数", esc(p.lit_count) + " 篇"]
+  ];
+  var q = (p.match_keys && p.match_keys.length) ? p.match_keys[0] : (p.name || "");
+  mapstPanel(p.name || "文献坐标点", rows, p.lits || [], p.lit_count, function () {
+    mapstGoFilter({ q: q });
+  }, "在文献页筛选（关键词：" + (q || "—") + "）");
+}
+function mapstShowRegion(r) {
+  var rows = [
+    ["类型", "空间分区代表点（区域统一坐标，<b>示意，±1.1 km，非实测坐标</b>）"],
+    ["依据", esc(r.basis || "")]
+  ];
+  if (mapstHasCoord(r)) {
+    rows.push(["代表点坐标", esc(r.lon) + ", " + esc(r.lat) + "（WGS84 十进制度）"]);
+  }
+  rows.push(["关联文献数", esc(r.lit_count) + " 篇"]);
+  if (!r.on_map) {
+    rows.push(["上图", "<b>否</b> —— 该分区是范围类/主题类口径，不是地理范围，<b>不配坐标、不上图</b>"]);
+  }
+  mapstPanel(r.name || "空间分区", rows, r.lits || [], r.lit_count, function () {
+    mapstGoFilter({ region: r.name });
+  }, "在文献页筛选（空间分区：" + (r.name || "") + "）");
+}
+function mapstShowSite(s) {
+  var rows = [
+    ["类型", "候选遗址（实测坐标）"],
+    ["坐标", esc(s.lon) + ", " + esc(s.lat) + "（WGS84 十进制度）"],
+    ["说明", esc(s.note || "")],
+    ["关联文献数", esc(s.lit_count) + " 篇"]
+  ];
+  mapstPanel(s.name || "候选遗址", rows, [], s.lit_count, function () {
+    mapstGoFilter({ q: s.name || "" });
+  }, "在文献页筛选（关键词：" + (s.name || "—") + "）");
+}
+function mapstShowGroup() {
+  var sg = (MAPST.data || {}).site_group || {};
+  var rows = [
+    ["类型", "良渚遗址群范围框（文献调查范围）"],
+    ["范围", "东经 " + esc(sg.lon_min) + "～" + esc(sg.lon_max) +
+      "，北纬 " + esc(sg.lat_min) + "～" + esc(sg.lat_max)],
+    ["依据", "据文献调查简报（浙江省文物考古研究所）；出处 " + esc(sg.source || "")],
+    ["公开资料", esc(sg.source_public || "")],
+    ["文献引文", '<span class="mono">' + esc(sg.quote || "") + "</span>"]
+  ];
+  mapstPanel(sg.name || "良渚遗址群", rows, [], 0, function () {
+    mapstGoFilter({ q: "良渚遗址群" });
+  }, "在文献页筛选（关键词：良渚遗址群）");
+}
+/* ---------------- 统计图 ↔ 地图 双向联动 ---------------- */
+function mapstRenderRegionChart() {
+  var box = $("#w-region-blk");
+  if (!box) return;
+  var inner;
+  if (!MAPST.regionOk) {
+    inner = '<div class="barhead">④ 空间分区（region）</div><div class="notice bad">不可用：' + esc(MAPST.regionErr) + "</div>";
+  } else {
+    inner = svgBars("④ 空间分区（region）", MAPST.regionSeries, {
+      note: "/api/stats/region",
+      group: "region",
+      highlight: MAPST.hl ? [MAPST.hl] : [],
+      onPick: function (name) { mapstPickRegion(name); }
+    });
+  }
+  box.innerHTML = inner +
+    '<div class="small muted" style="margin-top:6px">口径：登记表「空间分区标签」维度的文献计数（/api/stats/region）。' +
+    '<b>点柱子＝在地图上定位该分区</b>（地图上点分区代表点＝这根柱子高亮）。</div>';
+}
+function mapstHighlightMarkers() {
+  Object.keys(MAPST.regs).forEach(function (k) {
+    if (MAPST.regs[k] && MAPST.regs[k].setIcon) MAPST.regs[k].setIcon(mapstRegionIcon(k === MAPST.hl));
+  });
+}
+function mapstPickRegion(name) {
+  MAPST.hl = name;
+  mapstHighlightMarkers();
+  mapstRenderRegionChart();
+  var r = null;
+  ((MAPST.data || {}).regions || []).forEach(function (x) { if (x.name === name) r = x; });
+  if (r) mapstShowRegion(r);
+  else {
+    mapstPanel(name, [
+      ["类型", "空间分区"],
+      ["说明", "该分区没有地图点位（范围类/主题类口径不配坐标）。"]
+    ], [], 0, null, null);
+  }
+}
+/* ---------------- 去文献页筛选（复用现有 state.list + renderList） ---------------- */
+function mapstGoFilter(opts) {
+  opts = opts || {};
+  var p = state.list;
+  /* 只带对应筛选条件：其余维度清空，避免旧条件把结果卡死 */
+  p.q = ""; p.doc_type = ""; p.lang = ""; p.year = "";
+  p.period = ""; p.region = ""; p.topic = ""; p.lineage = "";
+  p.page = 1;
+  if (opts.q) p.q = opts.q;
+  /* ★ 空间分区用**名称**：后端 region_tags 存登记表原文，LIKE 匹配的是原文里的名称 */
+  if (opts.region) p.region = opts.region;
+  var cur = String(location.hash || "").replace(/^#\/?/, "");
+  if (cur === "lit") {
+    renderList();                    /* 已在文献页 → 直接重画列表 */
+  } else {
+    location.hash = "#/lit";         /* 换页 → hashchange 触发 route() → renderList() */
+  }
+}
+/* ---------------- 初始化 / 销毁 ---------------- */
+function mapstInit() {
+  var el = $("#stats-map");
+  if (!el) return;
+  if (!window.L) {
+    el.innerHTML = '<div class="notice bad" style="margin:12px">Leaflet 未加载（vendor/leaflet/leaflet.js 缺失），地图不可用。</div>';
+    return;
+  }
+  mapstDestroy();
+  /* 初始视野：直接落在良渚区域（区域层），一进来就能看到遗址群与太湖；
+     往上拉 → 中国层，再往上 → 世界层。 */
+  MAPST.map = L.map(el, {
+    center: [30.52, 120.05], zoom: 9, minZoom: 2, maxZoom: 14,
+    zoomControl: true, attributionControl: true
+  });
+  MAPST.map.on("zoomend", function () {
+    if (MAPST.map) mapstSetTier(mapstTierFor(MAPST.map.getZoom()));
+  });
+  mapstAddOverlays();
+  mapstLegend();
+  mapstSetTier(mapstTierFor(9));
+  setTimeout(function () { if (MAPST.map) MAPST.map.invalidateSize(); }, 150);
+}
+function mapstDestroy() {
+  if (MAPST.map) {
+    try { MAPST.map.remove(); } catch (e) { /* 忽略：容器已被换掉 */ }
+  }
+  MAPST.map = null;
+  MAPST.ov = null;
+  MAPST.grp = null;
+  MAPST.tier = "";
+  MAPST.tierLayers = [];
+  MAPST.pts = {};
+  MAPST.regs = {};
+  MAPST.sgs = {};
+  MAPST.hl = null;
+}
+window.addEventListener("resize", function () {
+  if (MAPST.map) { try { MAPST.map.invalidateSize(); } catch (e) {} }
+});
+/* ==================================================================
+ * 工作台 · 子界面：⑤ MinerU 解析与录入（接口契约-v3 §2 / §3）
+ * ★ 云端 token 存在**浏览器**里（localStorage），与 AI 接口同一套做法：
+ *   key 只在这台机器的浏览器里；提交解析请求时随请求发给本机后端代理，
+ *   后端不落盘、不写日志、不回显；公用电脑上不要填。
+ * ================================================================== */
+var MINERU_KEY_STORE = "lzkg.mineru.apikey.v1";
+var MINERU_TIERS = ["flash", "basic", "standard", "advanced"];
+function mineruKeyLoad() {
+  try { return localStorage.getItem(MINERU_KEY_STORE) || ""; } catch (e) { return ""; }
+}
+function mineruKeySave(v) {
+  try {
+    if (v) localStorage.setItem(MINERU_KEY_STORE, v);
+    else localStorage.removeItem(MINERU_KEY_STORE);
+    return true;
+  } catch (e) { return false; }
+}
+function renderParsePage() {
+  var key = mineruKeyLoad();
+  var html = subBar("⑤ MinerU 解析与录入", "/api/mineru/status · /api/mineru/parse · /api/mineru/jobs · /api/mineru/submit");
+  html += '<div class="fullblk"><div class="barhead">本机能力探测<span class="tag">GET /api/mineru/status</span></div>' +
+    '<div id="mp-status"><div class="loading"><span class="spin"></span>正在探测…</div></div></div>';
+  html += '<div class="fullblk"><div class="barhead">解析一个 PDF<span class="tag">POST /api/mineru/parse（multipart）</span></div>' +
+    '<div class="formrow"><label class="fl">解析后端</label>' +
+    '<label class="chk"><input type="radio" name="mp-backend" id="mp-b-local" value="local" checked> 本地</label>' +
+    '<label class="chk"><input type="radio" name="mp-backend" id="mp-b-cloud" value="cloud"> 云端</label>' +
+    '<span class="small muted" id="mp-backend-hint"></span></div>' +
+    '<div class="formrow" id="mp-cloud-row" style="display:none"><label class="fl">API Key</label>' +
+    '<input type="password" id="mp-key" style="flex:1;min-width:280px" value="' + esc(key) + '" placeholder="你的 mineru.net 会员 token">' +
+    '<button class="btn" id="mp-key-save">保存到浏览器</button>' +
+    '<button class="btn ghost" id="mp-key-clear">清除</button>' +
+    '<span class="small muted" id="mp-key-msg"></span></div>' +
+    '<div class="small muted" id="mp-key-bound"></div>' +
+    '<div class="formrow"><label class="fl">档位</label><select id="mp-tier">' +
+    MINERU_TIERS.map(function (t) { return '<option value="' + t + '"' + (t === "standard" ? " selected" : "") + ">" + t + "</option>"; }).join("") +
+    '</select><label class="fl">页范围</label>' +
+    '<input type="text" id="mp-pages" style="width:160px" placeholder="留空＝全部；如 1-5,8"></div>' +
+    '<div class="formrow"><label class="fl">PDF 文件</label>' +
+    '<input type="file" id="mp-file" accept=".pdf,application/pdf" style="flex:1;min-width:280px">' +
+    '<button class="btn" id="mp-go">提交解析</button></div>' +
+    '<div id="mp-msg"></div>' +
+    '<div class="notice">解析要几分钟，<b>可以关掉这个页面</b>；回来在下面的「最近解析任务」里能看到进度与结果。</div></div>';
+  html += '<div class="fullblk"><div class="barhead">进度<span class="tag">GET /api/mineru/jobs/{job_id}</span></div>' +
+    '<div id="mp-progress"><div class="small muted">还没有解析任务。选 PDF 提交后，这里按 2.5 秒一次轮询显示进度。</div></div></div>';
+  html += '<div class="fullblk"><div class="barhead">解析结果与题录提交<span class="tag">POST /api/mineru/submit</span></div>' +
+    '<div id="mp-result"><div class="small muted">解析完成后这里显示字数/页数/图版数与 Markdown 开头，并可填题录提交入库。</div></div></div>';
+  html += '<div class="fullblk"><div class="barhead">最近解析任务<span class="tag">GET /api/mineru/jobs</span></div><div id="mp-jobs"></div></div>';
+  view.innerHTML = html;
+  bindParsePage();
+  loadMineruStatus();
+  loadMineruJobs();
+}
+function bindParsePage() {
+  var local = $("#mp-b-local"), cloud = $("#mp-b-cloud");
+  var sync = function () {
+    var isCloud = !!(cloud && cloud.checked);
+    var row = $("#mp-cloud-row");
+    if (row) row.style.display = isCloud ? "flex" : "none";
+    var hint = $("#mp-backend-hint");
+    if (hint) hint.textContent = isCloud
+      ? "云端：走 mineru.net（V1 协议），用自己的会员 token，消耗自己的配额。"
+      : "本地：本机需先跑 mineru-api.exe --host 127.0.0.1 --port 8000（V1 协议，本地无 key）。";
+  };
+  if (local) local.addEventListener("change", sync);
+  if (cloud) cloud.addEventListener("change", sync);
+  sync();
+  var bnd = $("#mp-key-bound");
+  if (bnd) {
+    bnd.innerHTML = "★ key 只保存在<b>这台机器的浏览器</b>里（localStorage 键名 <code>" + esc(MINERU_KEY_STORE) +
+      "</code>）：提交解析请求时随请求发给<b>本机后端</b>再转发给 MinerU，" +
+      "<b>后端不落盘、不写日志、不回显</b>。同一台机器上的其他人（公用电脑）能读到它——公用电脑上不要填。";
+  }
+  var ks = $("#mp-key-save");
+  if (ks) ks.addEventListener("click", function () {
+    var k = $("#mp-key").value.trim();
+    var msg = $("#mp-key-msg");
+    if (mineruKeySave(k)) { if (msg) msg.textContent = k ? "已保存到本浏览器" : "已清除"; }
+    else if (msg) msg.textContent = "保存失败（浏览器禁用了本地存储？）";
+  });
+  var kc = $("#mp-key-clear");
+  if (kc) kc.addEventListener("click", function () {
+    mineruKeySave("");
+    var k = $("#mp-key"); if (k) k.value = "";
+    var msg = $("#mp-key-msg"); if (msg) msg.textContent = "已清除";
+  });
+  var go = $("#mp-go");
+  if (go) go.addEventListener("click", submitMineruParse);
+}
+
+/* ---------------- MinerU：状态探测 ---------------- */
+function loadMineruStatus() {
+  var box = $("#mp-status");
+  if (!box) return;
+  api("/api/mineru/status").then(function (r) {
+    if (!r.ok) {
+      box.innerHTML = '<div class="notice bad">解析服务不可用：' + esc(r.error) +
+        "<br><span class=\"small\">后端尚未实现 /api/mineru/status 时，本页其余功能同样不可用（按契约写前端，不填假状态）。</span></div>";
+      return;
+    }
+    var d = r.data || {};
+    var cli = d.cli || {}, local = d.local || {}, doclib = d.doclib || {}, cloud = d.cloud || {};
+    var h = '<div class="scope">' +
+      "<span><span class=\"k\">MinerU CLI</span><b>" + (cli.installed ? esc(nz(cli.version)) : "未安装") + "</b></span>" +
+      "<span><span class=\"k\">本地解析 API</span><b>" + (local.reachable ? "可用" : "不通") + "</b></span>" +
+      "<span><span class=\"k\">文档库</span><b>" + (doclib.running ? "在跑" : "没跑") + "</b></span>" +
+      "<span><span class=\"k\">已索引文档</span><b>" + fmtNum(doclib.indexed_docs) + "</b></span>" +
+      "<span><span class=\"k\">云端</span><b>" + (cloud.reachable ? "地址通" : "不通") + "</b></span>" +
+      "</div>";
+    h += '<div class="tablewrap"><table class="grid"><thead><tr><th>项</th><th>状态</th><th>地址 / 说明</th></tr></thead><tbody>';
+    h += "<tr><td>CLI</td><td>" + (cli.installed ? "已安装 " + esc(nz(cli.version)) : "未安装") + "</td><td class=\"mono\">" + esc(nz(cli.path)) + "</td></tr>";
+    h += "<tr><td>本地自托管 API</td><td>" + (local.reachable ? "可达" : "不可达") + "</td><td class=\"mono\">" + esc(nz(local.api_url)) +
+      (local.note ? "　" + esc(local.note) : "") + "</td></tr>";
+    h += "<tr><td>文档库服务</td><td>" + (doclib.running ? "运行中" : "未运行") + "</td><td class=\"mono\">" + esc(nz(doclib.tcp)) + "</td></tr>";
+    h += "<tr><td>云端 API</td><td>" + (cloud.reachable ? "地址通" : "不通") + "</td><td class=\"mono\">" + esc(nz(cloud.api_url)) +
+      (cloud.note ? "　" + esc(cloud.note) : "") + "</td></tr>";
+    h += "</tbody></table></div>";
+    var tiers = (d.tiers && d.tiers.length) ? d.tiers : MINERU_TIERS;
+    var sel = $("#mp-tier");
+    if (sel) {
+      sel.innerHTML = tiers.map(function (t) {
+        return '<option value="' + esc(t) + '"' + (t === "standard" ? " selected" : "") + ">" + esc(t) + "</option>";
+      }).join("");
+    }
+    var hint = $("#mp-backend-hint");
+    if (hint && local.reachable === false) {
+      hint.textContent += "（当前本地 API 不可达，需先起 mineru-api.exe --port 8000）";
+    }
+    box.innerHTML = h;
+  });
+}
+/* ---------------- MinerU：提交解析 + 轮询 ---------------- */
+var MP = { jobId: null, timer: null, result: null };
+function submitMineruParse() {
+  var f = $("#mp-file"), msg = $("#mp-msg");
+  if (!f || !f.files || !f.files.length) { setBlockMsg("#mp-msg", "请先选择 PDF 文件", "bad"); return; }
+  var cloud = $("#mp-b-cloud");
+  var backend = (cloud && cloud.checked) ? "cloud" : "local";
+  var key = ($("#mp-key") ? $("#mp-key").value : "").trim();
+  if (backend === "cloud" && !key) {
+    setBlockMsg("#mp-msg", "云端解析需要 API Key（填在上面的框里，或先「保存到浏览器」）", "bad");
+    return;
+  }
+  var fd = new FormData();
+  fd.append("file", f.files[0]);
+  fd.append("backend", backend);
+  fd.append("api_key", key);          /* 只随这一次请求走，后端不落盘 */
+  fd.append("tier", ($("#mp-tier") ? $("#mp-tier").value : "standard") || "standard");
+  fd.append("pages", ($("#mp-pages") ? $("#mp-pages").value : "").trim());
+  setBlockMsg("#mp-msg", "正在提交解析任务…", "");
+  apiSend("POST", "/api/mineru/parse", fd).then(function (r) {
+    if (!r.ok) { setBlockMsg("#mp-msg", "提交失败：" + r.error, "bad"); return; }
+    var d = r.data || {};
+    MP.jobId = d.job_id || null;
+    setBlockMsg("#mp-msg", "已提交（任务号 " + nz(MP.jobId) + "）。解析在后台跑，可以关掉页面；回来在下面任务列表里看。", "good");
+    pollMineruJob(MP.jobId, 0);
+  });
+}
+/* 轮询：用 setTimeout 递归，不用 setInterval（避免请求叠发） */
+function pollMineruJob(jobId, n) {
+  if (!jobId) return;
+  if (n > 240) {           /* 约 10 分钟上限，停了也不影响任务在后台跑 */
+    var p0 = $("#mp-progress");
+    if (p0) p0.innerHTML = '<div class="notice">轮询已停止（超过 10 分钟），任务仍可能在后台跑；刷新本页或在任务列表里查看。</div>';
+    return;
+  }
+  api("/api/mineru/jobs/" + encodeURIComponent(jobId)).then(function (r) {
+    if (!r.ok) {
+      var p1 = $("#mp-progress");
+      if (p1) p1.innerHTML = '<div class="notice bad">读取进度失败：' + esc(r.error) + "</div>";
+      return;
+    }
+    var d = r.data || {};
+    var st = d.status || "";
+    var p = $("#mp-progress");
+    if (p) {
+      p.innerHTML = '<div class="scope"><span><span class="k">任务号</span><b>' + esc(nz(d.job_id)) + "</b></span>" +
+        "<span><span class=\"k\">状态</span><b>" + esc(nz(st)) + "</b></span>" +
+        "<span><span class=\"k\">进度</span><b>" + esc(nz(d.progress)) + "</b></span>" +
+        "<span><span class=\"k\">后端</span><b>" + esc(nz(d.backend)) + "</b></span>" +
+        "<span><span class=\"k\">文件</span><b>" + esc(nz(d.file)) + "</b></span></div>" +
+        (d.error ? '<div class="notice bad">失败：' + esc(d.error) + "</div>" : "");
+    }
+    if (st === "done" || st === "failed") {
+      MP.result = d;
+      renderMineruResult(d);
+      loadMineruJobs();
+      return;
+    }
+    setTimeout(function () { pollMineruJob(jobId, n + 1); }, 2500);
+  });
+}
+/* ---------------- MinerU：结果预览 + 题录提交 ---------------- */
+function renderMineruResult(job) {
+  var box = $("#mp-result");
+  if (!box) return;
+  var res = (job && job.result) ? job.result : {};
+  var imgs = res.images;
+  if (imgs && !Array.isArray(imgs)) imgs = (imgs.items || imgs.list || []);
+  if (!Array.isArray(imgs)) imgs = [];
+  var imgCount = (res.images !== undefined && typeof res.images !== "object") ? res.images : imgs.length;
+  var h = '<div class="scope">' +
+    "<span><span class=\"k\">任务号</span><b>" + esc(nz(job.job_id)) + "</b></span>" +
+    "<span><span class=\"k\">状态</span><b>" + esc(nz(job.status)) + "</b></span>" +
+    "<span><span class=\"k\">正文字数</span><b>" + fmtNum(res.chars) + "</b></span>" +
+    "<span><span class=\"k\">页数</span><b>" + fmtNum(res.pages) + "</b></span>" +
+    "<span><span class=\"k\">图版数</span><b>" + fmtNum(imgCount) + "</b></span>" +
+    "</div>";
+  if (res.md_head) {
+    h += '<div class="barhead">Markdown 开头 500 字</div><div class="jsonlist" style="max-height:220px">' +
+      '<div class="mono small" style="white-space:pre-wrap">' + esc(stripTags(res.md_head).slice(0, 500)) + "</div></div>";
+  }
+  h += '<div class="barhead" style="margin-top:12px">填题录并提交入库<span class="tag">POST /api/mineru/submit（提案—审核制，不写主库）</span></div>' +
+    '<div class="notice">题录字段按<b>登记表列名</b>填（列定义来自 <code>/api/registry/columns</code>）。' +
+    '提交后进待审队列，由管理员在「工作台 → 提案与审核」批准；<b>批准前产物只在暂存区，不进源数据目录</b>。</div>' +
+    '<div class="formrow"><label class="fl">LIT 编号</label><input type="text" id="mp-lit-id" style="width:200px" placeholder="留空＝后端自动生成六位流水号"></div>' +
+    '<div id="mp-record"><div class="loading"><span class="spin"></span>正在读取登记表列定义…</div></div>';
+  if (imgs.length) {
+    h += '<div class="barhead" style="margin-top:12px">图版清单（可编辑）</div>' +
+      '<div class="tablewrap"><table class="grid"><thead><tr><th>文件名</th><th>图注</th><th>图号</th><th>页码</th><th>对象类型</th></tr></thead><tbody>';
+    imgs.forEach(function (im, i) {
+      var o = (im && typeof im === "object") ? im : { filename: String(im) };
+      h += '<tr data-img="' + i + '">' +
+        '<td><input type="text" data-f="filename" value="' + esc(nz(o.filename)) + '" style="width:100%"></td>' +
+        '<td><input type="text" data-f="caption" value="' + esc(nz(o.caption)) + '" style="width:100%"></td>' +
+        '<td><input type="text" data-f="fig_no" value="' + esc(nz(o.fig_no)) + '" style="width:70px"></td>' +
+        '<td><input type="text" data-f="page" value="' + esc(nz(o.page)) + '" style="width:60px"></td>' +
+        '<td><input type="text" data-f="obj_type" value="' + esc(nz(o.obj_type)) + '" style="width:100%"></td></tr>';
+    });
+    h += "</tbody></table></div>";
+  } else {
+    h += '<div class="small muted" style="margin-top:8px">本次解析没有产出图版（后端未返回 images）。</div>';
+  }
+  h += '<div class="formrow" style="margin-top:10px"><button class="btn" id="mp-submit">填题录并提交入库</button>' +
+    '<span class="small muted" id="mp-submit-msg"></span></div>';
+  box.innerHTML = h;
+  loadEntryColumns().then(function (fields) {
+    var rc = document.getElementById("mp-record");
+    if (!rc) return;
+    var rows = fields.map(function (f) {
+      return '<div class="formrow"><label class="fl">' + esc(f[0]) + (f[1] ? " <b>*</b>" : "") + "</label>" +
+        '<input type="text" data-col="' + esc(f[0]) + '" data-req="' + (f[1] ? "1" : "0") + '" style="flex:1;min-width:240px"></div>';
+    }).join("");
+    rc.innerHTML = '<div class="small muted">共 ' + fields.length +
+      " 列（来自 /api/registry/columns），带 * 的必填列需填写（<b>序号</b>与<b>文献标识符</b>由后端自动生成，可留空）。</div>" + rows;
+  });
+  var sb = $("#mp-submit");
+  if (sb) sb.addEventListener("click", function () { submitMineruProposal(job); });
+}
+function submitMineruProposal(job) {
+  var record = {};
+  var miss = [];
+  /* 序号与文献标识符由后端自动生成，不计入必填校验 */
+  var AUTO = ["序号", "文献标识符"];
+  Array.prototype.forEach.call(document.querySelectorAll("#mp-record [data-col]"), function (i) {
+    var col = i.getAttribute("data-col");
+    var v = i.value.trim();
+    if (v) record[col] = v;
+    else if (i.getAttribute("data-req") === "1" && AUTO.indexOf(col) < 0) miss.push(col);
+  });
+  var msg = $("#mp-submit-msg");
+  if (miss.length) { if (msg) msg.textContent = "请填写必填列：" + miss.join("、"); return; }
+  if (!Object.keys(record).length) { if (msg) msg.textContent = "至少填一个题录字段"; return; }
+  var images = [];
+  Array.prototype.forEach.call(document.querySelectorAll("#mp-result tr[data-img]"), function (tr) {
+    var o = {};
+    Array.prototype.forEach.call(tr.querySelectorAll("[data-f]"), function (inp) {
+      o[inp.getAttribute("data-f")] = inp.value.trim();
+    });
+    if (o.filename) images.push(o);
+  });
+  var body = { job_id: (job && job.job_id) || MP.jobId, record: record, images: images };
+  var lid = $("#mp-lit-id");
+  if (lid && lid.value.trim()) body.lit_id = lid.value.trim();
+  if (msg) msg.textContent = "正在提交…";
+  apiSend("POST", "/api/mineru/submit", body).then(function (r) {
+    if (!r.ok) { if (msg) msg.textContent = "提交失败：" + r.error; return; }
+    var d = r.data || {};
+    if (msg) msg.textContent = "已提交，等待管理员审核（提案号 " + nz(d.staging_id) + "，状态 " + nz(d.status) + "）。";
+    loadMineruJobs();
+  });
+}
+/* ---------------- MinerU：任务列表 ---------------- */
+function loadMineruJobs() {
+  var box = $("#mp-jobs");
+  if (!box) return;
+  api("/api/mineru/jobs", { page: 1, size: 20 }).then(function (r) {
+    if (!r.ok) {
+      box.innerHTML = '<div class="notice bad">任务列表不可用：' + esc(r.error) +
+        "<br><span class=\"small\">后端 /api/mineru/jobs 未实现时，本页显示为不可用（不填假数据）。</span></div>";
+      return;
+    }
+    var d = r.data || {};
+    var items = d.items || [];
+    if (!items.length) { box.innerHTML = emptyBox("还没有解析任务。"); return; }
+    var h = '<div class="notice">共 ' + fmtNum(d.total !== undefined ? d.total : items.length) + " 个任务（/api/mineru/jobs）</div>" +
+      '<div class="tablewrap"><table class="grid"><thead><tr><th>任务号</th><th>状态</th><th>文件</th><th>后端</th><th>进度</th><th>时间</th><th></th></tr></thead><tbody>';
+    items.forEach(function (it) {
+      var id = it.job_id || it.id;
+      h += "<tr><td class=\"mono\">" + esc(nz(id)) + "</td><td>" + esc(nz(it.status)) + "</td><td>" + esc(nz(it.file)) +
+        "</td><td>" + esc(nz(it.backend)) + "</td><td>" + esc(nz(it.progress)) + "</td><td>" + esc(nz(it.created_at)) +
+        '</td><td><button class="btn ghost" data-job="' + esc(id) + '">查看</button></td></tr>';
+    });
+    h += "</tbody></table></div>";
+    box.innerHTML = h;
+    Array.prototype.forEach.call(box.querySelectorAll("[data-job]"), function (btn) {
+      btn.addEventListener("click", function () {
+        var id = btn.getAttribute("data-job");
+        api("/api/mineru/jobs/" + encodeURIComponent(id)).then(function (r2) {
+          if (!r2.ok) { setBlockMsg("#mp-msg", "读取任务失败：" + r2.error, "bad"); return; }
+          MP.jobId = id;
+          renderMineruResult(r2.data || {});
+          var p = $("#mp-progress");
+          if (p) p.innerHTML = '<div class="notice">已载入任务 ' + esc(id) + " 的结果。</div>";
+        });
+      });
+    });
+  });
+}
+
+/* ==================================================================
+ * 工作台 · ⑦ 导入历史
+ * ================================================================== */
+function loadImportLogBlock() {
+  var box = $("#w-importlog");
+  if (!box) return;
+  api("/api/import/log", { page: 1, size: 50 }).then(function (r) {
+    if (!r.ok) { box.innerHTML = '<div class="notice bad">导入历史不可用：' + esc(r.error) + "</div>"; return; }
+    var d = r.data || {};
+    var items = d.items || [];
+    if (!items.length) { box.innerHTML = emptyBox("暂无导入记录。"); return; }
+    var h = '<div class="notice">共 ' + fmtNum(d.total !== undefined ? d.total : items.length) + " 条（/api/import/log）</div>" +
+      '<div class="tablewrap"><table class="grid"><thead><tr><th>时间</th><th>文件</th><th>批次</th><th>写入</th><th>状态</th></tr></thead><tbody>';
+    items.forEach(function (it) {
+      h += "<tr><td>" + esc(nz(it.created_at || it.applied_at)) + "</td><td>" + esc(nz(it.filename)) + "</td><td>" +
+        esc(nz(it.batch || it.staging_id)) + "</td><td>" + esc(nz(it.applied)) + "</td><td>" + esc(nz(it.status)) + "</td></tr>";
+    });
+    h += "</tbody></table></div>";
+    box.innerHTML = h;
+  });
+}
+/* ==================================================================
+ * 工作台 · ⑧ Web Dev（浏览数据与同步）
+ * ------------------------------------------------------------------
+ * ★ 浏览记录存在**用户自己的浏览器** localStorage 里（键名 lzkg.browse.v1），
+ *   本站后端**不保存**任何人的浏览记录 —— 各存各的。
+ * ★ 换机器 / 换浏览器就没了 → 于是给一条路：同步到**自己**的 WebDAV 网盘
+ *   （坚果云、自建 Nextcloud 等）。本站只是**中转**，数据始终是用户自己的。
+ * ★ WebDAV 的现实：浏览器直连会被 CORS 挡死 → 只能由本站后端转发，
+ *   所以密码会经过后端内存（不落盘、不写日志、不回显）。
+ * ★ 后端只允许**公网地址**（私网/回环/保留地址被拒，防 SSRF）。
+ * ================================================================== */
+var BROWSE_STORE = "lzkg.browse.v1";
+var BROWSE_MAX = 500;
+var WEBDAV_STORE = "lzkg.webdav.v1";
+var WEBDAV_DEFAULT_NAME = "lzkg-browse.json";
+/* 存放目录：坚果云不允许直接往根目录写文件（会 404），文件必须在一个文件夹里。
+   后端上传时会自动 MKCOL 建出这个目录，所以留空也能用，但写上更清楚。 */
+var WEBDAV_DEFAULT_FOLDER = "lzkg";
+/* 说明文档（外部超链接，不是外部脚本/样式） */
+var WEBDAV_HELP = [
+  { href: "https://help.jianguoyun.com/?p=2064", t: "坚果云：第三方应用授权 WebDAV 开启方法" },
+  { href: "https://zhuanlan.zhihu.com/p/397069064", t: "WebDAV 是什么 / 怎么用（知乎）" }
+];
+/* ---------------- 浏览记录：本地存储 ---------------- */
+function browseNow() { return Math.floor((new Date()).getTime() / 1000); }
+function pad2(n) { return (n < 10 ? "0" : "") + n; }
+function browseDate() {
+  var d = new Date();
+  return d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate());
+}
+function browseStamp(ts) {
+  var d = new Date((ts === undefined || ts === null ? browseNow() : Number(ts)) * 1000);
+  if (isNaN(d.getTime())) return "—";
+  return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()) + " " +
+    pad2(d.getHours()) + ":" + pad2(d.getMinutes()) + ":" + pad2(d.getSeconds());
+}
+function browseLoad() {
+  try {
+    var raw = localStorage.getItem(BROWSE_STORE);
+    if (!raw) return { items: [] };
+    var o = JSON.parse(raw);
+    if (!o || typeof o !== "object" || !Array.isArray(o.items)) return { items: [] };
+    return o;
+  } catch (e) { return { items: [] }; }
+}
+function browseSave(o) {
+  try { localStorage.setItem(BROWSE_STORE, JSON.stringify(o)); return true; }
+  catch (e) { return false; }
+}
+function browseCount() { return (browseLoad().items || []).length; }
+/* 记一条浏览：同一篇只更新时间、不重复追加；上限 500 条，超出丢最旧的 */
+function browseRecord(lit) {
+  if (!lit || !lit.lit_id) return false;
+  var o = browseLoad();
+  var items = o.items || [];
+  var id = String(lit.lit_id);
+  var ts = browseNow();
+  var kept = [];
+  var i;
+  for (i = 0; i < items.length; i++) {
+    if (String(items[i].id) === id) continue;   /* 同一篇：旧的丢掉，下面按新时间重记一条 */
+    kept.push(items[i]);
+  }
+  kept.push({
+    kind: "lit", id: id,
+    title: String(lit.title === undefined || lit.title === null ? "" : lit.title),
+    year: String(lit.year === undefined || lit.year === null ? "" : lit.year),
+    ts: ts
+  });
+  kept.sort(function (a, b) { return (Number(a.ts) || 0) - (Number(b.ts) || 0); });
+  if (kept.length > BROWSE_MAX) kept = kept.slice(kept.length - BROWSE_MAX);
+  o.items = kept;
+  o.updated_at = browseStamp(ts);
+  var okSaved = browseSave(o);
+  /* ★ 浏览记录一变就排一次自动同步（就是用户要的「变化时同步一次」）。
+     注意：同步是异步的，**绝不能**影响「有没有写进本地」这个返回值 ——
+     本地存失败和云端存失败是两件事，不能因为网不好就不记本地。 */
+  if (okSaved) autoSyncKick();
+  return okSaved;
+}
+/* 合并两份浏览记录（按 id 取并集；同一篇保留 ts 更晚的那份）。
+   ★ 为什么必须「合并」而不是「覆盖」：
+     覆盖会**丢数据** —— 主设备有 5 条、手机只传了 2 条，回主设备一点「恢复」，
+     本地就只剩 2 条了。同步的本意是「两边合起来」，不是「远端说了算」。
+   「导入 JSON」和「从 Web Dev 恢复」是同一个语义，所以都走这里，
+   免得两处各写一遍后规则漂移。 */
+function browseMerge(remoteItems) {
+  /* 取值前先过一道：远端 JSON 可能是人手改过的，可能出现 null、
+     缺 id 的元素。`String(null)` 拼出来是 "null"（非空字符串），
+     若不过滤就会被当成合法记录收进来，随后排序里取 `a.ts` 直接抛异常，
+     整个「恢复」无声崩掉。 */
+  function keyOf(it) {
+    if (!it || typeof it !== "object") return "";
+    var v = it.id;
+    if (v === undefined || v === null) return "";
+    var k = String(v).trim();
+    if (!k || k === "null" || k === "undefined") return "";
+    return k;
+  }
+  var local = browseLoad().items || [];
+  var byId = {}, merged = [], i, it, key, old;
+  for (i = 0; i < local.length; i++) {
+    it = local[i];
+    key = keyOf(it);
+    if (!key) continue;
+    byId[key] = it;
+    merged.push(it);
+  }
+  var localValid = merged.length;
+  var remote = (remoteItems || []).slice(0);
+  var added = 0, refreshed = 0, remoteValid = 0;
+  for (i = 0; i < remote.length; i++) {
+    it = remote[i];
+    key = keyOf(it);
+    if (!key) continue;
+    remoteValid += 1;
+    old = byId[key];
+    if (!old) {
+      byId[key] = it;
+      merged.push(it);
+      added += 1;
+    } else if ((Number(it.ts) || 0) > (Number(old.ts) || 0)) {
+      old.ts = Number(it.ts) || 0;
+      refreshed += 1;
+    }
+  }
+  merged.sort(function (a, b) { return (Number(a.ts) || 0) - (Number(b.ts) || 0); });
+  if (merged.length > BROWSE_MAX) merged = merged.slice(merged.length - BROWSE_MAX);
+  return { items: merged, added: added, refreshed: refreshed,
+           local_count: localValid, remote_count: remoteValid };
+}
+function browseClear() {
+  try { localStorage.removeItem(BROWSE_STORE); return true; }
+  catch (e) { return false; }
+}
+/* ---------------- WebDAV 配置：本地存储 ---------------- */
+function webdavCfgLoad() {
+  var o = { url: "", user: "", password: "", name: WEBDAV_DEFAULT_NAME,
+            folder: WEBDAV_DEFAULT_FOLDER, auto: false };
+  try {
+    var raw = localStorage.getItem(WEBDAV_STORE);
+    if (!raw) return o;
+    var c = JSON.parse(raw);
+    if (!c || typeof c !== "object") return o;
+    if (c.url) o.url = String(c.url);
+    if (c.user) o.user = String(c.user);
+    if (c.password) o.password = String(c.password);
+    if (c.name) o.name = String(c.name);
+    if (c.folder !== undefined && c.folder !== null) o.folder = String(c.folder);
+    if (c.auto) o.auto = true;
+  } catch (e) {}
+  return o;
+}
+function webdavCfgSave(o) {
+  try { localStorage.setItem(WEBDAV_STORE, JSON.stringify(o)); return true; }
+  catch (e) { return false; }
+}
+/* ---------------- 页面 ---------------- */
+function webdavHelpHtml() {
+  return WEBDAV_HELP.map(function (h) {
+    return '<a href="' + esc(h.href) + '" target="_blank" rel="noopener">' + esc(h.t) + "</a>";
+  }).join("　·　");
+}
+function renderWebDevPage() {
+  var cfg = webdavCfgLoad();
+  /* 总闸状态先读一次（state.webdev 之前可能是 undefined，拦截逻辑要靠它） */
+  if (state.webdev === undefined) {
+    api("/api/webdev/status").then(function (r) {
+      state.webdev = (r && r.ok) ? (r.data || {}) : { enabled: true };
+      renderWebDevPage();
+    });
+    return;
+  }
+  /* 「同步存哪」也先读一次：块⓪ 要显示当前目标，
+     没读到就渲染会把它画成「未设置」（而后台其实是好的）——
+     这正是那种「界面撒谎」的错，不能留。 */
+  if (state.browseServer === null || state.browseServer === undefined) {
+    loadSyncStatus().then(function () { renderWebDevPage(); });
+    return;
+  }
+  /* 总闸：成员进来就是「已被关闭」；管理员仍进得来，好把开关拨回去 */
+  if (state.webdev && state.webdev.enabled === false) {
+    view.innerHTML = subBar("⑧ Web Dev（浏览数据与同步）", "") +
+      '<div class="fullblk"><div class="notice">这个功能已被管理员关闭。' +
+      "（浏览记录仍在你自己的浏览器里，只是不能同步到网盘了）" +
+      (isAdmin() ? '<br><br><button class="btn" id="wd-toggle2">重新开启这个功能</button>' : "") +
+      '</div></div>';
+    var tg2 = $("#wd-toggle2");
+    if (tg2) {
+      tg2.addEventListener("click", function () {
+        apiSend("POST", "/api/webdev/toggle", { enabled: true }).then(function (r) {
+          if (!r.ok) { setBlockMsg("#wd-msg", "开启失败：" + r.error, "bad"); return; }
+          state.webdev = { enabled: true };
+          renderWebDevPage();
+        });
+      });
+    }
+    return;
+  }
+  var ob = browseLoad();
+  var items = ob.items || [];
+  /* ★ 解锁判定：地址 + 账号 + 密码 + 目录都齐了才算「已解锁」。
+     这条功能本来就是「各人配各人的」——配好就自动能用，不需要管理员给每个人开权限。 */
+  var unlocked = !!(cfg.url && cfg.user && cfg.password);
+  var html = subBar("⑧ Web Dev（浏览数据与同步）", "POST /api/webdav/test · /api/webdav/put · /api/webdav/get");
+
+  /* 块⓪ 当前同步存哪（必须放最前面）
+     ★ 为什么先讲这个：用户是从右上角「同步：未设置」跳过来的，
+       第一眼要知道「我到底要配什么才能不再被提示」，而不是先看到一堆配置项。 */
+  var tgt = syncTargetOf();
+  var tgtName = tgt === "webdav" ? "WebDAV（你自己的网盘）"
+              : tgt === "server" ? "本站服务器（零配置）" : "未设置";
+  var tgtTone = tgt === "none" ? "#F3F4F6;color:#6B7280" : "#E6F4EA;color:#1F7A5C";
+  html += '<div class="fullblk"><div class="barhead">⓪ 同步存哪' +
+    '<span class="tag" style="background:' + tgtTone + '">' +
+    (tgt === "none" ? "○ " : "● ") + esc(tgtName) + '</span></div>' +
+    '<div class="notice">右上角的「同步」按钮按这个顺序挑目标：' +
+    '<b>配了 WebDAV 就用你的网盘</b>；<b>没配就用本站服务器</b>（零配置，登录即用）；' +
+    '两个都没有才显示「未设置」，点它会跳回本页。<br>' +
+    '换设备时：本站服务器登录即可取回；WebDAV 要重新填一次凭据（凭据只存各自浏览器里）。</div>';
+  if (state.browseServer && state.browseServer.enabled) {
+    var bs = state.browseServer;
+    html += '<div class="formrow"><span class="small">本站服务器：' +
+      (bs.exists
+        ? ("已存 <b>" + fmtNum(bs.count) + "</b> 条 · 上次 " + esc(bs.saved_at || "—"))
+        : "还没有存过") +
+      '　<span class="mono small muted">' + esc(bs.dir || "") + "</span></span>" +
+      '<button class="btn ghost" id="bs-sync-now">立即存到服务器</button></div>';
+  } else {
+    html += '<div class="formrow"><span class="small muted">' +
+      ((state.browseServer && state.browseServer.enabled === false)
+        ? "「存本站服务器」已被管理员关闭，记录只留在各人浏览器里。"
+        : "「存本站服务器」暂不可用。") +
+      "要把记录带走，请配下面的 WebDAV，或用「导出 JSON」。</span></div>";
+  }
+  if (isAdmin()) {
+    var bsOn = !!(state.browseServer && state.browseServer.enabled);
+    html += '<div class="formrow"><span class="small muted">管理员：' +
+      (bsOn
+        ? "关闭后所有成员都不能再存到本站服务器（各自浏览器里的记录不受影响）。"
+        : "开启后成员可零配置把记录存到本站各自目录（互相看不到）。") +
+      '</span><button class="btn ghost" id="bs-toggle">' +
+      (bsOn ? "关闭「存服务器」（对所有成员）" : "开启「存服务器」") +
+      "</button></div>";
+  }
+  html += "</div>";
+
+  /* 块① 我的浏览数据（本地） */
+  html += '<div class="fullblk"><div class="barhead">① 我的浏览数据（存在本浏览器里）' +
+    '<span class="tag">localStorage：' + esc(BROWSE_STORE) + "</span></div>" +
+    '<div class="notice">浏览记录<b>默认只存在你这台机器的这个浏览器里</b>（localStorage）。' +
+    "只有你<b>主动开启同步</b>、或点「立即同步」之后，才会再存一份到你选的同步目标" +
+    "（你自己的网盘，或本站<b>你自己的</b>目录）；<b>没开同步时后端一条都不存</b>。" +
+    "上限 " + BROWSE_MAX + " 条，超出丢最旧的；同一篇文献重复浏览只更新时间、不重复追加。</div>" +
+    '<div class="formrow"><span class="small">共 <b id="wd-count">' + fmtNum(items.length) + "</b> 条浏览记录</span>" +
+    '<span class="small muted">最后更新：' + esc(nz(ob.updated_at)) + "</span>" +
+    '<button class="btn ghost" id="wd-export">导出 JSON</button>' +
+    '<button class="btn ghost" id="wd-import">导入 JSON</button>' +
+    '<input type="file" id="wd-file" accept="application/json,.json" style="display:none">' +
+    '<button class="btn ghost" id="wd-clear">清除全部</button>' +
+    '<span class="small muted" id="wd-browse-msg"></span></div>' +
+    '<div id="wd-list"></div></div>';
+
+  /* 块② Web Dev（WebDAV）配置与同步 */
+  html += '<div class="fullblk"><div class="barhead">② Web Dev（WebDAV）配置与同步' +
+    '<span class="tag">POST /api/webdav/test · /api/webdav/put · /api/webdav/get</span>' +
+    '<span class="tag" style="background:' + (unlocked ? "#E6F4EA;color:#1F7A5C" : "#F3F4F6;color:#6B7280") + '">' +
+    (unlocked ? "● 已解锁" : "○ 未解锁") + "</span></div>" +
+    '<div class="notice">' +
+    (unlocked
+      ? "已解锁：上传 / 下载会连到 <b>" + esc(cfg.url) + "</b> 的 <b>" + esc(cfg.folder || "根目录") +
+        "</b> 目录。改完配置记得点「保存配置」。"
+      : "<b>未解锁</b>：把下面的<b>服务器地址、账号、应用授权密码</b>填齐并「保存配置」，" +
+        "这个功能就自动解锁了（各人配各人的，不用管理员逐个开）。" +
+        "不想用 WebDAV 也没关系 —— 「导出 JSON / 导入 JSON」零门槛，走微信传给自己同样算同步。") +
+    "</div>" +
+    '<div class="formrow"><label class="fl">服务器地址</label>' +
+    '<input type="text" id="wd-url" style="flex:1;min-width:320px" value="' + esc(cfg.url) +
+    '" placeholder="如 https://dav.jianguoyun.com/dav/"></div>' +
+    '<div class="formrow"><label class="fl">账号</label>' +
+    '<input type="text" id="wd-user" style="flex:1;min-width:320px" value="' + esc(cfg.user) +
+    '" placeholder="你的网盘账号（坚果云填邮箱）"></div>' +
+    '<div class="formrow"><label class="fl">应用授权密码</label>' +
+    '<input type="password" id="wd-pass" style="flex:1;min-width:320px" placeholder="' +
+    (cfg.password ? "已保存在本浏览器（不回显）；要更换请重新填写" : "坚果云用「第三方应用管理」里生成的应用授权密码") + '">' +
+    '<span class="small muted">不回显</span></div>' +
+    '<div class="formrow"><label class="fl">存放目录</label>' +
+    '<input type="text" id="wd-folder" style="width:220px" value="' + esc(cfg.folder) +
+    '" placeholder="' + esc(WEBDAV_DEFAULT_FOLDER) + '">' +
+    '<span class="small muted">坚果云<b>不允许直接往根目录写文件</b>（会报 404）：' +
+    "文件必须放在一个文件夹里。这里填的目录名，<b>上传时会自动建出来</b>；" +
+    "也可以先在网盘网页端手动建好同名文件夹。</span></div>" +
+    '<div class="formrow"><label class="fl">文件名</label>' +
+    '<input type="text" id="wd-name" style="width:260px" value="' + esc(cfg.name) +
+    '" placeholder="' + esc(WEBDAV_DEFAULT_NAME) + '">' +
+    '<button class="btn" id="wd-save">保存配置</button>' +
+    '<button class="btn ghost" id="wd-test">测试连接</button>' +
+    '<button class="btn ghost" id="wd-put">上传我的浏览数据</button>' +
+    '<span class="small muted">↑ 上传的是<b>本浏览器里的浏览记录</b>（题名/年份/时间），不是某个文件</span>' +
+    '<button class="btn ghost" id="wd-get">从 Web Dev 恢复</button>' +
+    '<label class="small muted" style="display:inline-flex;align-items:center;gap:4px;margin-left:8px">' +
+    '<input type="checkbox" id="wd-auto"' + (cfg.auto ? " checked" : "") + ">自动同步（每次打开本页自动上传）</label></div>" +
+    '<div id="wd-msg"></div>' +
+    (isAdmin()
+      ? '<div class="formrow"><span class="small muted">管理员：</span>' +
+        '<button class="btn ghost" id="wd-toggle">关闭这个功能（对所有成员）</button>' +
+        '<span class="small muted">关掉后：成员的入口不再出现，接口一律 403；' +
+        "各人的凭据本来就在各自浏览器里，管理员看不到。</span></div>"
+      : "") +
+    '<div class="small muted">说明文档（外链）：' + webdavHelpHtml() + "</div></div>";
+
+  /* 块③ 说明与边界 */
+  html += '<div class="fullblk"><div class="barhead">③ 说明与边界</div>' +
+    '<div class="barhead">说明文档（外链）</div>' +
+    '<div class="formrow">' + webdavHelpHtml() + "</div>" +
+    '<div class="notice">★ <b>账号与密码存在这台机器的浏览器</b>里（localStorage 键名 <code>' + esc(WEBDAV_STORE) +
+    "</code>）：本站<b>不保存</b>任何人的 WebDAV 凭据。" +
+    "但<b>测试 / 上传 / 下载时，密码会随请求发给本站后端</b>再转发给 WebDAV 服务器" +
+    "（因为浏览器直连 WebDAV 会被 CORS 挡住）→ 后端<b>不落盘、不写日志、不回显</b>。</div>" +
+    '<div class="notice">★ 本站后端<b>只允许公网地址</b>：私网 / 回环 / 保留地址会被拒绝' +
+    "（这是防 SSRF 的硬限制，别去连自己局域网里的盘）。</div>" +
+    '<div class="notice">★ 同一台机器上的其他人（公用电脑）能读到 localStorage 里的密码 → <b>公用电脑上不要填</b>。</div>' +
+    '<div class="notice">★ 坚果云要用「第三方应用管理」里生成的<b>应用授权密码</b>，不是账号密码。</div></div>';
+
+  view.innerHTML = html;
+  bindWebDevPage();
+  /* 管理员总闸开关（只有管理员看得到） */
+  if (isAdmin()) {
+    var tg = $("#wd-toggle");
+    if (tg) {
+      tg.addEventListener("click", function () {
+        /* ★ 取值要反着来：按钮写着「关闭」，就要发 enabled:false */
+        var curOn = !(state.webdev && state.webdev.enabled === false);
+        apiSend("POST", "/api/webdev/toggle", { enabled: !curOn })
+          .then(function (r) {
+            if (!r.ok) { setBlockMsg("#wd-msg", "切换失败：" + r.error, "bad"); return; }
+            state.webdev = { enabled: !!(r.data && r.data.enabled) };
+            setBlockMsg("#wd-msg", (r.data && r.data.message) || "已切换。", "good");
+            /* ★ 不调 renderWorkbenchHome() —— 那会把当前页换掉，提示就没了。
+               入口卡片的显隐由「下次进工作台」时读 /api/webdev/status 决定。 */
+            var b2 = $("#wd-toggle");
+            if (b2) b2.innerHTML = state.webdev.enabled
+              ? "关闭这个功能（对所有成员）" : "重新开启这个功能（对所有成员）";
+          });
+      });
+    }
+  }
+  /* 自动同步：勾了「自动同步」且已解锁 → 进页面就自动上传一次 */
+  if (cfg.auto && unlocked && cfg.url && cfg.user && cfg.password) {
+    setTimeout(function () { try { wdPut(); } catch (e) {} }, 600);
+  }
+}
+/* 列表（按时间倒序） */
+function paintBrowseList() {
+  var box = $("#wd-list");
+  if (!box) return;
+  var ob = browseLoad();
+  var items = (ob.items || []).slice(0).reverse();   /* 最新的在最前 */
+  var cnt = $("#wd-count");
+  if (cnt) cnt.textContent = fmtNum(items.length);
+  if (!items.length) {
+    box.innerHTML = emptyBox("还没有浏览记录。到「文献」页打开任意一篇文献，这里就会多一条。");
+    return;
+  }
+  var h = '<div class="litlist">';
+  items.forEach(function (it) {
+    h += '<div class="litrow" style="grid-template-columns:1fr 150px 150px 80px">' +
+      '<div><div class="ttl">' + esc(nz(it.title)) + "</div>" +
+      '<div class="tg mono small">' + esc(nz(it.id)) + (it.year ? "　" + esc(nz(it.year)) + " 年" : "") + "</div></div>" +
+      '<div class="small muted">' + esc(browseStamp(it.ts)) + "</div>" +
+      '<div class="small muted">' + esc(nz(it.kind)) + "</div>" +
+      '<div><a class="btn ghost" href="#/lit/' + esc(it.id) + '">打开</a></div></div>';
+  });
+  h += "</div>";
+  box.innerHTML = h;
+}
+function bindWebDevPage() {
+  paintBrowseList();
+  var ex = $("#wd-export");
+  if (ex) ex.addEventListener("click", wdExport);
+  var cl = $("#wd-clear");
+  if (cl) cl.addEventListener("click", wdClear);
+  var sv = $("#wd-save");
+  if (sv) sv.addEventListener("click", wdSaveCfg);
+  var te = $("#wd-test");
+  if (te) te.addEventListener("click", wdTest);
+  var pu = $("#wd-put");
+  if (pu) pu.addEventListener("click", wdPut);
+  var ge = $("#wd-get");
+  if (ge) ge.addEventListener("click", wdGet);
+  var im = $("#wd-import");
+  if (im) im.addEventListener("click", wdImport);
+  var fi = $("#wd-file");
+  if (fi) fi.addEventListener("change", wdImportPicked);
+  /* 块⓪ 的两个按钮：
+     · 「立即存到服务器」明确只打服务器端点（不走 syncTargetOf 的择优），
+       否则用户配了 WebDAV 时点它却被存进网盘，按钮名字就骗人了。
+     · 「存服务器」总闸是管理员专属（接口层也 require_admin，两道锁）。 */
+  var bsNow = $("#bs-sync-now");
+  if (bsNow) bsNow.addEventListener("click", function () {
+    var ob = browseLoad();
+    bsNow.disabled = true;
+    apiSend("POST", "/api/browse/server",
+      { items: ob.items || [], updated_at: ob.updated_at || "" }).then(function (r) {
+      bsNow.disabled = false;
+      if (!r.ok) { setBlockMsg("#wd-msg", "存服务器失败：" + r.error, "bad"); return; }
+      var d = r.data || {};
+      setBlockMsg("#wd-msg", "已存到服务器：" + fmtNum(d.count || 0) +
+        " 条（" + nz(d.path) + "）。", "good");
+      loadSyncStatus().then(function () { renderWebDevPage(); });
+    });
+  });
+  var bsTg = $("#bs-toggle");
+  if (bsTg) bsTg.addEventListener("click", function () {
+    var want = !(state.browseServer && state.browseServer.enabled);
+    bsTg.disabled = true;
+    apiSend("POST", "/api/browse/server/toggle", { enabled: want }).then(function (r) {
+      bsTg.disabled = false;
+      if (!r.ok) { setBlockMsg("#wd-msg", "操作失败：" + r.error, "bad"); return; }
+      loadSyncStatus().then(function () { renderWebDevPage(); });
+    });
+  });
+  var au = $("#wd-auto");
+  if (au) au.addEventListener("change", function () {
+    var c = wdFormCfg();
+    webdavCfgSave(c);
+    wdBrowseMsg(au.checked ? "已开启自动同步：以后每次打开本页会自动上传一次。"
+                           : "已关闭自动同步。");
+  });
+}
+/* 表单取值：密码框留空＝用已保存的那份（密码不显、不回填） */
+/* 文件名兜底。
+   ★ 为什么要兜底而不是报错：浏览器下载后显示的是**完整路径**
+     （如「下载NDM\lzkg-browse-20261029.json」），用户很容易直接把这段粘进文件名框。
+     报错说「文件名不合法」等于让人猜规则 —— 这里只取最后一段文件名。 */
+function wdSafeName(raw) {
+  var s = String(raw || "").trim().replace(/^["']|["']$/g, "");
+  if (!s) return WEBDAV_DEFAULT_NAME;
+  var parts = s.split(/[\\\/]/);
+  var base = parts[parts.length - 1];
+  base = base.replace(/[^0-9A-Za-z.\-\u4e00-\u9fa5]/g, "");
+  /* 去掉开头的点：后端规则是「以 . 开头一律判文件名不合法」，
+     所以 `.hidden` / `.json` 这类名字必须在**前端**就修好，
+     否则又回到「兜底了却还是报文件名不合法」。
+     `..` 会被这一步清空，随后落到默认名。 */
+  base = base.replace(/^\.+/, "");
+  if (!base) return WEBDAV_DEFAULT_NAME;
+  return base;
+}
+function wdFormCfg() {
+  var c = webdavCfgLoad();
+  var u = $("#wd-url"), us = $("#wd-user"), p = $("#wd-pass"), n = $("#wd-name");
+  var fo = $("#wd-folder"), au = $("#wd-auto");
+  var pw = (p && p.value) ? p.value.trim() : "";
+  return {
+    url: (u && u.value.trim()) ? u.value.trim() : c.url,
+    user: (us && us.value.trim()) ? us.value.trim() : c.user,
+    password: pw ? pw : c.password,
+    name: wdSafeName((n && n.value.trim()) ? n.value.trim() : WEBDAV_DEFAULT_NAME),
+    folder: (fo && fo.value.trim()) ? fo.value.trim() : (c.folder || ""),
+    auto: !!(au && au.checked)
+  };
+}
+function wdBrowseMsg(txt) {
+  var e = $("#wd-browse-msg");
+  if (e) e.textContent = txt || "";
+}
+/* 导入 JSON（从本地文件恢复浏览记录）—— **零门槛的同步途径**：
+   不用配 WebDAV 也能把记录带走（微信/邮件发给自己都行）。 */
+function wdImport() {
+  var f = $("#wd-file");
+  if (!f) return;
+  f.value = "";
+  f.click();
+}
+function wdImportPicked(e) {
+  var f = (e && e.target) ? e.target.files[0] : null;
+  if (!f) return;
+  var rd = new FileReader();
+  rd.onload = function () {
+    var obj = null;
+    try { obj = JSON.parse(String(rd.result || "")); }
+    catch (err) {
+      wdBrowseMsg("这个文件不是合法的 JSON（解析失败），本地数据未改动。");
+      return;
+    }
+    if (!obj || typeof obj !== "object" || !Array.isArray(obj.items)) {
+      wdBrowseMsg("文件结构不对（缺 items 数组），本地数据未改动。");
+      return;
+    }
+    /* ★ 与「从 Web Dev 恢复」同一语义：合并，不覆盖本地已有记录。 */
+    var m = browseMerge(obj.items);
+    if (!browseSave({ items: m.items, updated_at: browseStamp(browseNow()) })) {
+      wdBrowseMsg("写入本地存储失败（浏览器禁用了本地存储或配额已满），本地数据未改动。");
+      return;
+    }
+    paintBrowseList();
+    wdBrowseMsg("已合并：文件 " + fmtNum(m.remote_count) + " 条 + 本地 " +
+      fmtNum(m.local_count) + " 条 → 现共 " + fmtNum(m.items.length) + " 条（新增 " +
+      fmtNum(m.added) + " 条）。");
+  };
+  rd.onerror = function () { wdBrowseMsg("读取文件失败。"); };
+  try { rd.readAsText(f, "utf-8"); } catch (e) { wdBrowseMsg("读取文件失败。"); }
+}
+/* 清除全部（二次确认） */
+function wdClear() {
+  var n = browseCount();
+  if (!n) { wdBrowseMsg("没有可清除的浏览记录。"); return; }
+  if (!window.confirm("确定要清除本浏览器里的全部 " + n + " 条浏览记录吗？\n" +
+    "（此操作不可撤销；建议先「导出 JSON」备份一份）")) {
+    wdBrowseMsg("已取消。");
+    return;
+  }
+  if (!browseClear()) {
+    wdBrowseMsg("清除失败（浏览器禁用了本地存储？）。");
+    return;
+  }
+  paintBrowseList();
+  wdBrowseMsg("已清除全部浏览记录。");
+}
+/* 导出 JSON（浏览器下载） */
+function wdExport() {
+  var ob = browseLoad();
+  var txt = JSON.stringify(ob, null, 2);
+  var name = "lzkg-browse-" + browseDate() + ".json";
+  try {
+    var blob = new Blob([txt], { type: "application/json;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () {
+      try { document.body.removeChild(a); URL.revokeObjectURL(url); } catch (e) {}
+    }, 0);
+    wdBrowseMsg("已导出 " + name);
+  } catch (e) {
+    wdBrowseMsg("导出失败：" + ((e && e.message) ? e.message : String(e)));
+  }
+}
+/* 保存配置（密码只进 localStorage，不回显） */
+function wdSaveCfg() {
+  var c = wdFormCfg();
+  if (!webdavCfgSave(c)) {
+    setBlockMsg("#wd-msg", "保存失败：浏览器禁用了本地存储（或配额已满）。", "bad");
+    return;
+  }
+  var p = $("#wd-pass");
+  if (p) p.value = "";          /* 不把密码留在输入框里 */
+  setBlockMsg("#wd-msg", "配置已保存到本浏览器（密码不回显）。", "good");
+}
+/* 测试连接 */
+function wdTest() {
+  var c = wdFormCfg();
+  if (!c.url) { setBlockMsg("#wd-msg", "请先填 WebDAV 服务器地址。", "bad"); return; }
+  setBlockMsg("#wd-msg", "正在测试连接…", "");
+  apiSend("POST", "/api/webdav/test", { url: c.url, user: c.user, password: c.password,
+    folder: c.folder }).then(function (r) {
+    if (!r.ok) { setBlockMsg("#wd-msg", "测试失败：" + r.error, "bad"); return; }
+    var d = r.data || {};
+    setBlockMsg("#wd-msg", "连接正常：" + nz(d.message) + "（HTTP " + nz(d.status) +
+      (d.server ? "，" + nz(d.server) : "") + "）", "good");
+  });
+}
+/* 上传我的浏览数据 */
+function wdPut() {
+  var c = wdFormCfg();
+  if (!c.url) { setBlockMsg("#wd-msg", "请先填 WebDAV 服务器地址。", "bad"); return; }
+  var ob = browseLoad();
+  var content = JSON.stringify(ob);
+  setBlockMsg("#wd-msg", "正在上传…", "");
+  apiSend("POST", "/api/webdav/put", {
+    url: c.url, user: c.user, password: c.password, name: c.name, content: content,
+    folder: c.folder
+  }).then(function (r) {
+    if (!r.ok) { setBlockMsg("#wd-msg", "上传失败：" + r.error, "bad"); return; }
+    var d = r.data || {};
+    setBlockMsg("#wd-msg", "上传成功：" + nz(d.message) + "（文件 " + nz(d.target) +
+      "，" + fmtNum(d.bytes) + " 字节）", "good");
+  });
+}
+/* 从 Web Dev 恢复（解析失败**不清空**本地数据） */
+function wdGet() {
+  var c = wdFormCfg();
+  if (!c.url) { setBlockMsg("#wd-msg", "请先填 WebDAV 服务器地址。", "bad"); return; }
+  setBlockMsg("#wd-msg", "正在下载…", "");
+  apiSend("POST", "/api/webdav/get", {
+    url: c.url, user: c.user, password: c.password, name: c.name, folder: c.folder
+  }).then(function (r) {
+    if (!r.ok) { setBlockMsg("#wd-msg", "恢复失败：" + r.error, "bad"); return; }
+    var d = r.data || {};
+    var content = d.content;
+    if (typeof content !== "string") {
+      setBlockMsg("#wd-msg", "远端返回的内容不是文本，无法恢复（本地数据未改动）。", "bad");
+      return;
+    }
+    var obj = null;
+    try { obj = JSON.parse(content); }
+    catch (e) {
+      setBlockMsg("#wd-msg", "远端文件不是合法的浏览数据 JSON（解析失败），本地数据未改动。", "bad");
+      return;
+    }
+    if (!obj || typeof obj !== "object" || !Array.isArray(obj.items)) {
+      setBlockMsg("#wd-msg", "远端文件结构不对（缺 items 数组），本地数据未改动。", "bad");
+      return;
+    }
+    /* ★ 合并，不是覆盖（见 browseMerge 的注释：覆盖会丢本地记录）。 */
+    var m = browseMerge(obj.items);
+    if (!browseSave({ items: m.items, updated_at: browseStamp(browseNow()) })) {
+      setBlockMsg("#wd-msg", "写入本地存储失败（浏览器禁用了本地存储或配额已满），本地数据未改动。", "bad");
+      return;
+    }
+    paintBrowseList();
+    setBlockMsg("#wd-msg", "已合并：远端 " + fmtNum(m.remote_count) + " 条 + 本地 " +
+      fmtNum(m.local_count) + " 条 → 现共 " + fmtNum(m.items.length) + " 条（新增 " +
+      fmtNum(m.added) + " 条，更新时间向前刷新 " + fmtNum(m.refreshed) + " 条）。", "good");
+  });
+}
+/* ==================================================================
+ * 右上角同步（v3.4）
+ *
+ * 要解决的事：
+ *   ① 浏览记录**一变就存一次**，不靠人记得去点按钮
+ *   ② 自动同步开关**钉在右上角**，任何页面都看得到
+ *   ③ **没设置**时点它不是报错，而是直接跳去配置页（`#/work/webdev`）
+ *
+ * ★ 同步目标有两条路，按「谁配了就用谁」选
+ *   WebDAV（自己的网盘）> 存本站服务器（零配置）
+ *   都没配 → `none` → 主按钮显示「同步：未设置」，点了跳配置页。
+ *   为什么这个顺序：配了 WebDAV 的人明确表达过「我要存自己网盘」，
+ *   不该被服务器存储抢走；没配的人也就不用配了。
+ *
+ * ★ 自动同步只做**上行**（本地 → 远端）
+ *   全量双向每次都要先下载，慢，而且两台设备同时开着容易互相覆盖。
+ *   而「浏览变了」只会让本地变多 → 上行足够。
+ *   真正的双向收敛放在**手动「立即同步」**：下载 → 合并 → 上传。
+ * ================================================================== */
+var AUTOSYNC_STORE = "lzkg.autosync.v1";
+var AUTOSYNC_DELAY = 2500;   // 浏览记录变化后等 2.5 秒再发：连着看几篇只同步一次
+var _syncBusy = false, _syncPending = false, _syncTimer = null, _hintTimer = null;
+
+function autoSyncLoad() {
+  var o = { on: false, last_at: "", last_ok: null, last_error: "" };
+  try {
+    var raw = localStorage.getItem(AUTOSYNC_STORE);
+    if (!raw) return o;
+    var c = JSON.parse(raw);
+    if (!c || typeof c !== "object") return o;
+    o.on = !!c.on;
+    o.last_at = String(c.last_at || "");
+    if (c.last_ok === true) o.last_ok = true;
+    else if (c.last_ok === false) o.last_ok = false;
+    o.last_error = String(c.last_error || "");
+  } catch (e) { /* 坏数据当作没配过，不要让页面挂掉 */ }
+  return o;
+}
+function autoSyncSave(o) {
+  try { localStorage.setItem(AUTOSYNC_STORE, JSON.stringify(o)); return true; }
+  catch (e) { return false; }
+}
+function syncNowStamp() {
+  var d = new Date();
+  return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()) +
+    " " + pad2(d.getHours()) + ":" + pad2(d.getMinutes()) + ":" + pad2(d.getSeconds());
+}
+/* 当前同步目标：webdav / server / none */
+function syncTargetOf() {
+  var c = webdavCfgLoad();
+  if (c.url && c.user && c.password) return "webdav";
+  var bs = state.browseServer;
+  if (bs && bs.enabled && bs.usable) return "server";
+  return "none";
+}
+/* 主按钮上短暂显示一句结果，4 秒后回到常态（自动同步不打扰人） */
+function setSyncHint(txt) {
+  var el = $("#sync-auto");
+  if (!el) return;
+  el.textContent = txt;
+  if (_hintTimer) clearTimeout(_hintTimer);
+  _hintTimer = setTimeout(function () { _hintTimer = null; paintSyncBox(); }, 4000);
+}
+function paintSyncBox() {
+  var autoEl = $("#sync-auto"), nowEl = $("#sync-now");
+  if (!autoEl) return;
+  var t = syncTargetOf();
+  var a = autoSyncLoad();
+  autoEl.className = "btn ghost";
+  if (nowEl) { nowEl.disabled = false; }
+  if (t === "none") {
+    autoEl.textContent = "同步：未设置";
+    autoEl.title = "点一下去设置（Web Dev 页面：配自己的网盘，或用零配置的服务器存储）";
+    if (nowEl) { nowEl.disabled = true; nowEl.title = "还没有可用的同步位置"; }
+    return;
+  }
+  var where = (t === "webdav") ? "WebDAV（你自己的网盘）" : "本站服务器";
+  if (_syncBusy) {
+    autoEl.textContent = "同步中…";
+  } else if (a.last_ok === false) {
+    autoEl.textContent = "同步失败";
+    autoEl.className = "btn ghost bad";
+  } else if (a.on) {
+    autoEl.textContent = "自动同步：开";
+    autoEl.className = "btn on";
+  } else {
+    autoEl.textContent = "自动同步：关";
+  }
+  var tip = "目标：" + where;
+  if (a.last_at) { tip += "\n上次同步：" + a.last_at; }
+  if (a.last_ok === false && a.last_error) { tip += "\n失败原因：" + a.last_error; }
+  tip += a.on ? "\n点一下关闭自动同步" : "\n点一下开启（之后浏览记录一变就自动存）";
+  autoEl.title = tip;
+  if (nowEl) {
+    nowEl.title = "立即同步一次：先下载远端合并到本地，再上传（目标：" + where + "）";
+  }
+}
+/* 浏览记录变了 → 排一次自动同步（debounce，避免连看几篇就发几个请求） */
+function autoSyncKick() {
+  var a = autoSyncLoad();
+  if (!a.on) return;
+  if (syncTargetOf() === "none") return;
+  if (_syncTimer) clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(function () {
+    _syncTimer = null;
+    syncNow({ manual: false });
+  }, AUTOSYNC_DELAY);
+}
+/* 只上传（自动同步走这条） */
+function syncPushOnly(t) {
+  var ob = browseLoad();
+  var items = ob.items || [];
+  if (!items.length) return Promise.resolve({ ok: true, count: 0, empty: true });
+  if (t === "webdav") {
+    var c = webdavCfgLoad();
+    return apiSend("POST", "/api/webdav/put", {
+      url: c.url, user: c.user, password: c.password, name: c.name,
+      content: JSON.stringify(ob), folder: c.folder
+    }).then(function (r) {
+      if (!r.ok) return { ok: false, error: r.error, count: items.length };
+      return { ok: true, count: items.length, where: (r.data && r.data.target) || "" };
+    });
+  }
+  return apiSend("POST", "/api/browse/server", {
+    items: items, updated_at: ob.updated_at || ""
+  }).then(function (r) {
+    if (!r.ok) return { ok: false, error: r.error, count: items.length };
+    return { ok: true, count: items.length, where: (r.data && r.data.path) || "" };
+  });
+}
+/* 下载 → 合并 → 上传（手动「立即同步」走这条；两端收敛到并集） */
+function syncPullAndPush(t) {
+  var pulled = null;
+  var pget;
+  if (t === "webdav") {
+    var c = webdavCfgLoad();
+    pget = apiSend("POST", "/api/webdav/get", {
+      url: c.url, user: c.user, password: c.password, name: c.name, folder: c.folder
+    }).then(function (r) {
+      if (!r.ok) return { ok: false, silent: true };   // 远端还没文件也算正常
+      var d = r.data || {};
+      try {
+        var o = JSON.parse(String(d.content || ""));
+        if (!o || !Array.isArray(o.items)) return { ok: false, silent: true };
+        return { ok: true, obj: o };
+      } catch (e) { return { ok: false, silent: true }; }
+    });
+  } else {
+    pget = api("/api/browse/server").then(function (r) {
+      if (!r.ok || !r.data || !Array.isArray(r.data.items)) return { ok: false, silent: true };
+      return { ok: true, obj: r.data };
+    });
+  }
+  return pget.then(function (g) {
+    if (g && g.ok && g.obj) {
+      var m = browseMerge(g.obj.items);
+      browseSave({ items: m.items, updated_at: browseStamp(browseNow()) });
+      paintBrowseList();
+      pulled = m;
+    }
+    return syncPushOnly(t);      // 下载失败也要上传，保证远端拿到本地这份
+  }).then(function (r) {
+    r.pulled = pulled;
+    return r;
+  });
+}
+function syncNow(opts) {
+  opts = opts || {};
+  var manual = !!opts.manual;
+  var t = syncTargetOf();
+  if (t === "none") {
+    if (manual) { location.hash = "#/work/webdev"; }   // 没设置 → 直接带去配置
+    return;
+  }
+  if (_syncBusy) {
+    if (manual) { setSyncHint("正在同步中…"); }
+    else { _syncPending = true; }                      // 自动同步排队，别叠请求
+    return;
+  }
+  _syncBusy = true;
+  paintSyncBox();
+  var chain = manual ? syncPullAndPush(t) : syncPushOnly(t);
+  chain.then(function (res) {
+    _syncBusy = false;
+    var a = autoSyncLoad();
+    a.last_at = syncNowStamp();
+    if (res && res.ok) {
+      a.last_ok = true;
+      a.last_error = "";
+      if (manual) {
+        var n = res.count || 0;
+        setSyncHint(res.empty ? "没有需要同步的记录"
+          : ("已同步：" + (res.pulled ? "合并后共 " : "") + n + " 条"));
+      }
+    } else {
+      a.last_ok = false;
+      a.last_error = (res && res.error) || "未知错误";
+      if (manual) { setSyncHint("同步失败"); }
+    }
+    autoSyncSave(a);
+    paintSyncBox();
+    if (_syncPending) { _syncPending = false; syncNow({ manual: false }); }
+  }, function (e) {
+    _syncBusy = false;
+    _syncPending = false;
+    var a = autoSyncLoad();
+    a.last_ok = false;
+    a.last_error = String((e && e.message) ? e.message : e);
+    a.last_at = syncNowStamp();
+    autoSyncSave(a);
+    paintSyncBox();
+    if (manual) { setSyncHint("同步失败"); }
+  });
+}
+function loadSyncStatus() {
+  return api("/api/browse/server/status").then(function (r) {
+    state.browseServer = r.ok ? (r.data || null) : { enabled: false, usable: false };
+    paintSyncBox();
+  }, function () {
+    state.browseServer = { enabled: false, usable: false };
+    paintSyncBox();
+  });
+}
+function bindSyncBox() {
+  var autoEl = $("#sync-auto"), nowEl = $("#sync-now");
+  if (autoEl) {
+    autoEl.addEventListener("click", function () {
+      var t = syncTargetOf();
+      if (t === "none") { location.hash = "#/work/webdev"; return; }   // ③ 没设置就带去配置
+      var a = autoSyncLoad();
+      a.on = !a.on;
+      a.last_ok = null;          // 切换时清掉上次的成败，别一直红着
+      a.last_error = "";
+      autoSyncSave(a);
+      paintSyncBox();
+      if (a.on) {
+        setSyncHint("自动同步已开启");
+        syncNow({ manual: false });     // 开启的那一刻先存一次，别等下次浏览
+      } else {
+        setSyncHint("自动同步已关闭");
+      }
+    });
+  }
+  if (nowEl) {
+    nowEl.addEventListener("click", function () { syncNow({ manual: true }); });
+  }
+  paintSyncBox();
+}
+
+/* ==================================================================
+ * 路由与初始化
+ * ================================================================== */
+function route() {
+  var r = parseHash();
+  state.tab = r.tab;
+  markTab(r.tab);
+  /* 离开「统计与地图」页时把 Leaflet 实例拆掉，避免旧地图泄漏 */
+  if (!(r.tab === "work" && r.sub === "stats")) mapstDestroy();
+  /* 同理：详情页内嵌小地图，离开详情页就拆 */
+  if (r.tab !== "detail") litmapDestroy();
+  /* 图谱页离开时停掉 scale 轮询 */
+  if (r.tab !== "graph" && state.graph.scaleTimer) {
+    clearInterval(state.graph.scaleTimer); state.graph.scaleTimer = null;
+  }
+  if (r.tab === "overview") renderOverview();
+  else if (r.tab === "list") renderList();
+  else if (r.tab === "detail") renderDetail(r.id);
+  else if (r.tab === "graph") renderGraph();
+  else if (r.tab === "work") renderWorkbench(r.sub || "");
+}
+function loadOptions() {
+  api("/api/tags").then(function (r) {
+    if (!r.ok) return;
+    var items = (r.data && r.data.items) ? r.data.items : [];
+    var map = { period: [], region: [], topic: [], lineage: [] };
+    items.forEach(function (t) { if (map[t.dim]) map[t.dim].push(t); });
+    ["period", "region", "topic", "lineage"].forEach(function (d) {
+      map[d].sort(function (a, b) { return (b.lit_count || 0) - (a.lit_count || 0); });
+    });
+    state.tagOpts = map;
+  });
+}
+/* 页脚口径与免责说明：优先读 /api/notes，取不到保留硬编码兜底 */
+function loadNotes() {
+  api("/api/notes").then(function (r) {
+    if (!r.ok) return;
+    var d = r.data || {};
+    var set = function (sel, html) { var e = $(sel); if (e && html) e.innerHTML = html; };
+    if (d.usage) set("#foot-usage", "<b>使用条件</b>：" + esc(d.usage));
+    if (d.disclaimer) set("#foot-disclaimer", "<b>免责说明</b>：" + esc(d.disclaimer));
+    if (d.data_version) set("#foot-version", "<b>数据版本</b>：" + esc(d.data_version));
+    if (d.review_note) set("#foot-review", esc(d.review_note));
+    if (d.graph_note) {
+      set("#foot-graph", "<b>图谱口径</b>：" + esc(d.graph_note) +
+        "　图版图像经本机后端 <span class=\"mono\">/media/img/</span> 读取，图谱渲染用 vis-network 由后端内联提供，无外网依赖。");
+    }
+  });
+}
+(function init() {
+  api("/api/overview").then(function (r) {
+    if (r.ok) {
+      state.ov = r.data;
+      setHealth(true, "后端正常");
+      applyUpdateDate(r.data);
+    } else {
+      state.ovErr = r.error;
+      setHealth(false, "后端未启动");
+    }
+  }).then(function () {
+    loadOptions();
+    loadNotes();
+    /* 鉴权状态：200=已登录 / 401=未登录 / 404=本机免登录或后端未实现 */
+    return loadMe();
+  }).then(function () {
+    /* ★ 顺序很重要：先把「同步存哪」读出来，再渲染首屏。
+       反过来（先 route 再拉状态）会让页面先显示「未设置」、
+       两百毫秒后跳成「本站服务器」—— 闪一下，用户还可能正好点在那儿。 */
+    bindSyncBox();
+    return loadSyncStatus();
+  }).then(function () {
+    route();
+  });
+})();
+</script>
+</body>
+</html>

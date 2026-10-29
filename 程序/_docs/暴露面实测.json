@@ -1,0 +1,380 @@
+{
+  "base": "http://127.0.0.1:8798",
+  "probed_at": "2026-10-28 19:44:13",
+  "rows": [
+    {
+      "path": "/",
+      "status": 200,
+      "leaks": [
+        "内部字段名",
+        "数据源目录名"
+      ],
+      "content_type": "text/html; charset=utf-8",
+      "noindex": true,
+      "size": 89154,
+      "ms": 30
+    },
+    {
+      "path": "/api/auth/me",
+      "status": 200,
+      "leaks": [],
+      "content_type": "application/json",
+      "noindex": true,
+      "size": 85,
+      "ms": 25
+    },
+    {
+      "path": "/api/diagnose",
+      "status": 200,
+      "leaks": [
+        "数据库文件名",
+        "数据源目录名",
+        "本机绝对路径",
+        "精确时间戳"
+      ],
+      "content_type": "application/json",
+      "noindex": true,
+      "size": 926,
+      "ms": 199
+    },
+    {
+      "path": "/api/export/graph.html",
+      "status": 200,
+      "leaks": [
+        "精确时间戳"
+      ],
+      "content_type": "text/html; charset=utf-8",
+      "noindex": true,
+      "size": 1761969,
+      "ms": 409
+    },
+    {
+      "path": "/api/export/images.csv",
+      "status": 200,
+      "leaks": [
+        "数据源目录名",
+        "精确时间戳"
+      ],
+      "content_type": "text/csv; charset=utf-8",
+      "noindex": true,
+      "size": 4304934,
+      "ms": 230
+    },
+    {
+      "path": "/api/export/images.xlsx",
+      "status": 200,
+      "leaks": [],
+      "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "noindex": true,
+      "size": 1126328,
+      "ms": 1096
+    },
+    {
+      "path": "/api/export/literatures.csv",
+      "status": 200,
+      "leaks": [
+        "内部字段名",
+        "数据源目录名",
+        "精确时间戳"
+      ],
+      "content_type": "text/csv; charset=utf-8",
+      "noindex": true,
+      "size": 298617,
+      "ms": 36
+    },
+    {
+      "path": "/api/export/literatures.xlsx",
+      "status": 200,
+      "leaks": [],
+      "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "noindex": true,
+      "size": 186427,
+      "ms": 107
+    },
+    {
+      "path": "/api/export/nbkg.csv",
+      "status": 200,
+      "leaks": [
+        "数据源目录名",
+        "精确时间戳"
+      ],
+      "content_type": "text/csv; charset=utf-8",
+      "noindex": true,
+      "size": 263294,
+      "ms": 37
+    },
+    {
+      "path": "/api/favorites",
+      "status": 200,
+      "leaks": [],
+      "content_type": "application/json",
+      "noindex": true,
+      "size": 41,
+      "ms": 30
+    },
+    {
+      "path": "/api/graph",
+      "status": 200,
+      "leaks": [],
+      "content_type": "application/json",
+      "noindex": true,
+      "size": 828982,
+      "ms": 666
+    },
+    {
+      "path": "/api/graph/analysis",
+      "status": 200,
+      "leaks": [],
+      "content_type": "application/json",
+      "noindex": true,
+      "size": 5285,
+      "ms": 3745
+    },
+    {
+      "path": "/api/graph/evidence",
+      "status": 400,
+      "leaks": [],
+      "content_type": "application/json",
+      "noindex": true,
+      "size": 25,
+      "ms": 23
+    },
+    {
+      "path": "/api/graph/vislib.css",
+      "status": 200,
+      "leaks": [],
+      "content_type": "text/css; charset=utf-8",
+      "noindex": true,
+      "size": 220163,
+      "ms": 23
+    },
+    {
+      "path": "/api/graph/vislib.js",
+      "status": 200,
+      "leaks": [],
+      "content_type": "application/javascript",
+      "noindex": true,
+      "size": 467727,
+      "ms": 37
+    },
+    {
+      "path": "/api/health",
+      "status": 200,
+      "leaks": [],
+      "content_type": "application/json",
+      "noindex": true,
+      "size": 11,
+      "ms": 19
+    },
+    {
+      "path": "/api/health/detail",
+      "status": 200,
+      "leaks": [
+        "内部字段名",
+        "数据库文件名",
+        "数据源目录名",
+        "本机绝对路径",
+        "精确时间戳"
+      ],
+      "content_type": "application/json",
+      "noindex": true,
+      "size": 1150,
+      "ms": 42
+    },
+    {
+      "path": "/api/images",
+      "status": 200,
+      "leaks": [
+        "数据源目录名"
+      ],
+      "content_type": "application/json",
+      "noindex": true,
+      "size": 62083,
+      "ms": 27
+    },
+    {
+      "path": "/api/import/log",
+      "status": 200,
+      "leaks": [],
+      "content_type": "application/json",
+      "noindex": true,
+      "size": 60,
+      "ms": 4
+    },
+    {
+      "path": "/api/literatures",
+      "status": 200,
+      "leaks": [
+        "内部字段名",
+        "数据源目录名"
+      ],
+      "content_type": "application/json",
+      "noindex": true,
+      "size": 35126,
+      "ms": 25
+    },
+    {
+      "path": "/api/literatures/{lit_id}",
+      "status": 404,
+      "leaks": [],
+      "content_type": "application/json",
+      "noindex": true,
+      "size": 27,
+      "ms": 14
+    },
+    {
+      "path": "/api/notes",
+      "status": 200,
+      "leaks": [
+        "精确时间戳"
+      ],
+      "content_type": "application/json",
+      "noindex": true,
+      "size": 272,
+      "ms": 4
+    },
+    {
+      "path": "/api/overview",
+      "status": 200,
+      "leaks": [
+        "精确时间戳"
+      ],
+      "content_type": "application/json",
+      "noindex": true,
+      "size": 3676,
+      "ms": 67
+    },
+    {
+      "path": "/api/registry/columns",
+      "status": 200,
+      "leaks": [],
+      "content_type": "application/json",
+      "noindex": true,
+      "size": 3723,
+      "ms": 22
+    },
+    {
+      "path": "/api/search",
+      "status": 200,
+      "leaks": [
+        "内部字段名",
+        "数据源目录名"
+      ],
+      "content_type": "application/json",
+      "noindex": true,
+      "size": 36056,
+      "ms": 20
+    },
+    {
+      "path": "/api/sites",
+      "status": 200,
+      "leaks": [],
+      "content_type": "application/json",
+      "noindex": true,
+      "size": 1397,
+      "ms": 33
+    },
+    {
+      "path": "/api/staging",
+      "status": 200,
+      "leaks": [],
+      "content_type": "application/json",
+      "noindex": true,
+      "size": 60,
+      "ms": 26
+    },
+    {
+      "path": "/api/stats/map.png",
+      "status": 200,
+      "leaks": [],
+      "content_type": "image/png",
+      "noindex": true,
+      "size": 57018,
+      "ms": 113
+    },
+    {
+      "path": "/api/stats/region",
+      "status": 200,
+      "leaks": [],
+      "content_type": "application/json",
+      "noindex": true,
+      "size": 330,
+      "ms": 6
+    },
+    {
+      "path": "/api/stats/timeline",
+      "status": 200,
+      "leaks": [],
+      "content_type": "application/json",
+      "noindex": true,
+      "size": 1791,
+      "ms": 7
+    },
+    {
+      "path": "/api/tags",
+      "status": 200,
+      "leaks": [],
+      "content_type": "application/json",
+      "noindex": true,
+      "size": 17538,
+      "ms": 17
+    },
+    {
+      "path": "/api/template/images",
+      "status": 200,
+      "leaks": [],
+      "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "noindex": true,
+      "size": 8294,
+      "ms": 23
+    },
+    {
+      "path": "/api/template/literatures",
+      "status": 200,
+      "leaks": [],
+      "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "noindex": true,
+      "size": 9158,
+      "ms": 46
+    },
+    {
+      "path": "/media/img/{filename}",
+      "status": 200,
+      "leaks": [],
+      "content_type": "image/svg+xml",
+      "noindex": true,
+      "size": 235,
+      "ms": 2
+    },
+    {
+      "path": "/robots.txt",
+      "status": 200,
+      "leaks": [],
+      "content_type": "text/plain; charset=utf-8",
+      "noindex": true,
+      "size": 26,
+      "ms": 2
+    }
+  ],
+  "tunnel_view": [
+    {
+      "path": "/api/health/detail",
+      "status": 403,
+      "leaks": [],
+      "content_type": "application/json",
+      "noindex": true,
+      "size": 18,
+      "ms": 15
+    },
+    {
+      "path": "/api/diagnose",
+      "status": 403,
+      "leaks": [],
+      "content_type": "application/json",
+      "noindex": true,
+      "size": 29,
+      "ms": 15
+    }
+  ],
+  "tunnel_leaks": []
+}
