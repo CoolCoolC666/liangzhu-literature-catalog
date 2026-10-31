@@ -286,58 +286,282 @@ def overview():
 
 
 # ── 检索核心 ────────────────────────────────────────────────────────────
-def _match_lit_ids(conn, q: str) -> tuple[dict[str, str], str]:
+# ★ 命中层级（界面上要标出来，用户才知道这条为什么被搜出来）：
+#   "子串" = trigram 精确层命中（原文里逐字出现）
+#   "词级" = 词级层命中（分词后是独立的一个词）
+#   "同义" = 只靠同义组命中（原文写的是同组的另一个说法）
+HIT_EXACT = "子串"
+HIT_WORD = "词级"
+HIT_SYN = "同义"
+
+
+def _match_lit_ids(conn, q: str, mode: str = "both") -> tuple[dict[str, str], str]:
     """关键词 → {lit_id: snippet}。返回 (命中表, 使用的检索方式)。
 
     ★ 短于 trigram 阈值的词会让整条查询退回 LIKE（半边索引半边扫描会漏结果）。
+    ★ `mode`：`exact` 只精确层 / `word` 只词级层 / `syn` 词级+同义 / `both` 全合并。
+    ★ **snippet 可能是空串** —— 片段按需生成（只给当页那几条），
+      见 `_snippet_for`。要片段请调 `_match_detail` + `_snippet_for`。
+    """
+    detail = _match_detail(conn, q, mode)
+    return detail["hits"], detail["mode"]
+
+
+def _word_level_match(conn, q: str, with_synonym: bool = True
+                      ) -> tuple[set[str], set[str], list[str], list[str]]:
+    """词级层检索。→ (词级命中, 同义命中, 参与匹配的词, 同义词)。
+
+    ★ 单字 token 一律不参与（实测「遗址群」被切成 `遗址/群`，
+      OR 组合多捞出 74 篇**全是假阳性**，含原词的 0 篇）。
+    ★ 分两次查（词级一组、同义一组）—— 合并查就分不出命中层级了。
+    """
+    from . import segment
+    if not segment.available():
+        return set(), set(), [], []
+    terms, extra = segment.query_terms(q, with_synonym=with_synonym)
+    if not terms:
+        return set(), set(), [], []
+
+    def _m(tokens: list[str]) -> set[str]:
+        if not tokens:
+            return set()
+        expr = " OR ".join(segment._fts_phrase(t) for t in tokens)
+        try:
+            rows = conn.execute(
+                "SELECT lit_id FROM docs_seg WHERE docs_seg MATCH ? LIMIT 2000",
+                (expr,)).fetchall()
+        except sqlite3.OperationalError:
+            return set()
+        return {r["lit_id"] for r in rows if r["lit_id"]}
+
+    return _m(terms), _m(extra), terms, extra
+
+
+def _match_detail(conn, q: str, mode: str = "both") -> dict:
+    """检索核心。→ {"hits", "mode", "layers", "counts", "terms"}。
+
+    ★ **两种模式语义不同，不能互相替代**（2026-10-31 实测）：
+      · trigram = **子串**匹配（"兽面"命中"兽面纹"里的兽面）
+      · 词级 = **词**匹配（"兽面"只命中独立的"兽面"）
+      实测 16 个查询词，**纯词级**相对 trigram **多召回 0 篇**（是子集）。
+      → 默认 `both` = 合并；**绝不用词级替换精确模式**。
+
+    ★ `mode` 四档：
+      `exact` 只精确层　`word` 只词级层（**不含**同义）
+      `syn` 只词级层 + 同义扩展　`both` 全部（默认）
+      ★ 区分 `word` 与 `syn` 是必须的：加了同义扩展后词级**不再**是子集
+        （「良渚文化」经同义组召回 128 篇 > 精确层 120 篇）—— 这正是扩展的价值。
+
+    ★ **这里不生成片段**：命中集只算 ID。片段按需生成（只给当页那几条），
+      否则一次查询要对**全部**命中算片段 → 实测精确层 120 篇要 118 ms。
     """
     q = (q or "").strip()
+    empty = {"hits": {}, "mode": "", "layers": {}, "counts": {}, "terms": [],
+             "exact_backend": ""}
     if not q:
-        return {}, ""
+        return empty
+    mode = (mode or "both").lower()
+    if mode not in ("exact", "word", "syn", "both"):
+        mode = "both"
+
+    hits: dict[str, str] = {}
+    layers: dict[str, list[str]] = {}
+    counts = {"exact": 0, "word": 0, "syn": 0}
+    # ★ `mode` **只表示四档模式之一**（exact / word / syn / both）。
+    #   精确层内部是走 FTS5 还是 LIKE 兜底，是**另一件事**，单独放 `exact_backend`。
+    #   （v3.9 之前 `mode` 一个字段混了两套词表：mode="exact" 时返回 "like"/"fts5"，
+    #     mode="both" 时返回 "both" → 同一个字段两种含义，界面标签与判据都对不齐。）
+    used_mode = mode
+    exact_backend = ""
+
+    # ── 精确层（现有 trigram 逻辑）────────────────────────────────────
+    if mode in ("exact", "both"):
+        ex_ids, ex_mode = _match_exact(conn, q)
+        for lid in ex_ids:
+            hits[lid] = ""
+            layers.setdefault(lid, []).append(HIT_EXACT)
+        counts["exact"] = len(ex_ids)
+        exact_backend = ex_mode
+
+    # ── 词级层（jieba + 领域词典）──────────────────────────────────────
+    terms: list[str] = []
+    if mode in ("word", "syn", "both"):
+        w_ids, s_ids, terms, extra = _word_level_match(
+            conn, q, with_synonym=(mode in ("syn", "both")))
+        for lid in w_ids:
+            hits.setdefault(lid, "")
+            if HIT_WORD not in layers.setdefault(lid, []):
+                layers[lid].append(HIT_WORD)
+        for lid in s_ids:
+            hits.setdefault(lid, "")
+            if HIT_SYN not in layers.setdefault(lid, []):
+                layers[lid].append(HIT_SYN)
+        counts["word"] = len(w_ids)
+        counts["syn"] = len(s_ids)
+
+    return {"hits": hits, "mode": used_mode, "exact_backend": exact_backend,
+            "layers": layers, "counts": counts, "terms": terms}
+
+
+def _match_exact(conn, q: str) -> tuple[list[str], str]:
+    """精确层（trigram / LIKE 兜底）。
+
+    ★ 命中判定逻辑与 v3.8 完全一致，**只改了取什么**：
+      原来一次 `snippet(docs_fts, ...)` 算 400 条片段 →
+      实测「良渚文化」要 118 ms，而列表只显示 20 条。
+      现在这里**只取 lit_id**，片段交给 `_snippet_for` 按页生成。
+    """
     tokens = [t for t in re.split(r"[\s,，;；、]+", q) if t]
     if not tokens:
-        return {}, ""
-    hits: dict[str, str] = {}
+        return [], ""
+    ids: list[str] = []
     if not needs_like(tokens):
         try:
             rows = conn.execute(
-                "SELECT lit_id, snippet(docs_fts, 1, '<mark>', '</mark>', ' … ', 14) s "
-                "FROM docs_fts WHERE docs_fts MATCH ? LIMIT 400", (fts_query(tokens),)).fetchall()
-            for r in rows:
-                hits[r["lit_id"]] = r["s"] or ""
+                "SELECT lit_id FROM docs_fts WHERE docs_fts MATCH ? LIMIT 400",
+                (fts_query(tokens),)).fetchall()
+            ids = [r["lit_id"] for r in rows if r["lit_id"]]
             mode = "fts5"
         except sqlite3.OperationalError:
-            hits, mode = {}, "like"
+            ids, mode = [], "like"
     else:
         mode = "like"
     if mode == "like":
         where, params = like_clause(tokens, ["content"])
-        # ★ 起点必须写成 max(instr(...) - 40, 1)。
-        #   写成 max(instr(...), 1) - 40 会在命中位置靠前时算出**负数**起点，
-        #   而 SQLite 的 substr 负起点 = 从**末尾**往回数 → 片段落在文末作者简介，
-        #   命中处根本不在片段里（实测：搜「保护」返回的是文末的「作者简介」一段）。
         rows = conn.execute(
-            f"SELECT lit_id, substr(content, max(instr(content, ?) - 40, 1), 130) s "
-            f"FROM docs_fts WHERE {where} LIMIT 400", [tokens[0]] + params).fetchall()
-        for r in rows:
-            frag = (r["s"] or "").replace("\n", " ")
-            frag = re.sub(r"\s{2,}", " ", frag).strip()
-            hits[r["lit_id"]] = ("…" + frag + "…") if frag else ""
+            f"SELECT lit_id FROM docs_fts WHERE {where} LIMIT 400", params).fetchall()
+        ids = [r["lit_id"] for r in rows if r["lit_id"]]
         # 标题/作者/关键词也命中（这些字段没有长文本，给个短标记）
         where2, params2 = like_clause(tokens, ["title", "authors", "keywords", "abstract"])
         rows2 = conn.execute(f"SELECT lit_id FROM literatures WHERE {where2} LIMIT 400", params2).fetchall()
+        seen = set(ids)
         for r in rows2:
-            hits.setdefault(r["lit_id"], f"命中：{q}")
-    return hits, mode
+            if r["lit_id"] not in seen:
+                ids.append(r["lit_id"])
+                seen.add(r["lit_id"])
+    return ids, mode
 
 
-def _snippet_literal(text: str, token: str, width: int = 60) -> str:
+def _snippet_for(conn, lit_ids: list[str], q: str,
+                  layers: dict[str, list[str]] | None = None,
+                  terms: list[str] | None = None) -> dict[str, str]:
+    """给**当页这几条**生成原文片段。
+
+    ★ 分两类：
+      · 精确层命中 → FTS5 的 `snippet()`（带 `<mark>` 高亮）或 LIKE 的 substr；
+      · 只有词级/同义命中 → `_snippet_literal` 从原文里截一段。
+    ★ 片段一律取自 `docs_fts`（**原文**），不从词级索引取 ——
+      词级索引的 body 是「分词后空格连接」的，直接取会得到带空格的怪片段。
+    """
+    if not lit_ids:
+        return {}
+    layers = layers or {}
+    terms = terms or []
+    q = (q or "").strip()
+    tokens = [t for t in re.split(r"[\s,，;；、]+", q) if t]
+    exact_set = {lid for lid in lit_ids if HIT_EXACT in layers.get(lid, [])}
+    exact_ids = [lid for lid in lit_ids if lid in exact_set]
+    word_ids = [lid for lid in lit_ids if lid not in exact_set]
+    out: dict[str, str] = {}
+
+    if exact_ids:
+        if tokens and not needs_like(tokens):
+            qs = ",".join("?" * len(exact_ids))
+            # ★★ 必须带上 `docs_fts MATCH ?` —— FTS5 的 `snippet()` 是**按查询高亮**的，
+            #   查询里没有 MATCH 上下文时它不知道该标哪一段，只能返回该列开头，
+            #   结果就是「片段有内容但一个 <mark> 都没有」（v3.9 实测踩到）。
+            #   MATCH 表达式与 `_match_exact` 用的是同一个 `fts_query(tokens)`。
+            try:
+                rows = conn.execute(
+                    f"SELECT lit_id, snippet(docs_fts, 1, '<mark>', '</mark>', ' … ', 14) s "
+                    f"FROM docs_fts WHERE docs_fts MATCH ? AND lit_id IN ({qs})",
+                    [fts_query(tokens)] + exact_ids).fetchall()
+                for r in rows:
+                    out[r["lit_id"]] = r["s"] or ""
+            except sqlite3.OperationalError:
+                pass
+        else:
+            # ★ 起点必须写成 max(instr(...) - 40, 1)。
+            #   写成 max(instr(...), 1) - 40 会在命中位置靠前时算出**负数**起点，
+            #   而 SQLite 的 substr 负起点 = 从**末尾**往回数 → 片段落在文末作者简介，
+            #   命中处根本不在片段里（实测：搜「保护」返回的是文末的「作者简介」一段）。
+            if not tokens:
+                return out
+            where, params = like_clause(tokens, ["content"])
+            qs = ",".join("?" * len(exact_ids))
+            # ★ 参数顺序要跟 SQL 里的占位符顺序**一一对应**：
+            #   `instr(content, ?)` 在 SELECT 里排第一，`lit_id IN (...)` 第二，
+            #   `AND {where}` 第三 —— 所以是 [命中词] + exact_ids + where参数。
+            #   少传一个 → sqlite3.ProgrammingError → 整个检索 500（实测踩过）。
+            rows = conn.execute(
+                f"SELECT lit_id, substr(content, max(instr(content, ?) - 40, 1), 130) s "
+                f"FROM docs_fts WHERE lit_id IN ({qs}) AND {where}",
+                [tokens[0]] + exact_ids + params).fetchall()
+            for r in rows:
+                frag = (r["s"] or "").replace("\n", " ")
+                frag = re.sub(r"\s{2,}", " ", frag).strip()
+                # ★ LIKE 分支也要打高亮标记 —— 否则两字词（走 LIKE）搜出来的片段
+                #   是一段没有标记的裸文字，用户看不出命中在哪（v3.9 实测踩到）。
+                frag = _mark_first(frag, tokens)
+                out[r["lit_id"]] = ("…" + frag + "…") if frag else ""
+    if word_ids:
+        out.update(_snippets_for(conn, word_ids, terms, q))
+    return out
+
+
+def _mark_first(frag: str, tokens: list[str]) -> str:
+    """把片段里**第一个**出现的命中词包进 `<mark>`。
+
+    ★ 与 FTS5 的 `snippet()` 保持同一套标记，前端 `escMark()` 统一还原。
+    ★ 只标第一个：标多处会把整段刷成高亮，反而看不清重点。
+    """
+    for t in tokens or []:
+        if t and t in frag:
+            return frag.replace(t, "<mark>" + t + "</mark>", 1)
+    return frag
+
+
+def _snippets_for(conn, lit_ids: list[str], terms: list[str], q: str) -> dict[str, str]:
+    """给词级命中的篇目取**原文**片段。"""
+    if not lit_ids:
+        return {}
+    out: dict[str, str] = {}
+    qs = ",".join("?" * len(lit_ids))
+    try:
+        rows = conn.execute(
+            f"SELECT lit_id, content FROM docs_fts WHERE lit_id IN ({qs})",
+            lit_ids).fetchall()
+    except sqlite3.OperationalError:
+        return {}
+    for r in rows:
+        text = r["content"] or ""
+        frag = ""
+        for t in terms:
+            frag = _snippet_literal(text, t, 60, mark=True)
+            if frag:
+                break
+        if not frag:
+            frag = _snippet_literal(text, q.split()[0] if q.split() else q, 60, mark=True)
+        out[r["lit_id"]] = frag
+    return out
+
+
+def _snippet_literal(text: str, token: str, width: int = 60, mark: bool = False) -> str:
+    """从原文里截一段包含 `token` 的文字。
+
+    ★ `mark=True` 时把 token 包进 `<mark>` —— 词级/同义命中的片段**必须**也带高亮，
+      否则用户看到的是一段没有标记的裸文字，不知道命中在哪（v3.9 实测踩到）。
+    """
     i = text.find(token)
     if i < 0:
         return ""
     s = max(0, i - width // 2)
     frag = text[s: i + len(token) + width // 2]
     frag = re.sub(r"\s+", " ", frag).strip()
+    if mark and token:
+        k = frag.find(token)
+        if k >= 0:
+            frag = frag[:k] + "<mark>" + frag[k: k + len(token)] + "</mark>" + frag[k + len(token):]
     return f"…{frag}…"
 
 
@@ -372,18 +596,29 @@ def _lit_filter_sql(params: dict) -> tuple[str, list, str]:
 
 
 def _query_lits(conn, params: dict) -> tuple[list[dict], int, str]:
-    """按筛选 + 关键词查文献，返回 (items, total, 检索方式)。
+    """按筛选 + 关键词查文献，返回 (items, total, 检索方式)。"""
+    items, total, mode, _detail = _query_lits_detail(conn, params)
+    return items, total, mode
+
+
+def _query_lits_detail(conn, params: dict) -> tuple[list[dict], int, str, dict]:
+    """按筛选 + 关键词查文献，返回 (items, total, 检索方式, 命中明细)。
 
     `params['all_rows']=True` 时**不分页**（导出用；否则 size 会被压到 100 条上限，
     导出的 CSV 会少掉一大半，且界面看不出来）。
+    `params['mode']` = `exact` / `word` / `both`（默认 both = 合并两种语义）。
     """
     where, args, _ = _lit_filter_sql(params)
     sql = f"SELECT * FROM literatures WHERE {where}"
-    hits, mode = ({}, "")
+    hits: dict[str, str] = {}
+    mode = ""
+    detail: dict = {"hits": {}, "mode": "", "layers": {}, "counts": {}, "terms": []}
     if params.get("q"):
-        hits, mode = _match_lit_ids(conn, params["q"])
+        detail = _match_detail(conn, params["q"], params.get("mode") or "both")
+        hits = detail["hits"]
+        mode = detail["mode"]
         if not hits:
-            return [], 0, mode
+            return [], 0, mode, detail
         ids = list(hits.keys())
         sql += f" AND lit_id IN ({','.join('?' * len(ids))})"
         args += ids
@@ -398,15 +633,26 @@ def _query_lits(conn, params: dict) -> tuple[list[dict], int, str]:
         rows = conn.execute(f"{sql} ORDER BY {sort_sql}, lit_id LIMIT ? OFFSET ?",
                             args + [size, (page - 1) * size]).fetchall()
     items = []
+    if params.get("q"):
+        # ★ 片段**按页生成**：只给当页这几条算，不给全部命中算。
+        #   原来一次 snippet() 算 400 条 → 实测「良渚文化」118 ms；
+        #   改成只算当页 20 条 → 同样的查询降到个位数毫秒。
+        page_ids = [r["lit_id"] for r in rows]
+        snips = _snippet_for(conn, page_ids, params["q"],
+                              detail.get("layers", {}), detail.get("terms", []))
+    else:
+        snips = {}
     for r in rows:
         d = dict(r)
         if params.get("q"):
-            d["_snippet"] = hits.get(d["lit_id"], "") or _snippet_literal(
+            d["_snippet"] = snips.get(d["lit_id"], "") or _snippet_literal(
                 (d.get("abstract") or "") + (d.get("keywords") or ""),
-                params["q"].split()[0] if params["q"].split() else params["q"])
+                params["q"].split()[0] if params["q"].split() else params["q"],
+                mark=True)
             d["_hit_mode"] = mode
+            d["_hit_layers"] = detail.get("layers", {}).get(d["lit_id"], [])
         items.append(d)
-    return items, total, mode
+    return items, total, mode, detail
 
 
 @app.get("/api/literatures")
@@ -414,12 +660,20 @@ def api_literatures(page: int = 1, size: int = 20, q: str = "",
                     doc_type: str = "", lang: str = "", year: str = "",
                     period: str = "", region: str = "", topic: str = "",
                     lineage: str = "", open_type: str = "", source_type: str = "",
-                    sort: str = "lit_id"):
+                    sort: str = "lit_id", mode: str = "both"):
+    """文献列表（检索页用）。
+
+    ★ `mode` = `exact`（整句精确）/ `word`（分词扩召回）/ `both`（合并，默认）。
+      两种模式**语义不同**（子串 vs 词），实测词级是精确层的**子集**，
+      所以默认合并、**绝不用词级替换精确层**。
+    """
     c = db()
     try:
-        items, total, mode = _query_lits(c, locals())
+        items, total, mode_out, detail = _query_lits_detail(c, locals())
         return {"total": total, "page": page, "size": size, "items": items,
-                "mode": mode}
+                "mode": mode_out, "hit_counts": detail.get("counts", {}),
+                "terms": detail.get("terms", []),
+                "exact_backend": detail.get("exact_backend", "")}
     finally:
         c.close()
 
@@ -539,17 +793,21 @@ def api_lit_map(lit_id: str):
 @app.get("/api/search")
 def api_search(q: str = "", page: int = 1, size: int = 20, doc_type: str = "",
                lang: str = "", year: str = "", period: str = "", region: str = "",
-               topic: str = "", lineage: str = ""):
+               topic: str = "", lineage: str = "", mode: str = "both"):
     c = db()
     try:
         params = dict(q=q, page=page, size=size, doc_type=doc_type, lang=lang, year=year,
-                      period=period, region=region, topic=topic, lineage=lineage)
-        items, total, mode = _query_lits(c, params)
+                      period=period, region=region, topic=topic, lineage=lineage, mode=mode)
+        items, total, mode_out, detail = _query_lits_detail(c, params)
         hits = []
         for it in items[:50]:
-            hits.append({"lit_id": it["lit_id"], "kind": it.get("_hit_mode", mode),
-                         "snippet": it.get("_snippet", "")})
-        return {"total": total, "items": items, "hits": hits, "mode": mode}
+            hits.append({"lit_id": it["lit_id"], "kind": it.get("_hit_mode", mode_out),
+                         "snippet": it.get("_snippet", ""),
+                         "layers": it.get("_hit_layers", [])})
+        return {"total": total, "items": items, "hits": hits, "mode": mode_out,
+                "hit_counts": detail.get("counts", {}),
+                "terms": detail.get("terms", []),
+                "exact_backend": detail.get("exact_backend", "")}
     finally:
         c.close()
 
@@ -955,6 +1213,9 @@ from .api_v2 import ApiError, router as _router_v2   # noqa: E402
 # 原文资源 + XML 协作（另装，避免本文件继续膨胀）
 from .api_raw import router as _router_raw   # noqa: E402
 
+# 检索增强 E1：领域词典编辑 + 词级索引 + 新词发现（另装）
+from .api_segment import router as _router_segment   # noqa: E402
+
 
 @app.exception_handler(ApiError)
 async def _api_v2_error_handler(request: Request, exc: ApiError):
@@ -986,6 +1247,7 @@ def _ensure_runtime_columns():
 
 app.include_router(_router_v2)
 app.include_router(_router_raw)
+app.include_router(_router_segment)
 
 # ── 本地第三方库（Leaflet 等）──────────────────────────────────────────
 # ★ 为什么需要挂

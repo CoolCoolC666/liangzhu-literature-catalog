@@ -146,13 +146,25 @@ def test_layers():
         ids = [i["lit_id"] for i in (r.get("items") or [])]
         check("全文层：标题里的 4 字词能命中该条", target["lit_id"] in ids,
               f"词={q_word!r} ids={ids}")
-        check("全文层：mode 标出检索方式（fts5/like）",
-              r.get("mode") in ("fts5", "like"), f"mode={r.get('mode')!r}")
+        check("全文层：mode 只报四档模式之一（口径不许混）",
+              r.get("mode") in ("exact", "word", "syn", "both"),
+              f"mode={r.get('mode')!r}")
+        check("全文层：精确层走 FTS5 还是 LIKE 由 exact_backend 单独承担",
+              r.get("exact_backend") in ("like", "fts5"),
+              f"exact_backend={r.get('exact_backend')!r}")
         sn = ""
         for i in (r.get("items") or []):
             if i["lit_id"] == target["lit_id"]:
                 sn = i.get("snippet") or ""
         check("全文层：命中片段带 <mark> 高亮", "<mark>" in sn, f"snippet={sn[:60]!r}")
+        # ★ E1 之后这条命中可能来自**词级层**（不是子串层）——
+        #   所以收藏页也要报出「命中层级」，用户才知道它是靠哪个语义搜出来的。
+        lay = None
+        for i in (r.get("items") or []):
+            if i["lit_id"] == target["lit_id"]:
+                lay = i.get("hit_layers")
+        check("全文层：返回命中层级（子串/词级/同义）",
+              isinstance(lay, list) and len(lay) > 0, f"hit_layers={lay}")
 
     # ── 第二层：全文（2 字走 LIKE 降级）→ 片段必须含命中词 ────
     #   ★ 这条钉死一个既有 bug：substr 起点写成 max(instr(...),1)-40 会算出负数，
@@ -196,10 +208,22 @@ def test_layers():
         a = cn_run(items[0].get("title", ""), 2)
         b = cn_run(items[1].get("title", ""), 4)
         if a and b:
-            r = favs(t=a, q=b)
-            ids = [i["lit_id"] for i in (r.get("items") or [])]
-            check("两层是 AND：分别命中两条的词组合起来 → 0 条",
-                  len(ids) == 0, f"t={a!r} q={b!r} 结果={ids}")
+            # ★ E1 之后全文层是「子串 ∪ 词级 ∪ 同义」，**不能再假设它是子串匹配**，
+            #   所以这条判据改成直接验证 AND 的**语义**，而不是假设某层一定 0 条：
+            #     结果集 == 题名层命中 ∩ 全文层命中，且只命中一层的不许混进来。
+            only_t = {i["lit_id"] for i in (favs(t=a).get("items") or [])}
+            only_q = {i["lit_id"] for i in (favs(q=b).get("items") or [])}
+            both = {i["lit_id"] for i in (favs(t=a, q=b).get("items") or [])}
+            check("两层是 AND：结果集 == 题名层 ∩ 全文层",
+                  both == (only_t & only_q),
+                  f"t={a!r} q={b!r} 结果={sorted(both)} 期望={sorted(only_t & only_q)}")
+            only_one = (only_t - only_q) | (only_q - only_t)
+            check("两层是 AND：只命中一层的条目被排除",
+                  not (only_one & both),
+                  f"只命中一层={sorted(only_one)} 混进结果={sorted(only_one & both)}")
+            check("两层是 AND：结果不多于任一单层（不是把两层并起来）",
+                  len(both) <= len(only_t) and len(both) <= len(only_q),
+                  f"题名层={len(only_t)} 全文层={len(only_q)} 交集={len(both)}")
             # 反向：两个词命中同一条 → 仍能命中
             a1 = cn_run(items[0].get("title", ""), 2)
             b1 = cn_run(items[0].get("title", ""), 4)

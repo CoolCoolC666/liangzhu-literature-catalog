@@ -186,6 +186,39 @@ def cmd_rebuild_layout(args):
     return 0
 
 
+def cmd_reindex(args):
+    """重建词级索引（检索增强 E1）。
+
+        python -m lzkg reindex
+
+    ★ 词典是源数据、索引是派生物 —— 改完词典跑这条命令，索引就跟上。
+    ★ 没装 jieba 时**不报错退出**：明确告诉用户"检索已退回整句精确模式"。
+    """
+    from .db import connect, init_db
+    from . import segment
+    conn = connect()
+    try:
+        init_db(conn)
+        rep = segment.rebuild_index(conn, progress=lambda s: print(f"  {s}"))
+    finally:
+        conn.close()
+    print(json.dumps(rep, ensure_ascii=False, indent=2))
+    return 0 if rep.get("ok") else 1
+
+
+def cmd_segment_status(args):
+    """看词级索引的状态（版本、词典指纹、是否过期）。"""
+    from .db import connect
+    from . import segment
+    conn = connect()
+    try:
+        st = segment.index_status(conn)
+    finally:
+        conn.close()
+    print(json.dumps(st, ensure_ascii=False, indent=2))
+    return 0
+
+
 def cmd_set_source(args):
     """把数据源路径写进 config.json（对接包接手时第一条命令）。"""
     cfg = _cfg()
@@ -237,6 +270,12 @@ def main(argv=None):
     p = sub.add_parser("rebuild-layout", help="重算图谱的确定性布局坐标")
     p.add_argument("--seed", type=int, default=42, help="随机种子（固定才可复现）")
     p.set_defaults(func=cmd_rebuild_layout)
+
+    p = sub.add_parser("reindex", help="重建词级索引（检索增强 E1）")
+    p.set_defaults(func=cmd_reindex)
+
+    p = sub.add_parser("segment-status", help="看词级索引状态（版本/词典指纹/是否过期）")
+    p.set_defaults(func=cmd_segment_status)
 
     p = sub.add_parser("set-source", help="设定数据源目录（写进 config.json）")
     p.add_argument("path", help="04_专题研究 目录，或它的上一级目录")

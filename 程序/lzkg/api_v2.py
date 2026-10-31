@@ -422,18 +422,18 @@ def favorites_list(t: str = "", q: str = "", user=Depends(require_login)):
         t_tokens = [x for x in re.split(r"[\s,，;；、]+", (t or "").strip()) if x]
         q = (q or "").strip()
         mode = ""
-        snippets: dict[str, str] = {}
+        detail = {"hits": {}, "mode": "", "layers": {}, "counts": {}, "terms": []}
 
         if q:
             # 惰性导入：app.py 顶层要 import 本模块，直接 import 会循环依赖
-            from .app import _match_lit_ids
-            hits, mode = _match_lit_ids(conn, q)
-            snippets = hits
+            from .app import _match_detail
+            detail = _match_detail(conn, q)
+            mode = detail["mode"]
 
         out = []
         for it in items:
             by_t = bool(t_tokens) and _fav_match_title_note(it, t_tokens)
-            by_q = bool(q) and (it["lit_id"] in snippets)
+            by_q = bool(q) and (it["lit_id"] in detail["hits"])
             if t_tokens and not by_t:
                 continue
             if q and not by_q:
@@ -444,11 +444,22 @@ def favorites_list(t: str = "", q: str = "", user=Depends(require_login)):
                 it["matched"] = "title_note"
             elif by_q:
                 it["matched"] = "full"
-            it["snippet"] = snippets.get(it["lit_id"], "") or ""
             out.append(it)
 
+        # ★ 片段**按页生成**（只给筛出来的这几条算，不给全部命中算）
+        snippets = {}
+        if q and out:
+            from .app import _snippet_for
+            snippets = _snippet_for(conn, [it["lit_id"] for it in out], q,
+                                    detail.get("layers", {}), detail.get("terms", []))
+        for it in out:
+            it["snippet"] = snippets.get(it["lit_id"], "") or ""
+            it["hit_layers"] = detail.get("layers", {}).get(it["lit_id"], [])
+
         return ok({"items": out, "total": total, "matched": len(out),
-                   "filters": {"t": (t or "").strip(), "q": q}, "mode": mode})
+                   "filters": {"t": (t or "").strip(), "q": q}, "mode": mode,
+                   "exact_backend": detail.get("exact_backend", ""),
+                   "hit_counts": detail.get("counts", {})})
     finally:
         conn.close()
 

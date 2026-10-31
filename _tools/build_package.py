@@ -68,9 +68,13 @@ REQUIRED = [
     "lzkg/webdav.py", "lzkg/browserec.py",
     "lzkg/graphview.py",
     "lzkg/rawtext.py", "lzkg/xmlexchange.py", "lzkg/api_raw.py",
+    # 检索增强 E1（v3.9）：分词层 + 领域词典 + 管理员可视化编辑器
+    "lzkg/segment.py", "lzkg/api_segment.py",
+    "lzkg/data/dict/lzkg_domain.json",
     "lzkg/schema/registry_columns.json",
     "lzkg/web/static/index.html",
     "tests/test_all.py",
+    "tests/test_segment.py",
     "tests/test_graphview.py",
     "tests/test_rawtext.py",
     "tests/test_favsearch.py",

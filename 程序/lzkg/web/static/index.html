@@ -68,6 +68,10 @@ h3.sub2{font-size:14px;margin:14px 0 8px;color:var(--brand)}
 .mono{font-family:Consolas,"Courier New",monospace;font-size:12.5px;word-break:break-all}
 mark{background:var(--mark);padding:0 1px;border-radius:2px}
 .grid{display:grid;gap:12px}
+/* ★ `.grid` 这个类名被 `<table class="grid">` 也用了（历史遗留）。
+   表格必须显式盖回 table 布局 —— 否则表格被当 grid 容器渲染，
+   表头会散进行里、后面的表单会插进表格中间（实测踩过）。 */
+table.grid{display:table;gap:0}
 
 /* 口径条 */
 .scope{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--brand2);
@@ -119,6 +123,16 @@ label.fl{font-size:12.5px;color:var(--ink2);margin-right:4px}
   padding:1px 8px;font-size:11.5px;margin:1px 3px 1px 0;color:var(--ink2);white-space:nowrap}
 .pill.st-pass{background:#e7f4ec;border-color:#bfe0cd;color:var(--ok)}
 .pill.st-pending{background:#fdf1e6;border-color:#f2d5b8;color:var(--warn)}
+/* 命中层级徽标（E1）：子串 / 词级 / 同义 */
+.pill.ok{background:#e8f0fb;border-color:#c7d9f2;color:#2c5c9e}
+.pill.syn{background:#f3ecfa;border-color:#dcc9ef;color:#6b3fa0}
+/* 检索方式分段控件（E1） */
+.seg{display:inline-flex;align-items:center;gap:4px}
+.seg .fl{margin-right:2px}
+.segbtn{background:#f4f7f9;border:1px solid var(--line);border-radius:14px;
+  padding:3px 11px;font-size:12px;color:var(--ink2);cursor:pointer;font-family:inherit}
+.segbtn:hover{background:#e9eff4}
+.segbtn.on{background:var(--brand);border-color:var(--brand);color:#fff}
 .pager{display:flex;gap:8px;align-items:center;justify-content:flex-end;padding:10px 12px;
   background:var(--card);border:1px solid var(--line);border-top:none;border-radius:0 0 6px 6px}
 
@@ -460,9 +474,17 @@ var state = {
   list: {
     q: "", doc_type: "", lang: "", year: "",
     period: "", region: "", topic: "", lineage: "",
-    sort: "lit_id", page: 1, size: 20
+    sort: "lit_id", page: 1, size: 20,
+    /* 检索方式（E1）：exact=整句精确 / syn=分词扩召回 / both=两者合并（默认）
+       ★ 三种语义**不一样**，所以要能切：
+         exact 子串匹配（原文逐字出现）
+         syn   词级 + 同义扩展（能召回写法不同的同义表达）
+         both  两者合并（默认，召回最全） */
+    mode: "both"
   },
   detailId: null,
+  /* 词级索引状态（E1）：/api/segment/status，谁都能读 */
+  segStatus: null,
   /* 鉴权（接口契约-v2 §3.1）：未登录 = auth.user 为 null */
   auth: { token: null, user: null, checked: false, err: null },
   /* 收藏：items = [{lit_id,title,note,created_at}] */
@@ -841,6 +863,15 @@ function listToolbarHtml() {
   };
   return '<div class="toolbar">' +
     '<span><label class="fl">关键词</label><input type="text" id="l-q" value="' + esc(p.q) + '" placeholder="留空＝浏览；填词＝检索（题名/作者/关键词/MD 全文/原始 JSON）" style="width:250px"></span>' +
+    /* 检索方式（E1）：三种语义不同，必须能切。默认「两者合并」。 */
+    '<span class="seg" id="l-mode"><label class="fl">检索方式</label>' +
+    [["exact", "整句精确"], ["syn", "分词扩召回"], ["both", "两者合并"]].map(function (o) {
+      return '<button type="button" class="segbtn' + (p.mode === o[0] ? " on" : "") +
+        '" data-mode="' + o[0] + '" title="' +
+        (o[0] === "exact" ? "原文里逐字出现才算命中（子串匹配）"
+          : o[0] === "syn" ? "分词后按词匹配，并按领域词典的同义组扩展召回"
+            : "两种语义合并，召回最全（默认）") + '">' + esc(o[1]) + "</button>";
+    }).join("") + "</span>" +
     '<span><label class="fl">类型</label><select data-f="doc_type">' + optList(dimOptions("doc_type"), "k", dimLabel, p.doc_type) + "</select></span>" +
     '<span><label class="fl">语种</label><select data-f="lang">' + optList(dimOptions("lang"), "k", dimLabel, p.lang) + "</select></span>" +
     '<span><label class="fl">年份</label><select data-f="year">' + optList(dimOptions("year"), "k", dimLabel, p.year) + "</select></span>" +
@@ -866,6 +897,7 @@ function listToolbarHtml() {
 function renderList() {
   view.innerHTML = listToolbarHtml() + '<div id="l-extra"></div><div id="l-scope"></div><div id="l-list"></div>';
   bindList();
+  loadSegmentStatus();     /* 索引版本/词典状态（谁都能读） */
   loadList();
 }
 function bindList() {
@@ -882,8 +914,19 @@ function bindList() {
   var btn = $("#l-apply"); if (btn) btn.addEventListener("click", apply);
   var rst = $("#l-reset");
   if (rst) rst.addEventListener("click", function () {
-    state.list = { q: "", doc_type: "", lang: "", year: "", period: "", region: "", topic: "", lineage: "", sort: "lit_id", page: 1, size: p.size };
+    state.list = { q: "", doc_type: "", lang: "", year: "", period: "", region: "", topic: "", lineage: "", sort: "lit_id", page: 1, size: p.size, mode: p.mode };
     renderList();
+  });
+  /* 检索方式切换（E1） */
+  Array.prototype.forEach.call(document.querySelectorAll("#l-mode .segbtn"), function (b) {
+    b.addEventListener("click", function () {
+      p.mode = b.getAttribute("data-mode");
+      p.page = 1;
+      Array.prototype.forEach.call(document.querySelectorAll("#l-mode .segbtn"), function (x) {
+        x.className = "segbtn" + (x.getAttribute("data-mode") === p.mode ? " on" : "");
+      });
+      loadList();
+    });
   });
   var size = $("#l-size");
   if (size) size.addEventListener("change", function () { p.size = parseInt(size.value, 10) || 20; p.page = 1; loadList(); });
@@ -934,8 +977,36 @@ function listParams() {
   var p = state.list;
   return {
     page: p.page, size: p.size, q: p.q, doc_type: p.doc_type, lang: p.lang, year: p.year,
-    period: p.period, region: p.region, topic: p.topic, lineage: p.lineage, sort: p.sort
+    period: p.period, region: p.region, topic: p.topic, lineage: p.lineage, sort: p.sort,
+    mode: p.mode || "both"
   };
+}
+/* ── 词级索引状态（E1）─────────────────────────────────────────────
+   ★ 索引是**派生物**，词典是**源数据**：
+     词典改了但索引没重建 → 这里 stale=true，界面必须提示，不能装作已生效。
+   ★ 谁都能读（不含词条内容），所以放在文献页给所有人看。 */
+function segmentStatusHtml() {
+  var st = state.segStatus;
+  if (!st) return "";
+  if (st.jieba === false) {
+    return '<div class="notice small">分词扩召回<b>不可用</b>：本机没装 jieba，' +
+      "检索已退回「整句精确」模式，网站其余功能不受影响。" +
+      (st.jieba_error ? "（" + esc(st.jieba_error) + "）" : "") + "</div>";
+  }
+  var txt = "词级索引 v" + nz(st.segment_version) +
+    "　词典 " + nz(st.dict_words) + " 词 / " + nz(st.dict_synonyms) + " 个同义组" +
+    "　覆盖 " + nz(st.doc_count) + " 篇";
+  if (st.stale) {
+    return '<div class="notice small bad">⚠ 词典已改但索引还没重建 —— ' +
+      esc(txt) + "。分词扩召回暂时还在用旧词典（管理员可在工作台重建）。</div>";
+  }
+  return '<div class="notice small">' + esc(txt) + "</div>";
+}
+function loadSegmentStatus() {
+  return api("/api/segment/status").then(function (r) {
+    if (r && r.ok) state.segStatus = r.data || null;
+    return state.segStatus;
+  });
 }
 function paintList(d, hits) {
   var p = state.list;
@@ -949,13 +1020,26 @@ function paintList(d, hits) {
     (byLit[h.lit_id] = byLit[h.lit_id] || []).push(h);
   });
     if (sc) {
+      /* ★ 计数口径写清：三种命中各多少，别让用户以为"查少了" */
+      var hc = d.hit_counts || {};
+      var cnt = [];
+      if (hc.exact !== undefined) cnt.push("子串 " + fmtNum(hc.exact));
+      if (hc.word !== undefined) cnt.push("词级 " + fmtNum(hc.word));
+      if (hc.syn !== undefined) cnt.push("同义 " + fmtNum(hc.syn));
+      var modeLabel = { exact: "整句精确", word: "分词精确（不含同义）", syn: "分词扩召回", both: "两者合并" }[d.mode] || d.mode || "";
+      var backendLabel = d.exact_backend ? (d.exact_backend === "like" ? "LIKE 兜底（查询词太短，trigram 用不上）" : "FTS5 索引") : "";
       sc.innerHTML = scopeBar([
         ["库内文献总数", fmtNum(libTotal), "条（/api/overview）"],
         ["当前条件命中条数", fmtNum(total), "条（关键词 AND 类别，后端 total）"],
         ["当前页显示", fmtNum(items.length) + " 条", "第 " + (d.page || p.page) + " 页 / 每页 " + (d.size || p.size)],
         ["命中片段数", fmtNum((hits || []).length), "条"],
         ["复核覆盖率", reviewRate() === null ? "—" : (reviewRate() * 100).toFixed(1) + "%", "按状态字段统计"]
-      ]);
+      ]) +
+        (cnt.length ? '<div class="notice small">检索方式：<b>' + esc(modeLabel) + "</b>" +
+          (backendLabel ? "　精确层：" + esc(backendLabel) : "") +
+          "　命中口径：" + esc(cnt.join(" · ")) +
+          "　（子串＝原文逐字出现；词级＝分词后是独立的一个词；同义＝靠领域词典的同义组召回）</div>" : "") +
+        segmentStatusHtml();
     }
     if (!items.length) {
       box.innerHTML = emptyBox("没有符合条件的文献。请放宽筛选条件，或把关键词清空改为浏览。");
@@ -977,11 +1061,17 @@ function paintList(d, hits) {
         return '<div class="small"><span class="pill">' + esc(kindMap[x.kind] || nz(x.kind)) + "</span> " +
           hl(x.snippet || x.evidence || "", [p.q]) + "</div>";
       }).join("") : "";
+      /* ★ 命中层级徽标：让用户知道这条为什么被搜出来 */
+      var lay = it._hit_layers || [];
+      var layHtml = lay.length ? lay.map(function (L) {
+        var cls = L === "子串" ? "pill" : (L === "词级" ? "pill ok" : "pill syn");
+        return '<span class="' + cls + '">' + esc(L) + "命中</span>";
+      }).join(" ") : "";
       h += '<div class="litrow">' +
         '<div class="idx">' + esc(it.seq !== undefined ? it.seq : ((d.page - 1) * d.size + i + 1)) + "</div>" +
         '<div><div class="ttl"><a href="#/lit/' + esc(it.lit_id) + '">' + hl(it.title, p.q) + "</a></div>" +
         '<div class="au">' + hl(nz(it.authors), p.q) + "　·　" + esc(nz(it.venue)) + "</div>" +
-        '<div class="tg">' + tsum + (snips ? "<br>" + snips : "") + "</div></div>" +
+        '<div class="tg">' + (layHtml ? layHtml + " " : "") + tsum + (snips ? "<br>" + snips : "") + "</div></div>" +
         '<div class="col-hide">' + hl(nz(it.year), p.q) + "</div>" +
         '<div class="col-hide small">' + hl(nz(it.doc_type), p.q) + "<br>" + hl(nz(it.lang), p.q) + "</div>" +
         '<div class="col-hide"><span class="pill ' + reviewClass(it.review_status) + '">' + esc(nz(it.review_status)) + "</span></div>" +
@@ -2137,6 +2227,7 @@ function renderWorkbench(sub) {
   if (sub === "history") return renderHistoryPage();
   if (sub === "webdev") return renderWebDevPage();
   if (sub === "exchange") return renderExchangePage();
+  if (sub === "segment") return renderSegmentPage();
   return renderWorkbenchHome();
 }
 /* 子界面统一的顶部条：← 返回工作台 */
@@ -2192,7 +2283,11 @@ function renderWorkbenchHome() {
     { id: "exchange", t: "⑨ 协作交换（XML）",
       what: "把题录与图版标注导出成 XML，成员改完回传；回传件与 xlsx 走同一条「预检→批准→入库」链路。",
       eps: "GET /api/export/xml · POST /api/import/xml/preview",
-      perm: "需登录（导出）；导入预检仅管理员" }
+      perm: "需登录（导出）；导入预检仅管理员" },
+    { id: "segment", t: "⑩ 分词实验室与词典",
+      what: "维护良渚领域词典（词条 / 同义组 / 领域后缀表），发现候选新词并人工勾选采纳，重建词级索引。",
+      eps: "GET /api/segment/dict · POST /api/segment/dict · POST /api/segment/newwords · POST /api/segment/adopt · POST /api/segment/reindex",
+      perm: "仅管理员可见", adminOnly: true }
   ];
   var html = '<div class="subbar"><h3>工作台</h3>' +
     '<span class="small muted">入口页：每个功能点进去是独立界面。' +
@@ -2223,6 +2318,17 @@ function setStatus(id, txt) {
 function loadHomeStatuses() {
   var u = state.auth.user;
   setStatus("account", u ? ("已登录：" + nz(u.username) + "（" + nz(u.role) + "）") : "未登录（可在本机免登录模式下直接用）");
+  /* 词级索引状态（E1）—— 谁都能读，卡片上的状态也要看得见 */
+  api("/api/segment/status").then(function (r) {
+    if (!r.ok) { setStatus("segment", "索引状态不可用（" + r.error + "）"); return; }
+    var d = r.data || {};
+    state.segStatus = d;
+    var txt = "词级索引 v" + nz(d.segment_version) + "　词典 " + nz(d.dict_words) + " 词";
+    if (d.jieba === false) txt += "　（本机没装 jieba，词级模式不可用）";
+    else if (d.stale) txt += "　（词典已改、索引待重建）";
+    else txt += "　覆盖 " + nz(d.doc_count) + " 篇";
+    setStatus("segment", txt);
+  });
   api("/api/favorites").then(function (r) {
     if (!r.ok) { setStatus("favorites", "收藏列表不可用（" + r.error + "）"); return; }
     var d = r.data || {};
@@ -2352,6 +2458,8 @@ function escMark(s) {
   return esc(nz(s)).replace(/&lt;mark&gt;/g, "<mark>").replace(/&lt;\/mark&gt;/g, "</mark>");
 }
 var FAV_MATCH_LABEL = { title_note: "题名/备注命中", full: "全文命中", both: "两层都命中" };
+/* 检索方式标签：mode 只表示四档模式之一（E1 起），精确层走哪条路由 exact_backend 单独说 */
+var FAV_MODE_LABEL = { exact: "整句精确", word: "分词精确（不含同义）", syn: "分词扩召回", both: "两者合并" };
 function renderReviewPage() {
   if (!isAdmin()) {
     /* 界面层过滤：非管理员整块不出现（接口层后端也会 403） */
@@ -2390,7 +2498,10 @@ function loadFavBlock(t, q) {
       return;
     }
     var h = '<div class="notice">收藏共 ' + fmtNum(total) + " 条，当前匹配 " + fmtNum(items.length) + " 条";
-    if (d.mode) h += "（全文检索方式：" + esc(d.mode) + "）";
+    if (d.mode) {
+      h += "（全文检索方式：" + esc(FAV_MODE_LABEL[d.mode] || d.mode) +
+        (d.exact_backend ? "；精确层：" + esc(d.exact_backend === "like" ? "LIKE 兜底（词太短）" : "FTS5 索引") : "") + "）";
+    }
     h += "</div>";
     h += '<div class="litlist">';
     items.forEach(function (it) {
@@ -4495,6 +4606,386 @@ function bindSyncBox() {
     nowEl.addEventListener("click", function () { syncNow({ manual: true }); });
   }
   paintSyncBox();
+}
+
+/* ==================================================================
+ * ⑩ 分词实验室与词典（管理员专属 · E1）
+ * ------------------------------------------------------------------
+ * ★ **界面层过滤**：非管理员整块不出现（入口卡片 adminOnly + 本页再判一次）。
+ *   接口层也锁了（require_admin）—— 只藏界面等于没锁，手工构造请求就能改词典。
+ *
+ * ★ 词典是**源数据**，词级索引是**派生物**：
+ *   改完词典 → 保存 → 重建索引 → 才生效。界面必须让人看见这个顺序。
+ *
+ * ★ **候选是候选，不是结论**：新词发现的结果一律要人工勾选才进词典。
+ * ================================================================== */
+var SEG = { dict: null, cands: [], minCount: 20, sortBy: "score", meta: null };
+
+function segNotice(msg, kind) {
+  return '<div class="notice ' + (kind || "") + '">' + esc(msg) + "</div>";
+}
+/* 词条表（按分组排，组内可改词/分组/说明，可删） */
+function segWordsHtml(dict) {
+  var groups = {};
+  (dict.words || []).forEach(function (w, i) {
+    var g = w.group || "（未分组）";
+    if (!groups[g]) groups[g] = [];
+    groups[g].push({ w: w, i: i });
+  });
+  var h = '<div class="tablewrap"><table class="grid"><thead><tr>' +
+    "<th>词</th><th>分组</th><th>说明</th><th>操作</th></tr></thead><tbody>";
+  Object.keys(groups).forEach(function (g) {
+    groups[g].forEach(function (it, k) {
+      h += "<tr>";
+      h += '<td><input type="text" data-w="' + it.i + '" data-f="word" value="' +
+        esc(it.w.word || "") + '" style="width:100%"></td>';
+      h += '<td><input type="text" data-w="' + it.i + '" data-f="group" value="' +
+        esc(it.w.group || "") + '" style="width:90px"></td>';
+      h += '<td><input type="text" data-w="' + it.i + '" data-f="note" value="' +
+        esc(it.w.note || "") + '" style="width:100%"></td>';
+      h += '<td><button class="btn ghost" data-delw="' + it.i + '">删除</button></td>';
+      h += "</tr>";
+    });
+  });
+  h += "</tbody></table></div>";
+  return h;
+}
+/* 同义组表 */
+function segSynHtml(dict) {
+  var h = '<div class="tablewrap"><table class="grid"><thead><tr>' +
+    "<th>组名</th><th>成员（逗号分隔）</th><th>说明</th><th>操作</th></tr></thead><tbody>";
+  (dict.synonyms || []).forEach(function (s, i) {
+    h += "<tr>";
+    h += '<td><input type="text" data-s="' + i + '" data-f="group" value="' +
+      esc(s.group || "") + '" style="width:120px"></td>';
+    h += '<td><input type="text" data-s="' + i + '" data-f="members" value="' +
+      esc((s.members || []).join(", ")) + '" style="width:100%"></td>';
+    h += '<td><input type="text" data-s="' + i + '" data-f="note" value="' +
+      esc(s.note || "") + '" style="width:100%"></td>';
+    h += '<td><button class="btn ghost" data-dels="' + i + '">删除</button></td>';
+    h += "</tr>";
+  });
+  h += "</tbody></table></div>";
+  return h;
+}
+/* 候选新词表（人工勾选） */
+function segCandsHtml() {
+  if (!SEG.cands.length) return '<div class="small muted">还没有候选。点「发现候选新词」开始。</div>';
+  var list = SEG.cands.slice(0);
+  if (SEG.sortBy === "count") list.sort(function (a, b) { return b.count - a.count; });
+  else if (SEG.sortBy === "entropy") {
+    list.sort(function (a, b) {
+      return Math.min(b.left_entropy, b.right_entropy) - Math.min(a.left_entropy, a.right_entropy);
+    });
+  }
+  var h = '<div class="tablewrap"><table class="grid"><thead><tr>' +
+    "<th>选</th><th>候选词</th><th>频次</th><th>凝固度</th><th>邻字熵</th><th>得分</th><th>领域</th></tr></thead><tbody>";
+  list.slice(0, 200).forEach(function (c) {
+    h += "<tr>";
+    h += '<td><input type="checkbox" data-cand="' + esc(c.word) + '"></td>';
+    h += "<td><b>" + esc(c.word) + "</b></td>";
+    h += "<td>" + esc(c.count) + "</td>";
+    h += "<td>" + esc(c.cohesion) + "</td>";
+    h += "<td>" + esc(c.left_entropy) + " / " + esc(c.right_entropy) + "</td>";
+    h += "<td>" + esc(c.score) + "</td>";
+    h += "<td>" + (c.domain ? "★" : "") + "</td>";
+    h += "</tr>";
+  });
+  h += "</tbody></table></div>";
+  if (SEG.cands.length > 200) {
+    h += '<div class="small muted">只显示前 200 个（共 ' + SEG.cands.length +
+      " 个）。要收的词请用「直接添加词条」。</div>";
+  }
+  return h;
+}
+
+function renderSegmentPage() {
+  if (!isAdmin()) {
+    /* 界面层过滤：非管理员整块不出现（接口层后端也会 403） */
+    view.innerHTML = subBar("⑩ 分词实验室与词典", "") +
+      '<div class="fullblk"><div class="notice">「分词实验室与词典」仅管理员可见。' +
+      "当前身份：" + esc(nz(state.auth.user && state.auth.user.username)) +
+      "（" + esc(nz(state.auth.user && state.auth.user.role)) + "）</div></div>";
+    return;
+  }
+  var st = state.segStatus || {};
+  var html = subBar("⑩ 分词实验室与词典",
+    "GET /api/segment/dict · POST /api/segment/dict · POST /api/segment/reindex") +
+    '<div class="fullblk">' +
+    segNotice("这条链路怎么走：① 在下面改词典 → ② 「保存词典」 → ③ 「重建索引」 → 才生效。" +
+      "词典是源数据，索引是派生物；**改完不重建，检索还在用旧词典**。", "small") +
+    '<div class="formrow" id="sg-status">' +
+    '<span class="small muted">索引状态：' +
+    "v" + esc(nz(st.segment_version)) +
+    "　词典 " + esc(nz(st.dict_words)) + " 词 / " + esc(nz(st.dict_synonyms)) + " 个同义组" +
+    "　覆盖 " + esc(nz(st.doc_count)) + " 篇" +
+    (st.jieba === false ? "　<b>本机没装 jieba，词级模式不可用</b>" : "") +
+    (st.stale ? "　<b style='color:#b4472e'>词典已改、索引待重建</b>" : "") +
+    "</div>" +
+    '<div class="formrow">' +
+    '<button class="btn" id="sg-save">保存词典</button>' +
+    '<button class="btn ghost" id="sg-reindex">重建词级索引</button>' +
+    '<button class="btn ghost" id="sg-reload">放弃改动，重新读取</button>' +
+    '<button class="btn ghost" id="sg-reset">恢复内置初始词典</button>' +
+    "</div>" +
+    '<div id="sg-msg"></div>' +
+    '<div class="barhead" id="sg-h-words">① 领域词条（' + (SEG.dict ? (SEG.dict.words || []).length : "?") + " 条）</div>" +
+    '<div class="small muted" style="margin-bottom:6px">' +
+    "词频统一给大，词才会压过通用分词的切分倾向（不然「兽面纹」会被切成「兽面/纹」）。</div>" +
+    '<div id="sg-words"></div>' +
+    '<div class="formrow"><input type="text" id="sg-newword" placeholder="新词，如 汇观山祭坛" style="width:160px">' +
+    '<input type="text" id="sg-newgroup" placeholder="分组，如 遗址" style="width:110px">' +
+    '<button class="btn ghost" id="sg-addword">添加词条</button></div>' +
+    '<div class="barhead" id="sg-h-syns">② 同义组（' + (SEG.dict ? (SEG.dict.synonyms || []).length : "?") + " 组）</div>" +
+    '<div class="small muted" style="margin-bottom:6px">' +
+    "同义组用于「分词扩召回」：组内任一词命中，整组都算命中。" +
+    "<b>系统不会自动生成同义</b> —— 自动 = 编造。</div>" +
+    '<div id="sg-syns"></div>' +
+    '<div class="formrow"><input type="text" id="sg-newgroupname" placeholder="组名" style="width:140px">' +
+    '<input type="text" id="sg-newmembers" placeholder="成员，逗号分隔" style="width:260px">' +
+    '<button class="btn ghost" id="sg-addsyn">添加同义组</button></div>' +
+    '<div class="barhead">③ 领域后缀 / 前缀表（用于新词发现的领域加权）</div>' +
+    '<div class="small muted" style="margin-bottom:6px">' +
+    "命中后缀或前缀的候选词加 3.0 分。加了之后候选榜的 Top10 从「半是垃圾」变成「全是真领域词」。</div>" +
+    '<div class="formrow"><span class="fl">后缀</span>' +
+    '<input type="text" id="sg-tails" style="width:100%" value="' +
+    esc((SEG.dict && SEG.dict.domain_tails || []).join(", ")) + '"></div>' +
+    '<div class="formrow"><span class="fl">前缀</span>' +
+    '<input type="text" id="sg-heads" style="width:100%" value="' +
+    esc((SEG.dict && SEG.dict.domain_heads || []).join(", ")) + '"></div>' +
+    '<div class="barhead">④ 候选新词（人工勾选才进词典）</div>' +
+    '<div class="formrow">' +
+    '<label class="fl">最小频次</label><input type="number" id="sg-minc" value="' + SEG.minCount + '" min="5" max="200" style="width:80px">' +
+    '<label class="fl">排序</label><select id="sg-sort">' +
+    [["score", "按得分"], ["count", "按频次"], ["entropy", "按邻字熵"]].map(function (o) {
+      return '<option value="' + o[0] + '"' + (SEG.sortBy === o[0] ? " selected" : "") + ">" + o[1] + "</option>";
+    }).join("") + "</select>" +
+    '<button class="btn" id="sg-discover">发现候选新词</button>' +
+    '<button class="btn ghost" id="sg-adopt">采纳勾选的</button>' +
+    "</div>" +
+    '<div class="small muted" style="margin-bottom:6px">' +
+    "⚠ <b>候选是候选，不是结论。</b>统计法只能保证「大概率是个词」，" +
+    "保证不了「在这个领域里该收」。收不收由人定。</div>" +
+    '<div id="sg-cands"></div>' +
+    "</div>";
+  view.innerHTML = html;
+  bindSegmentPage();
+  if (!SEG.dict) loadSegmentDict();
+  else paintSegmentDict();
+  paintSegmentCands();
+  /* ★ 索引状态是**活口径** —— 管理员可能在别的页面重建过索引，
+     所以进这一页要**现取一次**，不能拿页面初始化时的旧值当现状。 */
+  loadSegmentStatus().then(paintSegmentStatus);
+}
+/* 索引状态行（现取现画） */
+function paintSegmentStatus() {
+  var box = $("#sg-status");
+  if (!box) return;
+  var st = state.segStatus || {};
+  box.innerHTML = '<span class="small muted">索引状态：' +
+    "v" + esc(nz(st.segment_version)) +
+    "　词典 " + esc(nz(st.dict_words)) + " 词 / " + esc(nz(st.dict_synonyms)) + " 个同义组" +
+    "　覆盖 " + esc(nz(st.doc_count)) + " 篇" +
+    (st.jieba === false ? "　<b>本机没装 jieba，词级模式不可用</b>" : "") +
+    (st.stale ? "　<b style='color:#b4472e'>词典已改、索引待重建</b>" : "");
+}
+/* 读词典 */
+function loadSegmentDict() {
+  return api("/api/segment/dict").then(function (r) {
+    if (!r.ok) {
+      var m = $("#sg-msg");
+      if (m) m.innerHTML = segNotice("读词典失败：" + r.error, "bad");
+      return;
+    }
+    SEG.dict = (r.data && r.data.dict) || { words: [], synonyms: [], domain_tails: [], domain_heads: [] };
+    SEG.meta = r.data || {};
+    paintSegmentDict();
+  });
+}
+function paintSegmentDict() {
+  var d = SEG.dict;
+  if (!d) return;
+  /* ★ 计数要跟着数据走 —— 词典是异步读的，首屏渲染时还没有数据，
+     不回填的话标题会一直停在「? 条 / ? 组」，管理员以为词典是空的。 */
+  var hw = $("#sg-h-words");
+  if (hw) hw.innerHTML = "① 领域词条（" + (d.words || []).length + " 条）";
+  var hs = $("#sg-h-syns");
+  if (hs) hs.innerHTML = "② 同义组（" + (d.synonyms || []).length + " 组）";
+  /* ★ 后缀/前缀表也要回填 —— 首屏渲染时词典还没读到，input 是空的；
+     不回填的话管理员随手点一次「保存词典」就把这两张表**清空**了，
+     领域加权随之失效（新词候选榜 Top10 全变垃圾词）。 */
+  var tl = $("#sg-tails");
+  if (tl && tl.value === "") tl.value = (d.domain_tails || []).join(", ");
+  var hd = $("#sg-heads");
+  if (hd && hd.value === "") hd.value = (d.domain_heads || []).join(", ");
+  var w = $("#sg-words"); if (w) w.innerHTML = segWordsHtml(d);
+  var s = $("#sg-syns"); if (s) s.innerHTML = segSynHtml(d);
+  var heads = document.querySelectorAll('[data-w]');
+  Array.prototype.forEach.call(heads, function (el) {
+    el.addEventListener("change", function () {
+      var i = parseInt(el.getAttribute("data-w"), 10);
+      var f = el.getAttribute("data-f");
+      if (d.words[i]) d.words[i][f] = el.value.trim();
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-delw]"), function (b) {
+    b.addEventListener("click", function () {
+      var i = parseInt(b.getAttribute("data-delw"), 10);
+      if (d.words[i]) {
+        d.words.splice(i, 1);
+        paintSegmentDict();
+      }
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-s]"), function (el) {
+    el.addEventListener("change", function () {
+      var i = parseInt(el.getAttribute("data-s"), 10);
+      var f = el.getAttribute("data-f");
+      if (!d.synonyms[i]) return;
+      if (f === "members") {
+        d.synonyms[i].members = el.value.split(/[,，]/).map(function (x) { return x.trim(); })
+          .filter(function (x) { return !!x; });
+      } else {
+        d.synonyms[i][f] = el.value.trim();
+      }
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-dels]"), function (b) {
+    b.addEventListener("click", function () {
+      var i = parseInt(b.getAttribute("data-dels"), 10);
+      if (d.synonyms[i]) {
+        d.synonyms.splice(i, 1);
+        paintSegmentDict();
+      }
+    });
+  });
+}
+function paintSegmentCands() {
+  var c = $("#sg-cands");
+  if (c) c.innerHTML = segCandsHtml();
+}
+function segMsg(txt, kind) {
+  var m = $("#sg-msg");
+  if (m) m.innerHTML = segNotice(txt, kind || "");
+}
+function segCollect() {
+  var d = SEG.dict;
+  if (!d) return null;
+  var tails = $("#sg-tails"), heads = $("#sg-heads");
+  if (tails) {
+    d.domain_tails = tails.value.split(/[,，]/).map(function (x) { return x.trim(); })
+      .filter(function (x) { return !!x; });
+  }
+  if (heads) {
+    d.domain_heads = heads.value.split(/[,，]/).map(function (x) { return x.trim(); })
+      .filter(function (x) { return !!x; });
+  }
+  return d;
+}
+function bindSegmentPage() {
+  var sv = $("#sg-save");
+  if (sv) sv.addEventListener("click", function () {
+    var d = segCollect();
+    if (!d) return;
+    apiSend("POST", "/api/segment/dict", { dict: d }).then(function (r) {
+      if (!r.ok) { segMsg("保存失败：" + r.error, "bad"); return; }
+      SEG.dict = (r.data && r.data.dict) || d;
+      segMsg("词典已保存（版本 v" + r.data.segment_version + "）。**索引需要重建才会生效** —— 点「重建词级索引」。", "good");
+      loadSegmentStatus().then(paintSegmentStatus);
+      paintSegmentDict();
+    });
+  });
+  var rx = $("#sg-reindex");
+  if (rx) rx.addEventListener("click", function () {
+    rx.disabled = true;
+    rx.textContent = "重建中…（约 6 秒，201 篇）";
+    segMsg("正在重建词级索引，请稍候…");
+    apiSend("POST", "/api/segment/reindex", {}).then(function (r) {
+      rx.disabled = false;
+      rx.textContent = "重建词级索引";
+      if (!r.ok) { segMsg("重建失败：" + r.error, "bad"); return; }
+      segMsg("重建完成：" + r.data.doc_count + " 篇 / " + r.data.token_count +
+        " token / " + r.data.elapsed_sec + " 秒（索引版本 v" + r.data.segment_version + "）。", "good");
+      loadSegmentStatus().then(paintSegmentStatus);
+    });
+  });
+  var rl = $("#sg-reload");
+  if (rl) rl.addEventListener("click", function () {
+    SEG.dict = null;
+    loadSegmentDict();
+    segMsg("已重新读取词典（未保存的改动已丢弃）。");
+  });
+  var rs = $("#sg-reset");
+  if (rs) rs.addEventListener("click", function () {
+    if (!window.confirm("确定恢复成内置初始词典？\n\n当前词典会被覆盖（上一版存在 .bak 文件里）。")) return;
+    apiSend("POST", "/api/segment/reset", {}).then(function (r) {
+      if (!r.ok) { segMsg("恢复失败：" + r.error, "bad"); return; }
+      SEG.dict = (r.data && r.data.dict) || SEG.dict;
+      paintSegmentDict();
+      segMsg(r.data.message || "已恢复。", "good");
+      loadSegmentStatus().then(paintSegmentStatus);
+    });
+  });
+  var aw = $("#sg-addword");
+  if (aw) aw.addEventListener("click", function () {
+    var i = $("#sg-newword"), g = $("#sg-newgroup");
+    var w = i ? i.value.trim() : "";
+    if (!w) { segMsg("先填要加的词。", "bad"); return; }
+    SEG.dict.words.push({ word: w, freq: 100000, pos: "n",
+                          group: (g && g.value.trim()) || "人工添加", note: "" });
+    if (i) i.value = "";
+    paintSegmentDict();
+    segMsg("已加入列表，**记得点「保存词典」**。");
+  });
+  var as = $("#sg-addsyn");
+  if (as) as.addEventListener("click", function () {
+    var n = $("#sg-newgroupname"), m = $("#sg-newmembers");
+    var name = n ? n.value.trim() : "";
+    var mem = m ? m.value.split(/[,，]/).map(function (x) { return x.trim(); })
+      .filter(function (x) { return !!x; }) : [];
+    if (!name || mem.length < 2) { segMsg("同义组要有个名字，且至少两个成员。", "bad"); return; }
+    SEG.dict.synonyms.push({ group: name, members: mem, note: "" });
+    if (n) n.value = "";
+    if (m) m.value = "";
+    paintSegmentDict();
+    segMsg("已加入列表，**记得点「保存词典」**。");
+  });
+  var dc = $("#sg-discover");
+  if (dc) dc.addEventListener("click", function () {
+    var mc = $("#sg-minc");
+    SEG.minCount = mc ? (parseInt(mc.value, 10) || 20) : 20;
+    dc.disabled = true;
+    dc.textContent = "发现中…（要扫全库，约十几秒）";
+    apiSend("POST", "/api/segment/newwords", { min_count: SEG.minCount, topn: 300 })
+      .then(function (r) {
+        dc.disabled = false;
+        dc.textContent = "发现候选新词";
+        if (!r.ok) { segMsg("发现失败：" + r.error, "bad"); return; }
+        SEG.cands = (r.data && r.data.candidates) || [];
+        paintSegmentCands();
+        segMsg("找到 " + SEG.cands.length + " 个候选。**勾选你要收的**，再点「采纳勾选的」。", "");
+      });
+  });
+  var ad = $("#sg-adopt");
+  if (ad) ad.addEventListener("click", function () {
+    var picked = [];
+    Array.prototype.forEach.call(document.querySelectorAll("[data-cand]"), function (cb) {
+      if (cb.checked) picked.push(cb.getAttribute("data-cand"));
+    });
+    if (!picked.length) { segMsg("先勾选要采纳的候选词。", "bad"); return; }
+    apiSend("POST", "/api/segment/adopt", { words: picked, group: "人工采纳" })
+      .then(function (r) {
+        if (!r.ok) { segMsg("采纳失败：" + r.error, "bad"); return; }
+        segMsg("已收 " + (r.data.added || []).length + " 个词。" +
+          (r.data.skipped && r.data.skipped.length ? "（跳过已在词典里的 " + r.data.skipped.length + " 个）" : "") +
+          "　**索引需要重建才会生效**。", "good");
+        SEG.dict = null;
+        loadSegmentDict();
+        loadSegmentStatus();
+      });
+  });
+  var so = $("#sg-sort");
+  if (so) so.addEventListener("change", function () { SEG.sortBy = so.value; paintSegmentCands(); });
 }
 
 /* ==================================================================

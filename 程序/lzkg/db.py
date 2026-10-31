@@ -249,6 +249,31 @@ CREATE VIRTUAL TABLE IF NOT EXISTS raw_json_fts USING fts5(
 );
 """
 
+# ── 词级索引（检索增强 E1）──────────────────────────────────────────────
+# ★ 为什么**另建一张表**而不是改 docs_fts：
+#   docs_fts 是 trigram（**子串**匹配），是可复现历史检索结果的基线；
+#   docs_seg 是 unicode61（**词**匹配），语义不同、两者并存互补。
+#   实测：词级相对 trigram **多召回 0 篇**（是子集），所以绝不能替换，只能合并。
+#   → 出问题可以一键关掉新层、退回现状。
+SEG_SCHEMA = """
+-- 词级索引：body 是「分词后用空格连接」的正文。
+--   unicode61 按分隔符切 token，所以必须有空格，词才切得开。
+CREATE VIRTUAL TABLE IF NOT EXISTS docs_seg USING fts5(
+    title, body, lit_id UNINDEXED, tokenize='unicode61'
+);
+-- 索引是**派生物**，词典是**源数据**。
+--   这里记「这个索引是用哪版词典建的」，改词典没重建索引时界面必须提示。
+CREATE TABLE IF NOT EXISTS segment_meta (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    segment_version INTEGER,
+    dict_hash TEXT,
+    built_at TEXT,
+    doc_count INTEGER,
+    token_count INTEGER,
+    note TEXT
+);
+"""
+
 # 全文检索的最小长度：trigram 至少要 3 个字符，短于此走 LIKE 兜底
 MIN_FTS_LEN = 3
 
@@ -301,6 +326,14 @@ def init_db(conn: sqlite3.Connection) -> dict:
             "CREATE VIRTUAL TABLE IF NOT EXISTS docs_fts USING fts5(title, content, lit_id UNINDEXED);"
             "CREATE VIRTUAL TABLE IF NOT EXISTS raw_json_fts USING fts5(text, lit_id UNINDEXED, filename UNINDEXED);")
         caps["fts_trigram"] = False
+    # 词级索引（E1）：**建表不等于建索引** —— 内容由 `python -m lzkg reindex` 灌。
+    #   这里只保证表在、schema 对，jieba 缺失也不影响启动。
+    try:
+        conn.executescript(SEG_SCHEMA)
+        caps["seg_index"] = True
+    except sqlite3.OperationalError as e:
+        caps["seg_index"] = False
+        caps["seg_error"] = str(e)
     conn.commit()
     return caps
 

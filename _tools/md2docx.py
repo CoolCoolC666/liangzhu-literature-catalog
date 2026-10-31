@@ -9,11 +9,13 @@
     # / ## / ###        标题（自动挂中文字体，黑体）
     **加粗**             行内加粗
     `代码`               行内代码（等宽 + 深色）
+    ```代码块```         围栏代码块（等宽小字，逐行成段）
     | a | b |           表格（首行当表头，Table Grid 边框）
     ---                 分隔线
     1. 2. 3.            有序列表（保留原文编号）
     - x                  无序列表
     *斜体*               行内斜体
+    > 引用               引用块（左缩进 + 灰字）
 
 中文排版要点（不设就会很难看）：
     python-docx 只设 font.name 时，Word 渲染中文会用默认的"等线"，
@@ -101,6 +103,65 @@ def is_sep(line: str) -> bool:
     return is_table_row(line) and set(line.strip().replace("|", "").strip()) <= set("-: ")
 
 
+def is_quote(line: str) -> bool:
+    """markdown 引用块：> 开头"""
+    return line.lstrip().startswith(">")
+
+
+def quote_text(line: str) -> str:
+    """剥掉引用块标记（> 与一个可选空格）"""
+    return line.lstrip()[1:].lstrip()
+
+
+def is_fence(line: str) -> bool:
+    """markdown 围栏代码块：``` 开头"""
+    return line.lstrip().startswith("```")
+
+
+def add_inline_heading(par, text: str, size: float) -> None:
+    """标题里也要解行内标记。
+
+    ★ 以前标题是 `h.add_run(text)` 直接塞原文，于是
+      `### 3.1 分词模式是精确模式的**子集**，不是超集` 在 Word 里
+      会把 ** 子集** 原样显示出来（标题不参与 add_inline）。
+    """
+    for piece in INLINE.split(text):
+        if not piece:
+            continue
+        if piece.startswith("**") and piece.endswith("**") and len(piece) > 4:
+            add_inline_heading(par, piece[2:-2], size)
+        elif piece.startswith("`") and piece.endswith("`") and len(piece) > 2:
+            r = par.add_run(piece[1:-1])
+            set_cn(r, MONO, HEAD_CN, size - 0.5, color=RGBColor(0xA3, 0x1D, 0x1D))
+        elif piece.startswith("*") and piece.endswith("*") and len(piece) > 2:
+            r = par.add_run(piece[1:-1])
+            set_cn(r, "Times New Roman", HEAD_CN, size)
+            r.font.italic = True
+        else:
+            r = par.add_run(piece)
+            set_cn(r, "Times New Roman", HEAD_CN, size, bold=True)
+
+
+def add_code_block(doc, lines: list[str]) -> int:
+    """围栏代码块：等宽小字，逐行成段。
+
+    ★ 以前没有这个分支，``` 围起来的整块会被当成**一个普通段落**，
+      于是 JSON/SQL 源码在 Word 里挤成一坨，还带着 ``` 残留。
+    """
+    n = 0
+    for raw in lines:
+        p = doc.add_paragraph()
+        p.paragraph_format.left_indent = Cm(0.6)
+        p.paragraph_format.line_spacing = 1.0
+        p.paragraph_format.space_after = Pt(0)
+        r = p.add_run(raw if raw else " ")
+        set_cn(r, MONO, BODY_CN, BODY_PT - 1.5, color=RGBColor(0x22, 0x33, 0x44))
+        n += 1
+    # 块后留一个小空行
+    doc.add_paragraph()
+    return n
+
+
 def convert(md_path: Path, out_path: Path) -> tuple[int, int, int]:
     lines = md_path.read_text(encoding="utf-8").splitlines()
 
@@ -143,13 +204,24 @@ def convert(md_path: Path, out_path: Path) -> tuple[int, int, int]:
             level = len(m.group(1))
             text = m.group(2).strip()
             h = doc.add_heading(level=level)
-            r = h.add_run(text)
             sizes = {1: 18, 2: 15, 3: 12.5}
-            set_cn(r, "Times New Roman", HEAD_CN, sizes[level], bold=True)
+            add_inline_heading(h, text, sizes[level])
             h.paragraph_format.space_before = Pt(14 if level <= 2 else 10)
             h.paragraph_format.space_after = Pt(6)
             n_para += 1
             i += 1
+            continue
+
+        # 围栏代码块
+        if is_fence(stripped):
+            j = i + 1
+            body: list[str] = []
+            while j < len(lines) and not is_fence(lines[j]):
+                body.append(lines[j].rstrip())
+                j += 1
+            j = min(j + 1, len(lines))          # 吃掉收尾的 ```
+            n_para += add_code_block(doc, body)
+            i = j
             continue
 
         # 表格（吃掉表头 + 分隔行 + 若干数据行）
@@ -211,11 +283,29 @@ def convert(md_path: Path, out_path: Path) -> tuple[int, int, int]:
             i += 1
             continue
 
+        # 引用块：> 开头的行合并成一段（左缩进 + 灰字）
+        # ★ 以前这里没有分支，"> xxx" 会被当普通段落原样写进 Word，
+        #   于是正文里到处残留 "> " 符号（既有几份报告的 docx 都带着这个问题）。
+        if is_quote(stripped):
+            buf = [quote_text(stripped)]
+            i += 1
+            while i < len(lines) and lines[i].strip() and is_quote(lines[i].strip()):
+                buf.append(quote_text(lines[i].strip()))
+                i += 1
+            p = doc.add_paragraph()
+            p.paragraph_format.left_indent = Cm(0.8)
+            p.paragraph_format.space_after = Pt(4)
+            add_inline(p, " ".join(x for x in buf if x), base_size=BODY_PT - 0.5)
+            for r in p.runs:
+                r.font.color.rgb = RGBColor(0x44, 0x55, 0x66)
+            n_para += 1
+            continue
+
         # 普通段落：把连续非空行并成一段（markdown 里软换行不该变成新段）
         buf = [stripped]
         i += 1
         while i < len(lines) and lines[i].strip() and not re.match(
-                r"^(#{1,3}\s|[-*]\s|\d+\.\s|\||---)", lines[i].strip()):
+                r"^(#{1,3}\s|[-*]\s|\d+\.\s|\||>|```|---)", lines[i].strip()):
             buf.append(lines[i].strip())
             i += 1
         p = doc.add_paragraph()

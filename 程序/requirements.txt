@@ -21,3 +21,14 @@ httpx>=0.27
 
 # 契约 v3 §4：MCP 服务（2.x；`FastMCP` 已改名 `MCPServer`）
 mcp>=2.0
+
+# ── 检索增强 E1（v3.9）：jieba 是**可选依赖**，故意不写进安装列表 ──
+#   没装 jieba 时：程序照常启动，检索退回「整句精确」模式，
+#   界面与 /api/segment/status 会写明「jieba 未安装」的原因，
+#   分词扩召回 / 领域词典 / 新词发现这三项功能置灰。
+#   （硬规矩：不许因为一个可选分词器让整个站起不来。）
+#   想启用请手动装：
+#     pip install jieba
+#   装完再跑一次建索引：
+#     python -m lzkg reindex
+# jieba>=0.42.1

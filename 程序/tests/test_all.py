@@ -145,15 +145,30 @@ def test_tag_normalize():
 def test_search():
     section("检索")
     from lzkg.db import connect
-    from lzkg.app import _match_lit_ids
+    from lzkg.app import _match_lit_ids, _match_detail
     c = connect()
     try:
-        hits, mode = _match_lit_ids(c, "玉琮")
-        check("2 字词走 LIKE 兜底", mode == "like", f"mode={mode} 命中 {len(hits)}")
-        check("2 字词有命中", len(hits) > 0, f"命中 {len(hits)}")
-        hits3, mode3 = _match_lit_ids(c, "良渚古城")
-        check("3 字词走 FTS5", mode3 == "fts5", f"mode={mode3} 命中 {len(hits3)}")
-        check("FTS5 有命中", len(hits3) > 0, f"命中 {len(hits3)}")
+        # ★ 精确层（mode="exact"）：**原有行为一字不改**（子串匹配）。
+        #   检索增强 E1 之后 `mode` 字段只表示四档模式之一，
+        #   「精确层走 FTS5 还是 LIKE 兜底」改由 `exact_backend` 字段承担
+        #   （v3.9：同一个字段混两套词表 → 判据与界面对不齐，已拆开）。
+        d2 = _match_detail(c, "玉琮", "exact")
+        check("2 字词走 LIKE 兜底", d2["exact_backend"] == "like",
+              f"backend={d2['exact_backend']} mode={d2['mode']}")
+        check("2 字词有命中", len(d2["hits"]) > 0, f"命中 {len(d2['hits'])}")
+        d3 = _match_detail(c, "良渚古城", "exact")
+        check("3 字词走 FTS5", d3["exact_backend"] == "fts5",
+              f"backend={d3['exact_backend']} mode={d3['mode']}")
+        check("FTS5 有命中", len(d3["hits"]) > 0, f"命中 {len(d3['hits'])}")
+        # 合并模式（E1 默认）：两种语义并存
+        hb, modeb = _match_lit_ids(c, "玉琮", "both")
+        check("合并模式生效", modeb == "both", f"mode={modeb} 命中 {len(hb)}")
+        check("合并命中 ⊇ 精确命中", set(hb) >= set(d2["hits"]),
+              f"精确 {len(d2['hits'])} 篇 → 合并 {len(hb)} 篇")
+        # ★ mode 只允许四档之一（口径不许混）
+        check("mode 取值只在四档模式内",
+              d2["mode"] in ("exact", "word", "syn", "both") and modeb == "both",
+              f"exact→{d2['mode']} both→{modeb}")
     finally:
         c.close()
 
