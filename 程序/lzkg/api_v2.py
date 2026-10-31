@@ -23,9 +23,11 @@ from fastapi.responses import JSONResponse, Response
 from . import importexport as ie
 from . import statsapi
 from .access import identity_from_headers
-from .auth import (change_password, login, logout, must_change_password,
-                   provision_from_email, resolve_principal, set_password,
-                   set_password_for_username)
+from .auth import (AuthError, change_password, login, logout,
+                   must_change_password, provision_from_email,
+                   resolve_principal, set_password, set_password_for_username)
+from .auth import require_admin as _require_admin
+from .auth import require_login as _require_login
 from .common import attachment_headers, now_str, ok
 from .config import get_config
 from .db import connect, get_meta
@@ -63,21 +65,22 @@ def require_admin(x_auth_token: str = Header(default="", alias="X-Auth-Token")):
 
     * `auth.enabled=false`（本机默认）→ 所有人视为 admin 免登录身份；
     * 未登录 → 401；登录了但不是 admin → **403**。
+
+    ★ 实现在 `auth.py`（跨模块基础设施），这里只把 `AuthError`
+      转成本层的 `ApiError`，**对外行为完全不变**。
     """
-    p = resolve_principal(x_auth_token or "")
-    if p is None:
-        raise ApiError(401, "请先登录")
-    if not p.is_admin:
-        raise ApiError(403, "需要管理员权限")
-    return p
+    try:
+        return _require_admin(x_auth_token)
+    except AuthError as e:
+        raise ApiError(e.status_code, e.error)
 
 
 def require_login(x_auth_token: str = Header(default="", alias="X-Auth-Token")):
     """需要登录（可以是 member）。未登录 → 401。"""
-    p = resolve_principal(x_auth_token or "")
-    if p is None:
-        raise ApiError(401, "请先登录")
-    return p
+    try:
+        return _require_login(x_auth_token)
+    except AuthError as e:
+        raise ApiError(e.status_code, e.error)
 
 
 def _local_check(request: Request) -> None:

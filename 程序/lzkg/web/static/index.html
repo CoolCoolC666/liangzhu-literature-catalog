@@ -134,6 +134,29 @@ label.fl{font-size:12.5px;color:var(--ink2);margin-right:4px}
 .imgtile .cap .fn{color:var(--brand);font-weight:600}
 .notebox{background:#fff8e6;border:1px solid #f0dcae;border-radius:5px;padding:9px 12px;font-size:12.5px;color:#7a5510}
 .errbox{background:#fdecec;border:1px solid #f2c2c2;border-radius:5px;padding:10px 12px;color:#8c2020}
+
+/* ★ 阅读原文窗口（PDF 内嵌 + Markdown 渲染）——零外链，不引 pdf.js */
+.rawbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 10px}
+.rawbar .btn{white-space:nowrap}
+.rawtabs{display:flex;gap:0;border-bottom:1px solid var(--line);margin-bottom:10px}
+.rawtab{padding:7px 16px;font-size:13.5px;color:var(--ink2);cursor:pointer;
+  border:1px solid var(--line);border-bottom:none;border-radius:5px 5px 0 0;margin-right:4px;
+  background:#f7f9fb}
+.rawtab.on{background:var(--card);color:var(--brand);font-weight:600}
+.rawframe{width:100%;height:76vh;min-height:460px;border:1px solid var(--line);border-radius:5px;background:#fbfcfd}
+.rawbody{max-height:76vh;min-height:460px;overflow-y:auto;overflow-x:hidden;border:1px solid var(--line);
+  border-radius:5px;background:var(--card);padding:18px 22px;font-size:14px;line-height:1.85;
+  /* ★ 论文里的表格/长串可能很宽 → 让它们自己内部滚动，别把正文区撑出横向滚动条 */
+  word-break:break-word}
+.rawbody .rawh{margin:20px 0 8px;font-size:16px;color:var(--brand);line-height:1.5}
+.rawbody .rawh:first-child{margin-top:0}
+.rawbody .rawp{margin:0 0 12px;text-align:justify}
+.rawbody .rawimg{display:block;max-width:100%;height:auto;border:1px solid var(--line);
+  border-radius:4px;margin:12px auto;background:#fff}
+.rawbody td{border:1px solid var(--line);padding:5px 8px;font-size:13px}
+.rawbody table{display:block;overflow-x:auto;max-width:100%}
+.rawimg-missing{display:inline-block;background:#f4f6f8;border:1px dashed #c3ced8;border-radius:4px;
+  padding:6px 10px;font-size:12.5px;color:var(--ink2);margin:6px 0}
 .hits li{margin:6px 0}
 .jsonlist{border:1px solid var(--line);border-radius:5px;background:#fafcfd;padding:8px 10px;max-height:340px;overflow:auto}
 .jsonlist .jf{padding:6px 0;border-bottom:1px dashed #e2e9ee}
@@ -312,6 +335,20 @@ footer p{margin:3px 0}
 </header>
 
 <main id="view"><div class="loading"><span class="spin"></span>正在初始化…</div></main>
+
+<!-- ★ 阅读原文窗口（模态） -->
+<div id="raw-modal" style="display:none;position:fixed;inset:0;background:rgba(18,26,34,.55);z-index:9000;">
+  <div style="position:absolute;inset:24px;background:var(--card);border-radius:8px;
+              display:flex;flex-direction:column;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.3);">
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);">
+      <b style="font-size:14px">阅读原文</b>
+      <span class="small muted" id="raw-modal-sub"></span>
+      <span style="flex:1"></span>
+      <button class="btn ghost" id="raw-close">✕ 关闭</button>
+    </div>
+    <div id="raw-body" style="flex:1;overflow:auto;padding:12px 14px;"></div>
+  </div>
+</div>
 
 <footer>
   <div class="wrap">
@@ -973,31 +1010,83 @@ function openImportPanel() {
   var box = $("#l-extra");
   if (!box) return;
   box.innerHTML = '<div class="wbblk"><h3>⬆ 导入登记表（预检）<span class="tag">POST /api/import/preview → /api/import/apply</span></h3>' +
-    '<div class="formrow"><input type="file" id="imp-file" accept=".xlsx,.xlsm">' +
-    '<span class="small muted">选好 xlsx 后点「开始预检」；预检只列差异，不写主库。</span>' +
+    '<div class="formrow">' +
+    '<label class="fl">方式</label>' +
+    '<select id="imp-fmt"><option value="xlsx">登记表 xlsx</option>' +
+    '<option value="xml">协作交换 XML</option></select>' +
+    '<input type="file" id="imp-file" accept=".xlsx,.xlsm,.xml">' +
+    '<span class="small muted" id="imp-hint">选好 xlsx 后点「开始预检」；预检只列差异，不写主库。</span>' +
     '<button class="btn" id="imp-go">开始预检</button>' +
     '<button class="btn ghost" id="imp-close">关闭</button></div>' +
+    '<div class="small muted" style="margin:4px 0 8px">协作交换 XML：先在「工作台 → 协作交换」导出 → 成员改完回传 → 传这里预检。' +
+    'XML 与 xlsx 走**同一条**提案—审核链路（预检 → 管理员批准 → 写主库）。</div>' +
     '<div id="imp-msg"></div><div id="imp-out"></div></div>';
   $("#imp-close").addEventListener("click", function () { box.innerHTML = ""; });
   $("#imp-go").addEventListener("click", doImportPreview);
+  var fmt = $("#imp-fmt");
+  if (fmt) fmt.addEventListener("change", function () {
+    var f = $("#imp-file"), hint = $("#imp-hint");
+    if (fmt.value === "xml") {
+      if (f) f.setAttribute("accept", ".xml");
+      if (hint) hint.textContent = "选好成员回传的 .xml 后点「开始预检」；预检只列差异，不写主库。";
+    } else {
+      if (f) f.setAttribute("accept", ".xlsx,.xlsm");
+      if (hint) hint.textContent = "选好 xlsx 后点「开始预检」；预检只列差异，不写主库。";
+    }
+  });
 }
 function doImportPreview() {
   var f = $("#imp-file");
+  var fmt = $("#imp-fmt");
   var msg = $("#imp-msg"), out = $("#imp-out");
-  if (!f || !f.files || !f.files.length) { setBlockMsg("#imp-msg", "请先选择一个 xlsx 文件", "bad"); return; }
+  if (!f || !f.files || !f.files.length) { setBlockMsg("#imp-msg", "请先选择一个文件", "bad"); return; }
+  var isXml = fmt && fmt.value === "xml";
   setBlockMsg("#imp-msg", "正在预检…", "");
   out.innerHTML = "";
   var fd = new FormData();
   fd.append("file", f.files[0]);
-  fd.append("kind", "literatures");
-  apiSend("POST", "/api/import/preview", fd).then(function (r) {
+  if (!isXml) fd.append("kind", "literatures");
+  var url = isXml ? "/api/import/xml/preview" : "/api/import/preview";
+  apiSend("POST", url, fd).then(function (r) {
     if (!r.ok) { setBlockMsg("#imp-msg", "预检失败：" + r.error, "bad"); return; }
     var d = r.data || {};
     setBlockMsg("#imp-msg", "", "");
-    out.innerHTML = importDiffHtml(d);
+    out.innerHTML = isXml ? xmlDiffHtml(d) : importDiffHtml(d);
     var applyBtn = $("#imp-apply");
     if (applyBtn) applyBtn.addEventListener("click", function () { applyImport(d.staging_id, []); });
   });
+}
+/* XML 预检结果：与 xlsx 的 diff 表格同一套视觉，但字段名不同 */
+function xmlDiffHtml(d) {
+  var diffs = d.diffs || [];
+  var h = '<div class="scope">' +
+    '<span><span class="k">文件</span><b>' + esc(nz(d.filename)) + "</b></span>" +
+    '<span><span class="k">解析出</span><b>' + esc(nz(d.count)) + " 条</b></span>" +
+    '<span><span class="k">有差异</span><b>' + esc(nz(d.n_changed)) + "</b></span></div>";
+  if ((d.errors || []).length) {
+    h += '<div class="notice bad">解析提示：' + esc(d.errors.join("；")) + "</div>";
+  }
+  if (!diffs.length) {
+    h += emptyBox("没有检测到差异。");
+  } else {
+    h += '<div class="tablewrap"><table class="grid"><thead><tr><th>文献编号</th><th>操作</th><th>字段</th><th>旧值</th><th>新值</th></tr></thead><tbody>';
+    diffs.forEach(function (row) {
+      var fields = row.changed || [];
+      if (!fields.length) {
+        h += "<tr><td>" + esc(nz(row.lit_id)) + "</td><td>" + esc(nz(row.status)) + "</td><td colspan=\"3\">（无字段级差异）</td></tr>";
+      }
+      fields.forEach(function (f, i) {
+        h += "<tr>" + (i === 0 ? "<td rowspan=\"" + fields.length + "\">" + esc(nz(row.lit_id)) + "</td><td rowspan=\"" + fields.length + "\">" + esc(nz(row.status)) + "</td>" : "") +
+          "<td>" + esc(nz(f.field)) + "</td>" +
+          '<td class="old">' + esc(nz(f.old)) + "</td>" +
+          '<td class="new">' + esc(nz(f.new)) + "</td></tr>";
+      });
+    });
+    h += "</tbody></table></div>";
+  }
+  h += '<div class="formrow" style="margin-top:10px"><button class="btn" id="imp-apply">批准全部（写入主库）</button>' +
+    '<span class="small muted">' + esc(nz(d.note)) + "</span></div>";
+  return h;
 }
 function importDiffHtml(d) {
   var s = d.summary || {};
@@ -1256,6 +1345,25 @@ function renderDetail(litId) {
     });
     html += "</dl></div>";
 
+    /* ★ 阅读原文：PDF 内嵌 + Markdown 渲染 + 两个资源的下载 */
+    html += '<div class="secblk"><h3 class="sub2" style="margin-top:0">阅读原文</h3>' +
+      '<div class="small muted">原文由本机后端从数据源目录读取（不直链站方）。' +
+      'Markdown 正文里的图版已换成本站图版；<b>换不掉的会标出来</b>，不会拿别的图顶替。</div>' +
+      '<div class="rawbar">' +
+      '<button class="btn" id="raw-open-pdf" data-lit="' + esc(lit.lit_id || litId) + '">📄 阅读 PDF</button>' +
+      '<button class="btn" id="raw-open-md" data-lit="' + esc(lit.lit_id || litId) + '">📝 阅读 Markdown</button>' +
+      '<a class="btn ghost" id="raw-dl-pdf" href="/api/raw/' + encodeURIComponent(lit.lit_id || litId) +
+      '/pdf?download=1" download>⬇ 下载 PDF</a>' +
+      '<a class="btn ghost" id="raw-dl-md" href="/api/raw/' + encodeURIComponent(lit.lit_id || litId) +
+      '/markdown?download=1" download>⬇ 下载 Markdown</a>' +
+      '<a class="btn ghost" href="/api/literatures/' + encodeURIComponent(lit.lit_id || litId) +
+      '/xml" target="_blank" rel="noopener">🧾 结构化 XML</a>' +
+      '<span class="small muted" id="raw-msg"></span>' +
+      "</div>" +
+      '<div class="notebox">使用条件以「开放类型」为准。<b>站内提供原文通道，不代表获得对外传播授权</b>；' +
+      '标注为机构订阅/限内部使用的条目，请勿外传。</div>' +
+      "</div>";
+
     /* 正文摘要 */
     if (md && (md.excerpt || md.chars)) {
       html += '<div class="secblk"><h3 class="sub2" style="margin-top:0">正文（Markdown 摘录）</h3>' +
@@ -1309,6 +1417,7 @@ function renderDetail(litId) {
 
     view.innerHTML = html;
     bindFavBtn(lit.lit_id || litId);
+    bindRawBtns(lit.lit_id || litId);
     loadLitMap(lit.lit_id || litId);
   });
 }
@@ -1438,6 +1547,81 @@ function litmapDraw(d, ms, box) {
   }
   setTimeout(function () { if (LITMAP.map) LITMAP.map.invalidateSize(); }, 150);
 }
+
+/* ==================================================================
+ * 详情页 · 阅读原文窗口（PDF 内嵌 + Markdown 渲染）
+ * ==================================================================
+ * ★ 为什么 PDF 用 <iframe> 而不是 pdf.js：
+ *   零外链是本项目的硬约束（Leaflet 已本地 vendor 化）；
+ *   再 vendor 一份 pdf.js 体积大、还得跟版本。
+ *   浏览器**自带** PDF 阅读器，<iframe src=...> 直接就能读。
+ * ★ Markdown 由后端渲染成**安全** HTML（白名单内联标签，其余转义），
+ *   前端只负责插进去 —— 前端不做任何解析，避免两处口径不一致。
+ * ================================================================ */
+var RAW = { litId: "", mode: "", mdLoaded: false };
+
+function rawOpen(litId, mode) {
+  var lid = litId || RAW.litId;
+  if (!lid) return;
+  RAW.litId = lid;
+  RAW.mode = mode;
+  RAW.mdLoaded = false;
+  var body = $("#raw-body");
+  if (!body) return;
+  body.innerHTML = '<div class="loading"><span class="spin"></span>正在打开原文…</div>';
+  rawShow();
+  if (mode === "pdf") {
+    body.innerHTML = '<iframe class="rawframe" src="/api/raw/' + encodeURIComponent(lid) +
+      '/pdf" title="原文 PDF"></iframe>';
+    return;
+  }
+  /* Markdown：走后端取渲染好的 HTML */
+  api("/api/raw/" + encodeURIComponent(lid) + "/markdown").then(function (r) {
+    if (!r.ok) {
+      body.innerHTML = '<div class="notice bad" style="margin:12px">原文读取失败：' +
+        esc(r.error) + "</div>";
+      return;
+    }
+    var d = r.data || {};
+    var st = d.images || {};
+    var note = "";
+    if (st.total) {
+      note = '<div class="small muted" style="margin:0 0 12px">正文 ' + st.total +
+        " 张图版，已本地化 " + st.rewritten + " 张";
+      if (st.missed) note += "，" + st.missed + " 张未匹配到本地文件（下方已标出，未用别的图顶替）";
+      note += "。</div>";
+    }
+    if (st.skipped_reason) {
+      note = '<div class="small muted" style="margin:0 0 12px">图版未本地化：' +
+        esc(st.skipped_reason) + "。</div>";
+    }
+    body.innerHTML = note + '<div class="rawbody">' + (d.html || "") + "</div>";
+    RAW.mdLoaded = true;
+    var rawbody = body.querySelector(".rawbody");
+    if (rawbody) rawbody.scrollTop = 0;
+  });
+}
+
+function rawShow() {
+  var m = $("#raw-modal");
+  if (m) m.style.display = "block";
+  document.body.style.overflow = "hidden";
+}
+function rawHide() {
+  var m = $("#raw-modal");
+  if (m) m.style.display = "none";
+  var body = $("#raw-body");
+  if (body) body.innerHTML = "";
+  document.body.style.overflow = "";
+  RAW.mdLoaded = false;
+}
+
+function bindRawBtns(litId) {
+  var bp = $("#raw-open-pdf"), bm = $("#raw-open-md");
+  if (bp) bp.onclick = function () { rawOpen(litId, "pdf"); };
+  if (bm) bm.onclick = function () { rawOpen(litId, "md"); };
+}
+
 /* ---------------- 收藏 ---------------- */
 function favList() {
   return api("/api/favorites").then(function (r) {
@@ -1952,6 +2136,7 @@ function renderWorkbench(sub) {
   if (sub === "ai") return renderAiPage();
   if (sub === "history") return renderHistoryPage();
   if (sub === "webdev") return renderWebDevPage();
+  if (sub === "exchange") return renderExchangePage();
   return renderWorkbenchHome();
 }
 /* 子界面统一的顶部条：← 返回工作台 */
@@ -2003,7 +2188,11 @@ function renderWorkbenchHome() {
     { id: "webdev", t: "⑧ Web Dev（浏览数据与同步）", gated: true,
       what: "浏览记录存在自己浏览器里（各存各的，本站不保存），可同步到自己的 WebDAV 网盘（坚果云等），换设备也能带走。",
       eps: "POST /api/webdav/test · /api/webdav/put · /api/webdav/get",
-      perm: "需登录" }
+      perm: "需登录" },
+    { id: "exchange", t: "⑨ 协作交换（XML）",
+      what: "把题录与图版标注导出成 XML，成员改完回传；回传件与 xlsx 走同一条「预检→批准→入库」链路。",
+      eps: "GET /api/export/xml · POST /api/import/xml/preview",
+      perm: "需登录（导出）；导入预检仅管理员" }
   ];
   var html = '<div class="subbar"><h3>工作台</h3>' +
     '<span class="small muted">入口页：每个功能点进去是独立界面。' +
@@ -3474,8 +3663,62 @@ function webdavCfgSave(o) {
   catch (e) { return false; }
 }
 /* ---------------- 页面 ---------------- */
-function webdavHelpHtml() {
-  return WEBDAV_HELP.map(function (h) {
+/* ---------------- 协作交换（XML） ----------------
+   导出：GET /api/export/xml（可选 lit_ids 逗号分隔）
+   回传：POST /api/import/xml/preview → 与 xlsx 同一套「预检→批准」链路 */
+function renderExchangePage() {
+  var html = subBar("⑨ 协作交换（XML）", "GET /api/export/xml · POST /api/import/xml/preview") +
+    '<div class="fullblk"><div class="barhead">这条链路怎么走</div>' +
+    '<div class="small" style="line-height:1.9">' +
+    "① <b>导出</b>：下面导出 XML（题录 + 标签 + 图版标注，不含原文正文与图版二进制）。<br>" +
+    "② <b>改</b>：成员拿 XML 改完回传。XML 一条记录一个元素，比 xlsx 好 diff。<br>" +
+    "③ <b>回传</b>：在「文献 → 导入登记表」里把方式切到「协作交换 XML」→ 预检 → 管理员批准 → 入库。<br>" +
+    '<span class="muted">原文正文与图版文件不走 XML：正文用「详情 → 阅读原文」下载，' +
+    "图版在 <span class=\"mono\">04_文献图像/</span> 目录里，XML 里只给文件名与链接。</span>" +
+    "</div></div>" +
+    '<div class="fullblk"><div class="barhead">导出 XML</div>' +
+    '<div class="formrow">' +
+    '<span class="fl">范围</span>' +
+    '<select id="ex-scope"><option value="">全部文献</option>' +
+    '<option value="pending">仅当前筛选结果（文献页的筛选条件）</option></select>' +
+    '<button class="btn" id="ex-go">导出</button>' +
+    '<span class="small muted" id="ex-msg"></span></div>' +
+    '<div class="small muted" style="margin:6px 0 0">导出的是「协作交换数据集」，成员改完直接回传。</div>' +
+    "</div>" +
+    '<div class="fullblk"><div class="barhead">单篇结构化 XML（视图）</div>' +
+    '<div class="small muted">在文献详情页点「🧾 结构化 XML」可看单篇的 XML（与交换格式同一套定义）。</div>' +
+    "</div>";
+  view.innerHTML = html;
+  var go = document.getElementById("ex-go");
+  if (go) go.addEventListener("click", doExportXml);
+}
+function doExportXml() {
+  var scope = document.getElementById("ex-scope");
+  var msg = document.getElementById("ex-msg");
+  var ids = "";
+  if (scope && scope.value === "pending") {
+    var p = state.list || {};
+    /* 「仅当前筛选结果」：文献页的筛选条件 → 交给后端按同样口径筛 */
+    var q = [];
+    if (p.q) q.push("q=" + encodeURIComponent(p.q));
+    ["doc_type", "lang", "year", "period", "region", "topic", "lineage"].forEach(function (k) {
+      if (p[k]) q.push(k + "=" + encodeURIComponent(p[k]));
+    });
+    ids = q.join("&");
+  }
+  var url = "/api/export/xml" + (ids ? "?" + ids : "");
+  if (msg) msg.textContent = "正在导出…";
+  /* 导出走浏览器下载（不 fetch 再存 blob —— 省一层内存与编码坑） */
+  var a = document.createElement("a");
+  a.href = url;
+  a.setAttribute("download", "");
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  if (msg) msg.textContent = "已开始下载（若没反应，检查浏览器是否拦截了下载）。";
+}
+
+function webdavHelpHtml() {  return WEBDAV_HELP.map(function (h) {
     return '<a href="' + esc(h.href) + '" target="_blank" rel="noopener">' + esc(h.t) + "</a>";
   }).join("　·　");
 }
@@ -4234,6 +4477,19 @@ function loadNotes() {
   });
 }
 (function init() {
+  /* ★ 阅读原文窗口：关闭按钮 / ESC / 点遮罩空白处关闭 */
+  var rc = $("#raw-close");
+  if (rc) rc.addEventListener("click", rawHide);
+  var rm = $("#raw-modal");
+  if (rm) {
+    rm.addEventListener("click", function (e) {
+      /* 点到最外层遮罩（不是内容区）才关 —— 否则点正文会误关 */
+      if (e.target === rm) rawHide();
+    });
+  }
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && rm && rm.style.display !== "none") rawHide();
+  });
   api("/api/overview").then(function (r) {
     if (r.ok) {
       state.ov = r.data;

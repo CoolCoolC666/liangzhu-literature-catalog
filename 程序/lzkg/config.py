@@ -132,6 +132,16 @@ def _default_config() -> dict:
         "browse_server": {
             "enabled": True,
         },
+        # ── 原文通道（阅读原文 / 下载）────────────────────────────
+        # ★ access 三档（用户 2026-10-31 选定 **open**）：
+        #   open     —— 登录与否都给原文（当前默认）
+        #   login    —— 必须登录
+        #   oa_only  —— 只给开放获取/公开类，机构订阅件不给
+        # 收紧时**改这里即可**，不用改代码。
+        # ★ 不放任何密钥。
+        "raw": {
+            "access": "open",
+        },
         # ── 公网发布（Cloudflare Access）──────────────────────────
         # ★ 这里只放**公开信息**，不放任何密钥：
         #   access_aud 是应用 AUD（公开可查），access_team_domain 用来取

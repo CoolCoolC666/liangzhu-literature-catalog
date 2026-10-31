@@ -28,6 +28,45 @@ from datetime import datetime, timedelta, timezone
 
 from .common import CST, now_str
 from .config import get_config
+
+
+# ── 两道权限锁 ─────────────────────────────────────────────────────────
+# ★ 放在 `auth.py` 而不是 `api_v2.py`：
+#   鉴权是**跨模块**的基础设施（原文资源、XML 协作、MCP… 都要用）。
+#   留在 api_v2 里会让新模块反向 import api_v2 → 循环依赖。
+def require_admin(x_auth_token: str = ""):
+    """管理端点的接口层锁。
+
+    * `auth.enabled=false`（本机默认）→ 所有人视为 admin 免登录身份；
+    * 未登录 → 401；登录了但不是 admin → **403**。
+    """
+    p = resolve_principal(x_auth_token or "")
+    if p is None:
+        raise AuthError(401, "请先登录")
+    if not p.is_admin:
+        raise AuthError(403, "需要管理员权限")
+    return p
+
+
+def require_login(x_auth_token: str = ""):
+    """需要登录（可以是 member）。未登录 → 401。"""
+    p = resolve_principal(x_auth_token or "")
+    if p is None:
+        raise AuthError(401, "请先登录")
+    return p
+
+
+class AuthError(Exception):
+    """鉴权失败。→ (状态码, 人话说明)
+
+    ★ 为什么不直接用 HTTPException：`auth.py` 不该依赖 web 层。
+      端点层（api_v2 / api_raw）捕获它并转成 `ApiError`。
+    """
+
+    def __init__(self, status_code: int, error: str):
+        super().__init__(error)
+        self.status_code = status_code
+        self.error = error
 from .db import connect
 
 # scrypt 参数：n=2**14, r=8, p=1（标准库的推荐交互参数，内存 ~16MB）

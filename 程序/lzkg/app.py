@@ -947,6 +947,9 @@ def api_notes():
 # ══════════════════════════════════════════════════════════════════════
 from .api_v2 import ApiError, router as _router_v2   # noqa: E402
 
+# 原文资源 + XML 协作（另装，避免本文件继续膨胀）
+from .api_raw import router as _router_raw   # noqa: E402
+
 
 @app.exception_handler(ApiError)
 async def _api_v2_error_handler(request: Request, exc: ApiError):
@@ -977,6 +980,7 @@ def _ensure_runtime_columns():
 
 
 app.include_router(_router_v2)
+app.include_router(_router_raw)
 
 # ── 本地第三方库（Leaflet 等）──────────────────────────────────────────
 # ★ 为什么需要挂
