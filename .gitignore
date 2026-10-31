@@ -14,6 +14,11 @@
 程序/data/record/
 程序/data/exports/
 程序/data/解析暂存/
+# ★ 源数据副本（原始 PDF / MinerU 解析结果 / 文献全文 / 图版 / 登记表，约 2.1 GB）
+#   —— 这些是**机构订阅件**，绝不能进公开仓库。
+#   它随「数据包」单独分发，见 03/_tools/build_data_package.py。
+程序/data/source/
+程序/data/source_sync_report.json
 
 # ---------- 凭据与密钥（★ 绝不能提交）----------
 程序/data/*token*

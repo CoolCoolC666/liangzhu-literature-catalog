@@ -26,18 +26,27 @@ ASSIGNMENT_ROOT = PROGRAM_ROOT.parent.parent        # ...\2-作业
 def _find_source_root() -> Path:
     """定位 04_专题研究。
 
-    查找顺序（从最省事到最兜底）：
-      1. 环境变量 LZKG_SOURCE_ROOT
-      2. 程序所在作业根下的 02*(...)/04_专题研究      ← 课程原始布局
-      3. 从程序目录往上 4 层，找任意 */04_专题研究      ← 包被解压到别处时也能找到
-      4. 兜底返回一个不存在的路径，由 migrate/doctor 给出明确报错
+    查找顺序（从最优先到最兜底）：
+      1. 环境变量 LZKG_SOURCE_ROOT                    ← 显式指定永远最优先
+      2. **程序自带的 data/source/**                     ← v3.8 起：源数据随程序走
+      3. 程序所在作业根下的 02*(...)/04_专题研究        ← 课程原始布局
+      4. 从程序目录往上 4 层，找任意 */04_专题研究      ← 包被解压到别处时也能找到
+      5. 兜底返回一个不存在的路径，由 migrate/doctor 给出明确报错
 
     ★ 不写死绝对路径：整个项目目录搬走、对接包被解压到桌面，都还能找到。
+    ★ 第 2 条是 v3.8 新增：源数据（PDF / 解析结果 / MD / 图版 / 登记表，约 2.1 GB）
+      已复制进 `01-程序/data/source/`，这样**程序不依赖作业 02 目录也能跑**
+      （图版 `/media/img/`、原文通道 PDF / Markdown 都从这份本地副本读）。
+      外部课程布局仍然保留在后面 → **旧作业照旧能用，向后兼容**。
     """
     env = os.environ.get("LZKG_SOURCE_ROOT")
     candidates = []
     if env:
         candidates.append(Path(env))
+    # 程序自带的源数据副本（★ 优先于外部课程布局）
+    local_src = DATA_DIR / "source"
+    if (local_src / "05_登记表").is_dir():
+        candidates.append(local_src)
     if ASSIGNMENT_ROOT.exists():
         for d in sorted(ASSIGNMENT_ROOT.glob("02*")):
             candidates.append(d / "04_专题研究")
@@ -232,7 +241,17 @@ class Config:
 
     @property
     def source_root(self) -> Path:
-        return Path(self.data["source"]["root"])
+        """源数据根目录。
+
+        ★ 配置里显式写的路径**优先**（用户可能故意指到别处）。
+        ★ 但如果那个路径**不存在**（换机器、目录被挪走、对接包被解压到别处），
+          就回退到自动发现 —— 否则程序会拿着一堆「文件不存在」的报错，
+          比找不到路径更难排查。
+        """
+        p = Path(self.data["source"]["root"])
+        if p.is_dir():
+            return p
+        return _find_source_root()
 
     @property
     def local_detail_enabled(self) -> bool:

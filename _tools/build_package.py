@@ -169,6 +169,14 @@ def build(version: str, out: Path) -> dict:
         raise SystemExit(f"[X] 包内文件损坏：{bad}")
     if missing:
         raise SystemExit(f"[X] 包里缺这些必备文件：{missing}")
+    # ★ 硬红线：源数据副本（机构订阅原件，约 2.1 GB）**不进对接包**。
+    #   包里已有 lzkg.db（含可检索的全文与解析 JSON），体量可控；
+    #   原始 PDF 与图版文件本体走**单独的数据包**（build_data_package.py）。
+    leaked = [n for n in names if n.startswith(f"{TOP}/data/source/")]
+    if leaked:
+        raise SystemExit(
+            f"[X] 拒绝出包：包内出现了 {len(leaked)} 个 data/source/ 文件 —— "
+            "源数据是机构订阅件，对接包只带程序与库，原始文件单独分发。")
 
     h = hashlib.sha256(out.read_bytes()).hexdigest()[:16]
     return {
