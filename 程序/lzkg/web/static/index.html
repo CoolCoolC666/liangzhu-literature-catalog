@@ -2302,9 +2302,56 @@ function renderAccountPage() {
 }
 function renderFavPage() {
   view.innerHTML = subBar("② 我的收藏", "GET /api/favorites · DELETE /api/favorites/{lit_id}") +
-    '<div class="fullblk"><div id="w-fav"><div class="loading"><span class="spin"></span>加载中…</div></div></div>';
-  loadFavBlock();
+    '<div class="fullblk"><div class="barhead">收藏检索<span class="tag">两层：先题名/备注，再全文</span></div>' +
+    '<div class="formrow"><label class="fl">题名/备注</label>' +
+    '<input type="text" id="fav-t" style="flex:1;min-width:200px" placeholder="如：保护 利用">' +
+    '<label class="fl">全文关键词</label>' +
+    '<input type="text" id="fav-q" style="flex:1;min-width:200px" placeholder="如：玉琮 分期（搜摘要/关键词/正文）">' +
+    '<button class="btn" id="fav-go">检索</button>' +
+    '<button class="btn ghost" id="fav-clear">清空</button></div>' +
+    '<div class="small muted">两层是<b>并且</b>关系：先按题名/备注筛，再在剩下的收藏里做全文检索。' +
+    '检索<b>只在你的收藏里</b>进行，不会翻出没收藏的文献。</div>' +
+    '<div id="w-fav"><div class="loading"><span class="spin"></span>加载中…</div></div></div>';
+  bindFavSearch();
+  loadFavBlock("", "");
 }
+function favSearchParams() {
+  var t = $("#fav-t"), q = $("#fav-q");
+  return { t: t ? t.value : "", q: q ? q.value : "" };
+}
+function bindFavSearch() {
+  var go = $("#fav-go");
+  if (go) {
+    go.addEventListener("click", function () {
+      var p = favSearchParams();
+      loadFavBlock(p.t, p.q);
+    });
+  }
+  var cl = $("#fav-clear");
+  if (cl) {
+    cl.addEventListener("click", function () {
+      var t = $("#fav-t"), q = $("#fav-q");
+      if (t) t.value = "";
+      if (q) q.value = "";
+      loadFavBlock("", "");
+    });
+  }
+  ["fav-t", "fav-q"].forEach(function (id) {
+    var el = $("#" + id);
+    if (!el) return;
+    el.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter" || ev.keyCode === 13) {
+        var p = favSearchParams();
+        loadFavBlock(p.t, p.q);
+      }
+    });
+  });
+}
+/* snippet 里带 <mark> 高亮标记：先整体转义，再把转义后的标记放回来 */
+function escMark(s) {
+  return esc(nz(s)).replace(/&lt;mark&gt;/g, "<mark>").replace(/&lt;\/mark&gt;/g, "</mark>");
+}
+var FAV_MATCH_LABEL = { title_note: "题名/备注命中", full: "全文命中", both: "两层都命中" };
 function renderReviewPage() {
   if (!isAdmin()) {
     /* 界面层过滤：非管理员整块不出现（接口层后端也会 403） */
@@ -2318,10 +2365,14 @@ function renderReviewPage() {
     '<div class="fullblk"><div id="w-staging"><div class="loading"><span class="spin"></span>加载中…</div></div></div>';
   loadStagingBlock();
 }
-function loadFavBlock() {
+function loadFavBlock(t, q) {
   var box = $("#w-fav");
   if (!box) return;
-  api("/api/favorites").then(function (r) {
+  t = t || ""; q = q || "";
+  var params = {};
+  if (t) params.t = t;
+  if (q) params.q = q;
+  api("/api/favorites", params).then(function (r) {
     if (!r.ok) {
       box.innerHTML = '<div class="notice bad">收藏列表不可用：' + esc(r.error) + "</div>";
       return;
@@ -2329,16 +2380,35 @@ function loadFavBlock() {
     var d = r.data || {};
     var items = d.items || d.list || [];
     state.fav.items = items;
+    var total = (d.total !== undefined) ? d.total : items.length;
     if (!items.length) {
-      box.innerHTML = emptyBox("还没有收藏。在文献详情页点「☆ 收藏」即可加入。");
+      if (t || q) {
+        box.innerHTML = '<div class="notice">收藏共 ' + fmtNum(total) + " 条，但没有一条命中当前检索条件。</div>";
+      } else {
+        box.innerHTML = emptyBox("还没有收藏。在文献详情页点「☆ 收藏」即可加入。");
+      }
       return;
     }
-    var h = '<div class="notice">共 ' + fmtNum(items.length) + " 条（/api/favorites）</div>";
+    var h = '<div class="notice">收藏共 ' + fmtNum(total) + " 条，当前匹配 " + fmtNum(items.length) + " 条";
+    if (d.mode) h += "（全文检索方式：" + esc(d.mode) + "）";
+    h += "</div>";
     h += '<div class="litlist">';
     items.forEach(function (it) {
+      var meta = [];
+      if (it.year) meta.push(esc(nz(it.year)));
+      if (it.venue) meta.push(esc(nz(it.venue)));
+      if (it.authors) meta.push(esc(nz(it.authors)));
+      if (it.open_type) meta.push(esc(nz(it.open_type)));
       h += '<div class="litrow" style="grid-template-columns:1fr 150px">' +
-        '<div><div class="ttl"><a href="#/lit/' + esc(it.lit_id) + '">' + esc(nz(it.title)) + "</a></div>" +
-        '<div class="tg">' + esc(nz(it.note)) + (it.created_at ? "　" + esc(it.created_at) : "") + "</div></div>" +
+        "<div>" +
+        '<div class="ttl"><a href="#/lit/' + esc(it.lit_id) + '">' + esc(nz(it.title)) + "</a>" +
+        (it.matched && FAV_MATCH_LABEL[it.matched] ?
+          ' <span class="pill">' + esc(FAV_MATCH_LABEL[it.matched]) + "</span>" : "") + "</div>" +
+        (meta.length ? '<div class="tg">' + meta.join("　") + "</div>" : "") +
+        (it.snippet ? '<div class="tg">' + escMark(it.snippet) + "</div>" : "") +
+        (it.abstract && !it.snippet ? '<div class="tg">' + esc(nz(it.abstract)) + "</div>" : "") +
+        '<div class="tg">' + esc(nz(it.note)) + (it.created_at ? "　" + esc(it.created_at) : "") + "</div>" +
+        "</div>" +
         '<div><button class="btn ghost" data-unfav="' + esc(it.lit_id) + '">取消收藏</button></div></div>';
     });
     h += "</div>";
@@ -2348,7 +2418,7 @@ function loadFavBlock() {
         var id = btn.getAttribute("data-unfav");
         apiSend("DELETE", "/api/favorites/" + encodeURIComponent(id), null).then(function (r2) {
           if (!r2.ok) { box.insertAdjacentHTML("afterbegin", '<div class="notice bad">取消失败：' + esc(r2.error) + "</div>"); return; }
-          loadFavBlock();
+          loadFavBlock(t, q);
         });
       });
     });

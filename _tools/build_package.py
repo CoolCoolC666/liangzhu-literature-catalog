@@ -73,6 +73,8 @@ REQUIRED = [
     "tests/test_all.py",
     "tests/test_graphview.py",
     "tests/test_rawtext.py",
+    "tests/test_favsearch.py",
+    "tests/test_favsearch.js",
     "tests/test_webdav_live.py",
     "tests/test_wdsafename.js",
     "tests/test_browsemerge.js",

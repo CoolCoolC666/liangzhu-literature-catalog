@@ -384,19 +384,71 @@ def auth_password(body: dict, user=Depends(require_login)):
 # ══════════════════════════════════════════════════════════════════════
 # P2 · 收藏
 # ══════════════════════════════════════════════════════════════════════
+def _fav_match_title_note(item: dict, tokens: list[str]) -> bool:
+    """题名 / 备注的**本地快速筛**：所有词都要出现（AND），忽略大小写。"""
+    hay = (item["title"] or "") + " " + (item["note"] or "")
+    hay = hay.lower()
+    return all(t.lower() in hay for t in tokens)
+
+
 @router.get("/favorites")
-def favorites_list(user=Depends(require_login)):
+def favorites_list(t: str = "", q: str = "", user=Depends(require_login)):
+    """收藏列表 + **两层检索**。
+
+    - `t`：**题名 / 备注**的本地快速筛（多词 AND，忽略大小写）
+    - `q`：**全文检索**（题名 / 摘要 / 关键词 / 正文），**只在收藏集合内筛**
+
+    ★ `q` 走全库检索再与收藏集合取交集 —— 收藏页**绝不能**返回没收藏的文献。
+    ★ 两个都为空 → 返回全部收藏（与旧行为一致，向后兼容）。
+    """
     conn = connect()
     try:
         uid = _uid(conn, user)
         rows = conn.execute(
-            "SELECT f.lit_id, f.note, f.created_at, l.title "
+            "SELECT f.lit_id, f.note, f.created_at, l.title, l.authors, l.year, "
+            "       l.venue, l.keywords, l.abstract, l.open_type, l.doc_type "
             "FROM favorites f LEFT JOIN literatures l ON l.lit_id = f.lit_id "
             "WHERE f.user_id = ? ORDER BY f.created_at DESC, f.lit_id", (uid,)).fetchall()
         items = [{"lit_id": r["lit_id"], "title": r["title"] or "",
-                  "note": r["note"] or "", "created_at": r["created_at"] or ""}
+                  "note": r["note"] or "", "created_at": r["created_at"] or "",
+                  "authors": r["authors"] or "", "year": r["year"] or "",
+                  "venue": r["venue"] or "", "keywords": r["keywords"] or "",
+                  "abstract": (r["abstract"] or "")[:300],
+                  "open_type": r["open_type"] or "", "doc_type": r["doc_type"] or "",
+                  "snippet": "", "matched": ""}
                  for r in rows]
-        return ok({"items": items, "total": len(items)})
+        total = len(items)
+
+        t_tokens = [x for x in re.split(r"[\s,，;；、]+", (t or "").strip()) if x]
+        q = (q or "").strip()
+        mode = ""
+        snippets: dict[str, str] = {}
+
+        if q:
+            # 惰性导入：app.py 顶层要 import 本模块，直接 import 会循环依赖
+            from .app import _match_lit_ids
+            hits, mode = _match_lit_ids(conn, q)
+            snippets = hits
+
+        out = []
+        for it in items:
+            by_t = bool(t_tokens) and _fav_match_title_note(it, t_tokens)
+            by_q = bool(q) and (it["lit_id"] in snippets)
+            if t_tokens and not by_t:
+                continue
+            if q and not by_q:
+                continue
+            if by_t and by_q:
+                it["matched"] = "both"
+            elif by_t:
+                it["matched"] = "title_note"
+            elif by_q:
+                it["matched"] = "full"
+            it["snippet"] = snippets.get(it["lit_id"], "") or ""
+            out.append(it)
+
+        return ok({"items": out, "total": total, "matched": len(out),
+                   "filters": {"t": (t or "").strip(), "q": q}, "mode": mode})
     finally:
         conn.close()
 

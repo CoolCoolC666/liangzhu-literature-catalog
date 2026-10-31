@@ -312,8 +312,12 @@ def _match_lit_ids(conn, q: str) -> tuple[dict[str, str], str]:
         mode = "like"
     if mode == "like":
         where, params = like_clause(tokens, ["content"])
+        # ★ 起点必须写成 max(instr(...) - 40, 1)。
+        #   写成 max(instr(...), 1) - 40 会在命中位置靠前时算出**负数**起点，
+        #   而 SQLite 的 substr 负起点 = 从**末尾**往回数 → 片段落在文末作者简介，
+        #   命中处根本不在片段里（实测：搜「保护」返回的是文末的「作者简介」一段）。
         rows = conn.execute(
-            f"SELECT lit_id, substr(content, max(instr(content, ?), 1) - 40, 130) s "
+            f"SELECT lit_id, substr(content, max(instr(content, ?) - 40, 1), 130) s "
             f"FROM docs_fts WHERE {where} LIMIT 400", [tokens[0]] + params).fetchall()
         for r in rows:
             frag = (r["s"] or "").replace("\n", " ")
