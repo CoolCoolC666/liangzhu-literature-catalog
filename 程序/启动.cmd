@@ -71,6 +71,23 @@ if errorlevel 1 (
     )
 )
 
+rem ---- port check ----
+rem NOTE: if the site is already running, uvicorn exits right away with
+rem   "address already in use" and this window closes -> the user sees
+rem   "double click and it flashes and dies" with no clue why.
+rem   The port below must match the URL used further down.
+"%PY%" -c "import socket,sys;s=socket.socket();s.settimeout(1);r=s.connect_ex(('127.0.0.1',8771));s.close();sys.exit(0 if r==0 else 1)" >nul 2>&1
+if not errorlevel 1 (
+    echo.
+    echo   Port 8771 is already in use.
+    echo   The site is probably already running - just open:
+    echo       http://127.0.0.1:8771/
+    echo   Or close the other window first, then start again.
+    echo.
+    pause
+    exit /b 0
+)
+
 rem ---- database ----
 if not exist "data\lzkg.db" (
     echo   Database not found. Migrating data, please wait ...

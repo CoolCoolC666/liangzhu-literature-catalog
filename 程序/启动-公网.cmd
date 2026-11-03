@@ -44,6 +44,19 @@ if errorlevel 1 (
     )
 )
 
+rem ---- port check ----
+rem NOTE: same reason as the local start script: an already-running site
+rem   makes the server exit instantly, and the window closes with no clue.
+"%PY%" -c "import socket,sys;s=socket.socket();s.settimeout(1);r=s.connect_ex(('127.0.0.1',8771));s.close();sys.exit(0 if r==0 else 1)" >nul 2>&1
+if not errorlevel 1 (
+    echo.
+    echo   Port 8771 is already in use - the site is probably already running.
+    echo   Close the other window first, then start again.
+    echo.
+    pause
+    exit /b 0
+)
+
 "%PY%" "%~dp0public.py" start
 echo.
 echo   Public check:  "%PY%" "%~dp0public.py" check

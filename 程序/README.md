@@ -835,7 +835,7 @@ LIKE 降级分支的片段定位写错了：
 
 | 包 | 内容 | 体积 | 给谁 |
 |---|---|---|---|
-| `良渚文献目录站_对接包_v3.8.zip` | 程序 + 库（`lzkg.db`，**可检索的全文与解析 JSON 已在库内**） | ~90 MB | 组员：装完就能跑、能检索 |
+| `良渚文献目录站_对接包_v3.9.zip` | 程序 + 库（`lzkg.db`，**可检索的全文与解析 JSON 已在库内**） | ~120 MB | 组员：装完就能跑、能检索 |
 | `良渚文化原始数据包_v3.8.zip` | `data/source/**`（PDF / 解析结果 / MD / 图版 / 登记表） | ~1.96 GB | 需要**原始 PDF 与图版文件本体**的人 |
 
 解压方式：数据包解开后，把 `良渚文化原始数据/` 里的五个子目录放进
@@ -944,9 +944,9 @@ python -m lzkg segment-status   # 看索引版本 / 词典指纹 / 是否 stale
 
 ### 8. 判据
 
-`tests/test_segment.py`（**31 项**）+ `tests/test_all.py --api`（**170 项**）一并跑，全绿。
-收尾全量回归：`test_segment` 31 + `test_all --api` 170 + `favsearch` 30 + `rawtext` 97
-+ `source_data` 35 = **363 项全通过**。
+`tests/test_segment.py`（**31 项**）+ `tests/test_all.py --api`（**172 项**）一并跑，全绿。
+收尾全量回归：`test_segment` 31 + `test_all --api` 172 + `favsearch` 30 + `rawtext` 97
++ `source_data` 35 = **365 项全通过**。
 
 ### ★ 本轮踩过的坑（别再踩一遍）
 
@@ -967,6 +967,8 @@ python -m lzkg segment-status   # 看索引版本 / 词典指纹 / 是否 stale
 | **旧判据不重跑** | 新功能落地后判据可能自己过时（红 3 项：2 真缺陷 + 1 判据过时）→ 收尾必跑全量 |
 | **依赖只在本机装、不声明** | `defusedxml`/`matplotlib`/`shapely` 代码在 import 却没进 `requirements.txt` → 换台机器双击 `启动.cmd` 闪退 |
 | **启动脚本的探测清单不完整** | 只查 5 个包 → 探测通过 → 跳过安装 → 启动缺模块 → 闪退；现在与 requirements.txt 一一对应（12 个） |
+| **服务在跑时再双击 → 闪退** | 端口被占 → uvicorn 秒退 → 窗口关掉，什么都看不到；现在起服务前先探端口并 `pause` 提示 |
+| **batch 块内 echo 带括号** | `if ( ... )` 里的 `echo ... (xxx) ...` 被当块语法 → `and was unexpected` → 脚本崩；块内 echo 一律纯文本 |
 
 ---
 

@@ -89,7 +89,7 @@ def _requirement_names() -> set[str]:
 
 
 def test_requirements():
-    section("依赖声明")
+    section("依赖与启动")
     imported = {MODULE_TO_PIP.get(m, m) for m in _third_party_imports()}
     declared = _requirement_names()
     missing = sorted(imported - declared)
@@ -113,6 +113,21 @@ def test_requirements():
         gap = sorted({PIP_TO_IMPORT.get(x, x) for x in declared} - probed)
         check(f"{cmd} 的依赖探测清单覆盖 requirements.txt 全部包",
               not gap, f"探测漏了：{gap}")
+
+    # 端口预检：服务已在跑时再双击 → uvicorn 秒退 → 窗口「一闪就没」。
+    # 预检必须排在起服务之前，并把话说明白（而不是让窗口自己关掉）。
+    for cmd, serve_marker in (("启动.cmd", "lzkg serve"),
+                               ("启动-公网.cmd", 'public.py" start')):
+        p = PROGRAM_ROOT / cmd
+        if not p.exists():
+            continue
+        txt = p.read_text(encoding="utf-8", errors="replace")
+        i_probe = txt.find("connect_ex")
+        i_serve = txt.find(serve_marker)
+        check(f"{cmd} 起服务前有端口占用预检（否则双击就是一闪就没）",
+              i_probe >= 0 and i_serve >= 0 and i_probe < i_serve
+              and "already in use" in txt,
+              f"预检位置={i_probe} 起服务位置={i_serve}")
 
 
 # ── 数据层 ──────────────────────────────────────────────────────────────
