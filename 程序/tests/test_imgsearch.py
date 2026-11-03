@@ -406,6 +406,26 @@ def test_frontend():
           f"外链 {len(ext)} 处")
 
 
+def test_lightbox():
+    section("判据 17 · 大图查看器（点图看大图，不跳文献）")
+    idx = Path(__file__).resolve().parent.parent / "lzkg" / "web" / "static" / "index.html"
+    s = idx.read_text(encoding="utf-8")
+    check("判据17 前端有大图查看器（lbOpen / lbPaint / lbClose）",
+          "function lbOpen" in s and "function lbPaint" in s and "function lbClose" in s, "")
+    check("判据17 页面里有大图容器 #lb", 'id="lb"' in s and 'id="lb-img"' in s, "")
+    # ★ 点图**不跳文献**：缩略图不再是到文献详情的 <a href="#/lit/...">
+    check("判据17 图版检索页的缩略图不再是指向文献的链接",
+          '<a class="thumb" href="#/lit/' not in s, "")
+    check("判据17 缩略图带 data-lbg（点开走大图查看器）",
+          'data-lbg=' in s and 'data-lbi=' in s and "search" in s, "")
+    check("判据17 详情页图版带 data-lbg=\"detail\"（文献图版也能看大图）",
+          'data-lbg="' in s and "lbFromImg" in s, "")
+    # 跳文献的能力不能丢：改成**显式按钮**
+    check("判据17 仍然保留显式的「打开该文献」入口",
+          "打开该文献" in s, "")
+    check("判据17 大图查看器支持翻页与 Esc 关闭",
+          "lbStep" in s and "ArrowLeft" in s and "Escape" in s, "")
+
 def test_rebuild_idempotent():
     section("判据 16 · 重建幂等（行数与指纹都不变）")
     from lzkg.db import connect
@@ -436,6 +456,7 @@ def main():
         test_review_display_only()
         test_related_and_stats()
     test_frontend()
+    test_lightbox()
     test_rebuild_idempotent()
     passed = sum(1 for ok, _, _ in _results if ok)
     failed = [(n, d) for ok, n, d in _results if not ok]

@@ -332,6 +332,13 @@ footer p{margin:3px 0}
 .imgcard .ttl{font-weight:600;margin-bottom:3px;line-height:1.35}
 .imgcard .snip{color:var(--ink2);margin:4px 0 6px;line-height:1.45}
 .imgcard .badges{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:5px}
+/* ★ 大图查看器（点图看大图，不跳文献） */
+#lb{position:fixed;inset:0;z-index:9500;background:rgba(10,16,22,.93)}
+#lb .lbcap{color:#e6ecf1;max-width:1180px;text-align:center;margin:10px 16px;font-size:12.5px;line-height:1.6}
+#lb .lbimg{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:0 16px}
+#lb .lbimg img{max-width:100%;max-height:100%;object-fit:contain;background:#fff;border-radius:4px}
+#lb .lbbar{display:flex;gap:10px;align-items:center;justify-content:center;padding:12px;flex-wrap:wrap}
+.imgtile[data-lbg],.imgcard .thumb[data-lbg]{cursor:zoom-in}
 .badge{display:inline-block;font-size:11.5px;border-radius:9px;padding:1px 7px;border:1px solid #dde6ec;background:#eef3f6;color:var(--ink2)}
 .badge.hit{background:#e8f3fb;border-color:#c8dff0;color:#1d5f88}
 .badge.pass{background:#eaf6ee;border-color:#c6e4d0;color:#1e6b38}
@@ -364,6 +371,15 @@ footer p{margin:3px 0}
 
 <main id="view"><div class="loading"><span class="spin"></span>正在初始化…</div></main>
 
+<!-- ★ 大图查看器：点图看大图，不跳文献（文献跳转改成显式按钮） -->
+<div id="lb" style="display:none">
+  <div style="position:absolute;inset:0" id="lb-mask"></div>
+  <div style="position:relative;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center">
+    <div class="lbcap" id="lb-cap"></div>
+    <div class="lbimg"><img id="lb-img" alt="图版大图"></div>
+    <div class="lbbar" id="lb-bar"></div>
+  </div>
+</div>
 <!-- ★ 阅读原文窗口（模态） -->
 <div id="raw-modal" style="display:none;position:fixed;inset:0;background:rgba(18,26,34,.55);z-index:9000;">
   <div style="position:absolute;inset:24px;background:var(--card);border-radius:8px;
@@ -812,7 +828,9 @@ function renderOverview() {
           html += emptyBox("暂无图版记录");
         } else {
           html += '<div class="imgs">';
-          items.slice(0, 4).forEach(function (im2) { html += imgTile(im2); });
+          var shown = items.slice(0, 4);
+          LB_GROUPS.glance = shown.map(lbFromImg);
+          shown.forEach(function (im2, i2) { html += imgTile(im2, i2, "glance"); });
           html += "</div>";
         }
       }
@@ -1330,10 +1348,112 @@ function imgSrc(im) {
   if (!name) return "";
   return "/media/img/" + encodeURIComponent(name);
 }
-function imgTile(im) {
+/* ★ 大图查看器
+   点图 = 看大图，**不跳文献**；要看文献得点旁边那个显式按钮。
+   两处共用：文献详情页的图版区、图版速览、图版检索页。
+   翻页用 ← →，关闭用 Esc。 */
+var LB_GROUPS = {};
+var LB = { items: [], idx: 0, on: false };
+function lbFromImg(im) {
+  var fig = im.fig_no ? ("图 " + im.fig_no) : (im.filename || "");
+  return {
+    src: imgSrc(im),
+    fig: fig,
+    caption: im.caption || "",
+    meta: "页码 " + nz(im.pdf_page !== undefined ? im.pdf_page : im.orig_page) +
+          "　图型 " + nz(im.img_type) + "　对象 " + nz(im.obj_type) +
+          "　复核 " + nz(im.review_status),
+    lit_id: im.lit_id || ""
+  };
+}
+function lbFromSearch(it) {
+  var fig = it.fig_no ? ("图 " + it.fig_no) : (it.img_title || "");
+  return {
+    src: it.thumb_url || "",
+    fig: fig,
+    caption: it.caption_zh || it.caption || "",
+    meta: "图型 " + nz(it.img_type) + "　对象 " + nz(it.obj_type) +
+          "　复核 " + nz(it.review_status),
+    lit_id: it.lit_id || ""
+  };
+}
+function lbOpen(gid, idx) {
+  var items = LB_GROUPS[gid] || [];
+  if (!items.length) return;
+  LB.items = items;
+  LB.idx = idx || 0;
+  LB.on = true;
+  lbPaint();
+  var el = document.getElementById("lb");
+  if (el) el.style.display = "block";
+}
+function lbClose() {
+  LB.on = false;
+  var el = document.getElementById("lb");
+  if (el) el.style.display = "none";
+}
+function lbStep(d) {
+  if (!LB.items.length) return;
+  LB.idx = (LB.idx + d + LB.items.length) % LB.items.length;
+  lbPaint();
+}
+function lbPaint() {
+  var it = LB.items[LB.idx] || {};
+  var im = document.getElementById("lb-img");
+  if (im) { im.src = it.src || ""; im.alt = it.fig || "图版大图"; }
+  var cp = document.getElementById("lb-cap");
+  if (cp) {
+    var s = '<div style="font-weight:700">' + esc(it.fig || "") + "</div>";
+    if (it.caption) s += "<div>" + esc(it.caption) + "</div>";
+    if (it.meta) s += '<div style="color:#aebbc6">' + esc(it.meta) + "</div>";
+    cp.innerHTML = s;
+  }
+  var bar = document.getElementById("lb-bar");
+  if (bar) {
+    var h = '<span class="small">' + (LB.idx + 1) + " / " + LB.items.length + "</span>";
+    h += '<button class="btn ghost" id="lb-prev">← 上一张</button>';
+    h += '<button class="btn ghost" id="lb-next">下一张 →</button>';
+    if (it.lit_id) h += '<a class="btn ghost" id="lb-lit" href="#/lit/' + esc(it.lit_id) + '">打开该文献 →</a>';
+    h += '<button class="btn ghost" id="lb-close">关闭（Esc）</button>';
+    bar.innerHTML = h;
+    var pv = document.getElementById("lb-prev");
+    if (pv) pv.addEventListener("click", function () { lbStep(-1); });
+    var nx = document.getElementById("lb-next");
+    if (nx) nx.addEventListener("click", function () { lbStep(1); });
+    var cl = document.getElementById("lb-close");
+    if (cl) cl.addEventListener("click", lbClose);
+    var lt = document.getElementById("lb-lit");
+    if (lt) lt.addEventListener("click", lbClose);
+  }
+}
+function lbDelegate(e) {
+  var t = e.target;
+  while (t && t !== document.body) {
+    if (t.getAttribute && t.getAttribute("data-lbg")) {
+      e.preventDefault();
+      lbOpen(t.getAttribute("data-lbg"), parseInt(t.getAttribute("data-lbi") || "0", 10));
+      return;
+    }
+    t = t.parentNode;
+  }
+}
+function lbKey(e) {
+  if (!LB.on) return;
+  if (e.key === "Escape") lbClose();
+  else if (e.key === "ArrowLeft") lbStep(-1);
+  else if (e.key === "ArrowRight") lbStep(1);
+}
+document.addEventListener("click", lbDelegate, false);
+document.addEventListener("keydown", lbKey, false);
+(function () {
+  var mk = document.getElementById("lb-mask");
+  if (mk) mk.addEventListener("click", lbClose);
+})();
+function imgTile(im, idx, gid) {
   var s = imgSrc(im);
   var fig = im.fig_no ? ("图 " + im.fig_no) : (im.filename || "");
-  var h = '<div class="imgtile">';
+  var h = '<div class="imgtile" data-lbg="' + (gid || "detail") + '" data-lbi="' +
+    (idx || 0) + '" title="点击看大图">';
   h += '<img class="ph" loading="lazy" src="' + esc(s) + '" alt="' + esc(fig) + '" onerror="this.style.visibility=\'hidden\';this.nextElementSibling.style.display=\'block\';">';
   h += '<div class="cap" style="display:none;color:#9aa7b1">图像文件未找到</div>';
   h += '<div class="cap"><div class="fn">' + esc(nz(fig)) + "</div>" +
@@ -1491,7 +1611,8 @@ function renderDetail(litId) {
     if (!imgs.length) {
       html += emptyBox("该文献暂无图版记录。");
     } else {
-      html += '<div class="imgs">' + imgs.map(imgTile).join("") + "</div>";
+      LB_GROUPS.detail = imgs.map(lbFromImg);
+      html += '<div class="imgs">' + imgs.map(function (im, i) { return imgTile(im, i, "detail"); }).join("") + "</div>";
     }
 
     /* 原始 JSON */
@@ -5197,7 +5318,8 @@ function loadImgSearch() {
       return;
     }
     var h = "<div class=\"imgcards\">";
-    items.forEach(function (it) {
+    LB_GROUPS.search = items.map(lbFromSearch);
+    items.forEach(function (it, i) {
       var badges = "";
       (it.hit_layers || []).forEach(function (L) {
         badges += "<span class=\"badge hit\">" + esc(IMG_LAYER_LABEL[L] || L) + "</span>";
@@ -5206,13 +5328,15 @@ function loadImgSearch() {
         (it.review_verified ? "已复核" : "待复核") + "</span>";
       var title = it.caption_zh || it.img_title || ("图 " + (it.fig_no || ""));
       h += "<div class=\"imgcard\">";
-      h += "<a class=\"thumb\" href=\"#/lit/" + esc(it.lit_id) + "\"><img src=\"" + esc(it.thumb_url) + "\" loading=\"lazy\" alt=\"" + esc(title) + "\"></a>";
+      h += "<div class=\"thumb\" data-lbg=\"search\" data-lbi=\"" + i + "\" title=\"点击看大图\">" +
+        "<img src=\"" + esc(it.thumb_url) + "\" loading=\"lazy\" alt=\"" + esc(title) + "\"></div>";
       h += "<div class=\"meta\">";
       h += "<div class=\"ttl\">" + esc(title) + "</div>";
       if (it.snippet) h += "<div class=\"snip\">" + it.snippet + "</div>";
       h += "<div class=\"badges\">" + badges + "</div>";
       h += "<div class=\"small muted\">" + esc(it.lit_id) + (it.fig_no ? "　图 " + esc(it.fig_no) : "") +
         (it.img_type ? "　" + esc(it.img_type) : "") + "</div>";
+      h += "<div style=\"margin-top:6px\"><a class=\"btn ghost\" href=\"#/lit/" + esc(it.lit_id) + "\">打开该文献 →</a></div>";
       h += "</div></div>";
     });
     h += "</div>";
