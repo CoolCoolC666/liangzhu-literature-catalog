@@ -26,6 +26,24 @@ for %%C in ("py -3" "python" "python3") do (
 )
 if not defined PY goto :nopy
 
+rem ---- dependencies ----
+rem NOTE: same probe list as the local start script / requirements.txt.
+rem   public.py has no dependency handling of its own, so without this the
+rem   window dies on a missing module with a raw traceback.
+"%PY%" -c "import requests,fastapi,uvicorn,networkx,pyvis,openpyxl,httpx,mcp,defusedxml,matplotlib,shapely,jwt" >nul 2>&1
+if errorlevel 1 (
+    echo   Installing dependencies, please wait ...
+    "%PY%" -m pip install -q -r requirements.txt
+    if errorlevel 1 (
+        echo.
+        echo   [X] Dependency install failed. Try manually:
+        echo       "%PY%" -m pip install -r requirements.txt
+        echo.
+        pause
+        exit /b 1
+    )
+)
+
 "%PY%" "%~dp0public.py" start
 echo.
 echo   Public check:  "%PY%" "%~dp0public.py" check

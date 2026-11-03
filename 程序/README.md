@@ -944,9 +944,9 @@ python -m lzkg segment-status   # 看索引版本 / 词典指纹 / 是否 stale
 
 ### 8. 判据
 
-`tests/test_segment.py`（**31 项**）+ `tests/test_all.py --api`（**166 项**）一并跑，全绿。
-收尾全量回归：`test_segment` 31 + `test_all --api` 166 + `favsearch` 30 + `rawtext` 97
-+ `source_data` 35 = **359 项全通过**。
+`tests/test_segment.py`（**31 项**）+ `tests/test_all.py --api`（**170 项**）一并跑，全绿。
+收尾全量回归：`test_segment` 31 + `test_all --api` 170 + `favsearch` 30 + `rawtext` 97
++ `source_data` 35 = **363 项全通过**。
 
 ### ★ 本轮踩过的坑（别再踩一遍）
 
@@ -965,6 +965,8 @@ python -m lzkg segment-status   # 看索引版本 / 词典指纹 / 是否 stale
 | 词级/同义命中与两字词的片段**没打标记** | 这两条路是服务端自己截的原文 → 要手动补 `<mark>` |
 | `mode` 字段**混了两套口径** | 一度既表示四档模式又表示 `like`/`fts5` → 拆成 `mode` + `exact_backend` |
 | **旧判据不重跑** | 新功能落地后判据可能自己过时（红 3 项：2 真缺陷 + 1 判据过时）→ 收尾必跑全量 |
+| **依赖只在本机装、不声明** | `defusedxml`/`matplotlib`/`shapely` 代码在 import 却没进 `requirements.txt` → 换台机器双击 `启动.cmd` 闪退 |
+| **启动脚本的探测清单不完整** | 只查 5 个包 → 探测通过 → 跳过安装 → 启动缺模块 → 闪退；现在与 requirements.txt 一一对应（12 个） |
 
 ---
 

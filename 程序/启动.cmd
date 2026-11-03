@@ -52,7 +52,12 @@ echo   Kind       : %PYKIND%
 echo.
 
 rem ---- dependencies ----
-"%PY%" -c "import fastapi,uvicorn,networkx,pyvis,openpyxl" >nul 2>&1
+rem NOTE: The probe list MUST cover every third-party package in requirements.txt.
+rem   A partial probe is worse than none: the probe passes (fastapi is there),
+rem   the installer is skipped, and then the app dies on a missing module at
+rem   startup -> the window flashes and dies with no visible reason.
+rem   Keep this list == requirements.txt (test_all.py::test_requirements checks it).
+"%PY%" -c "import requests,fastapi,uvicorn,networkx,pyvis,openpyxl,httpx,mcp,defusedxml,matplotlib,shapely,jwt" >nul 2>&1
 if errorlevel 1 (
     echo   Installing dependencies, please wait ...
     "%PY%" -m pip install -q -r requirements.txt

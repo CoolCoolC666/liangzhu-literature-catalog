@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -38,6 +39,80 @@ def check(name: str, ok: bool, detail: str = ""):
 
 def section(t):
     print(f"\n=== {t} ===")
+
+
+# ── 依赖声明 ────────────────────────────────────────────────────────────
+# ★ 「代码 import 了，但 requirements.txt 没写」＝ 新机器装完依赖启动就崩。
+#   v3.9 实测踩过：defusedxml 被 api_raw 顶层 import（→ app.py 顶层 → 启动链），
+#   却漏写在 requirements.txt 里 → 组员那边 pip install 后双击启动.cmd 直接闪退。
+#   这条判据把「代码里的 import」和「声明的依赖」对账，漏一个就红。
+OPTIONAL_DEPS = {"jieba"}          # 故意不进 requirements（可选依赖，装了才有词级）
+MODULE_TO_PIP = {"PIL": "Pillow", "jwt": "PyJWT"}  # 少数模块名≠pip 名
+PIP_TO_IMPORT = {"PyJWT": "jwt"}  # 反查：启动脚本探测时用的是 import 名
+TRANSITIVE_DEPS = {"starlette"}    # fastapi 自带，不必单独声明
+
+
+def _third_party_imports() -> set[str]:
+    """扫 lzkg/*.py 里 import 的第三方**根模块**名（相对导入与标准库排除）。"""
+    import ast
+    import sys as _sys
+    std = set(getattr(_sys, "stdlib_module_names", set()))
+    found: set[str] = set()
+    for py in sorted((PROGRAM_ROOT / "lzkg").glob("*.py")):
+        try:
+            tree = ast.parse(py.read_text(encoding="utf-8"))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for a in node.names:
+                    found.add(a.name.split(".")[0])
+            elif isinstance(node, ast.ImportFrom):
+                if node.level:      # 相对导入 = 项目内模块
+                    continue
+                if node.module:
+                    found.add(node.module.split(".")[0])
+    return {m for m in found
+            if m not in std and m not in {"lzkg"} and m not in OPTIONAL_DEPS
+            and m not in TRANSITIVE_DEPS}
+
+
+def _requirement_names() -> set[str]:
+    """requirements.txt 里声明的包名（去注释、去版本约束）。"""
+    out: set[str] = set()
+    for line in (PROGRAM_ROOT / "requirements.txt").read_text(encoding="utf-8").splitlines():
+        line = line.split("#")[0].strip()
+        if not line:
+            continue
+        out.add(re.split(r"[<>=!~\[; ]", line, 1)[0].strip())
+    return out
+
+
+def test_requirements():
+    section("依赖声明")
+    imported = {MODULE_TO_PIP.get(m, m) for m in _third_party_imports()}
+    declared = _requirement_names()
+    missing = sorted(imported - declared)
+    check("requirements.txt 覆盖代码 import 的全部第三方库（漏一个 = 新机器启动即崩）",
+          not missing, f"代码用到但没声明：{missing}")
+    # 实测真值：当前硬依赖 12 个（requests/fastapi/uvicorn/networkx/pyvis/openpyxl/
+    #              httpx/mcp/defusedxml/matplotlib/shapely/PyJWT）
+    check("硬依赖包数 == 12（实测真值）",
+          len(declared) == 12, f"声明了 {len(declared)} 个：{sorted(declared)}")
+
+    # 启动脚本的探测清单必须与 requirements.txt 一致：
+    # 探测漏一个 → 探测通过 → 跳过安装 → 启动时缺模块 → 窗口闪退（比不探测更糟）。
+    for cmd in ("启动.cmd", "启动-公网.cmd"):
+        p = PROGRAM_ROOT / cmd
+        if not p.exists():
+            continue
+        txt = p.read_text(encoding="utf-8", errors="replace")
+        probed: set[str] = set()
+        for m in re.finditer(r'-c\s+"import ([A-Za-z0-9_,]+)"', txt):
+            probed |= {x.strip() for x in m.group(1).split(",") if x.strip()}
+        gap = sorted({PIP_TO_IMPORT.get(x, x) for x in declared} - probed)
+        check(f"{cmd} 的依赖探测清单覆盖 requirements.txt 全部包",
+              not gap, f"探测漏了：{gap}")
 
 
 # ── 数据层 ──────────────────────────────────────────────────────────────
@@ -881,6 +956,7 @@ def main():
         print("    先建库：python -m lzkg set-source \"<你的 04_专题研究>\" && python -m lzkg migrate")
         print("    （公开仓库不带库：库里有 CNKI 机构订阅的文献全文，不能公开外传。）")
     test_extra()
+    test_requirements()
     if "--layout" in sys.argv or "--all" in sys.argv:
         if has_db:
             test_layout()
