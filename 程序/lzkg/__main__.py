@@ -232,6 +232,43 @@ def cmd_set_source(args):
     return 0
 
 
+def cmd_launch(args):
+    """一键启动：**体检 → 起服务**。
+
+    ★ 体检两件事（都在起服务之前，错了才说得清）：
+      ① 依赖：缺了就自动 `pip install -r requirements.txt`（默认源失败换镜像重试）；
+      ② 端口：三态 —— free 起 / ours 已在跑（别重复起）/ other **被别的程序占着**。
+    ★ 端口必须分三态：被别的程序占着时双击会秒退，
+      用户还容易误以为「自己的站被劫持了」—— 这时要说人话并给换端口的办法。
+    """
+    from .launch import (PORT_OURS, PORT_OTHER, open_browser, preflight)
+    cfg = _cfg()
+    host = args.host or cfg.host
+    port = args.port or cfg.port
+    url = f"http://{host}:{port}/"
+    print(f"[lzkg] 体检：依赖 + 端口 {host}:{port}")
+    info = preflight(host, port, install=not args.no_install)
+    if not info["deps_ok"]:
+        print(f"[lzkg] 依赖还缺：{' '.join(info['missing'])}")
+        print(f"[lzkg] 手动装：\"{sys.executable}\" -m pip install -r requirements.txt")
+        return 3
+    if info["port"] == PORT_OURS:
+        print(f"[lzkg] 站点已经在跑了：{url}（不重复起）")
+        open_browser(url)
+        return 0
+    if info["port"] == PORT_OTHER:
+        print(f"[lzkg] 端口 {port} 被**别的程序**占着（不是本站）—— 这次不启动。")
+        print(f"[lzkg] 换个端口：\"{sys.executable}\" -m lzkg serve --port {port + 1}")
+        return 2
+    if args.public:
+        import subprocess
+        pub = Path(__file__).resolve().parent.parent / "public.py"
+        return subprocess.call([sys.executable, str(pub), "start"], cwd=str(pub.parent))
+    print(f"[lzkg] 打开 {url}")
+    open_browser(url)
+    return cmd_serve(args)
+
+
 def main(argv=None):
     # 输出重定向到文件时，Windows 默认 GBK 会把中文写成乱码 → 统一 UTF-8 + replace
     for stream in (sys.stdout, sys.stderr):
@@ -251,6 +288,13 @@ def main(argv=None):
     p.add_argument("--host", default="")
     p.add_argument("--port", type=int, default=0)
     p.set_defaults(func=cmd_serve)
+
+    p = sub.add_parser("launch", help="一键启动（体检依赖 + 端口，再起服务）")
+    p.add_argument("--host", default="")
+    p.add_argument("--port", type=int, default=0)
+    p.add_argument("--public", action="store_true", help="起公网形态（本地服务 + 隧道）")
+    p.add_argument("--no-install", action="store_true", help="缺依赖也不自动安装")
+    p.set_defaults(func=cmd_launch)
 
     p = sub.add_parser("stats", help="看库统计")
     p.set_defaults(func=cmd_stats)

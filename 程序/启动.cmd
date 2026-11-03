@@ -22,6 +22,10 @@ rem    So we try several entry points and ask the interpreter itself
 rem    for its real path via sys.executable.
 rem 3. The bundled runtime\ (if shipped alongside) is the last resort:
 rem    nothing to install, nothing to configure, no network needed.
+rem 4. Everything else (dependency check + install, port check, start)
+rem    lives in Python: lzkg/launch.py. Batch logic cannot be unit
+rem    tested, and half-done probes in batch are what made the launcher
+rem    "flash and die" without saying why.
 
 set "PY="
 set "PYKIND="
@@ -51,43 +55,6 @@ echo   Interpreter : %PY%
 echo   Kind       : %PYKIND%
 echo.
 
-rem ---- dependencies ----
-rem NOTE: The probe list MUST cover every third-party package in requirements.txt.
-rem   A partial probe is worse than none: the probe passes (fastapi is there),
-rem   the installer is skipped, and then the app dies on a missing module at
-rem   startup -> the window flashes and dies with no visible reason.
-rem   Keep this list == requirements.txt (test_all.py::test_requirements checks it).
-"%PY%" -c "import requests,fastapi,uvicorn,networkx,pyvis,openpyxl,httpx,mcp,defusedxml,matplotlib,shapely,jwt" >nul 2>&1
-if errorlevel 1 (
-    echo   Installing dependencies, please wait ...
-    "%PY%" -m pip install -q -r requirements.txt
-    if errorlevel 1 (
-        echo.
-        echo   [X] Dependency install failed. Try manually:
-        echo       "%PY%" -m pip install -r requirements.txt
-        echo.
-        pause
-        exit /b 1
-    )
-)
-
-rem ---- port check ----
-rem NOTE: if the site is already running, uvicorn exits right away with
-rem   "address already in use" and this window closes -> the user sees
-rem   "double click and it flashes and dies" with no clue why.
-rem   The port below must match the URL used further down.
-"%PY%" -c "import socket,sys;s=socket.socket();s.settimeout(1);r=s.connect_ex(('127.0.0.1',8771));s.close();sys.exit(0 if r==0 else 1)" >nul 2>&1
-if not errorlevel 1 (
-    echo.
-    echo   Port 8771 is already in use.
-    echo   The site is probably already running - just open:
-    echo       http://127.0.0.1:8771/
-    echo   Or close the other window first, then start again.
-    echo.
-    pause
-    exit /b 0
-)
-
 rem ---- database ----
 if not exist "data\lzkg.db" (
     echo   Database not found. Migrating data, please wait ...
@@ -111,8 +78,11 @@ echo   Starting server on http://127.0.0.1:8771/ ...
 echo   Close this window to stop the server.
 echo.
 
-start "" "http://127.0.0.1:8771/"
-"%PY%" -m lzkg serve
+rem ---- launch: checks dependencies (installs what is missing),
+rem      checks the port (ours / someone else's / free), then starts.
+"%PY%" -m lzkg launch
+echo.
+pause
 exit /b 0
 
 :nopy

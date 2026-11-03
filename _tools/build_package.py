@@ -68,6 +68,8 @@ REQUIRED = [
     "lzkg/webdav.py", "lzkg/browserec.py",
     "lzkg/graphview.py",
     "lzkg/rawtext.py", "lzkg/xmlexchange.py", "lzkg/api_raw.py",
+    # 启动链路（v3.9）：体检依赖 + 端口三态（启动.cmd 只做薄壳，靠它）
+    "lzkg/launch.py",
     # 检索增强 E1（v3.9）：分词层 + 领域词典 + 管理员可视化编辑器
     "lzkg/segment.py", "lzkg/api_segment.py",
     "lzkg/data/dict/lzkg_domain.json",

@@ -21,13 +21,16 @@
 ```
 
 脚本会自己找 Python（`py -3` / `python` / `python3` / 随包的 `runtime\`），
-装依赖、首次会自动迁移数据、起服务、打开浏览器。
+然后调用 `python -m lzkg launch`：体检依赖（缺就自动装）→ 探端口 → 起服务 → 打开浏览器。
 **关掉那个黑色命令行窗口 = 关服务。**
+
+★ 体检逻辑全在 Python（`lzkg/launch.py`）里，不在 `.cmd` 里 —— 原因见 §四之九末尾的坑表。
 
 ### 命令行
 
 ```powershell
 pip install -r requirements.txt
+python -m lzkg launch         # ★ 一键：体检依赖 + 探端口，再起服务（推荐）
 python -m lzkg migrate        # 迁移数据到 SQLite（幂等，可重复跑；连带算好布局坐标）
 python -m lzkg serve          # 起服务 → http://127.0.0.1:8771/
 python -m lzkg doctor         # 自检：依赖 / 数据源 / 数据库
@@ -944,9 +947,9 @@ python -m lzkg segment-status   # 看索引版本 / 词典指纹 / 是否 stale
 
 ### 8. 判据
 
-`tests/test_segment.py`（**31 项**）+ `tests/test_all.py --api`（**172 项**）一并跑，全绿。
-收尾全量回归：`test_segment` 31 + `test_all --api` 172 + `favsearch` 30 + `rawtext` 97
-+ `source_data` 35 = **365 项全通过**。
+`tests/test_segment.py`（**31 项**）+ `tests/test_all.py --api`（**177 项**）一并跑，全绿。
+收尾全量回归：`test_segment` 31 + `test_all --api` 177 + `favsearch` 30 + `rawtext` 97
++ `source_data` 35 = **370 项全通过**。
 
 ### ★ 本轮踩过的坑（别再踩一遍）
 
@@ -966,9 +969,11 @@ python -m lzkg segment-status   # 看索引版本 / 词典指纹 / 是否 stale
 | `mode` 字段**混了两套口径** | 一度既表示四档模式又表示 `like`/`fts5` → 拆成 `mode` + `exact_backend` |
 | **旧判据不重跑** | 新功能落地后判据可能自己过时（红 3 项：2 真缺陷 + 1 判据过时）→ 收尾必跑全量 |
 | **依赖只在本机装、不声明** | `defusedxml`/`matplotlib`/`shapely` 代码在 import 却没进 `requirements.txt` → 换台机器双击 `启动.cmd` 闪退 |
-| **启动脚本的探测清单不完整** | 只查 5 个包 → 探测通过 → 跳过安装 → 启动缺模块 → 闪退；现在与 requirements.txt 一一对应（12 个） |
+| **启动脚本的探测清单不完整** | 只查 5 个包 → 探测通过 → 跳过安装 → 启动缺模块 → 闪退；现在清单**从 requirements.txt 读**（12 个硬依赖），不再各写一份 |
 | **服务在跑时再双击 → 闪退** | 端口被占 → uvicorn 秒退 → 窗口关掉，什么都看不到；现在起服务前先探端口并 `pause` 提示 |
 | **batch 块内 echo 带括号** | `if ( ... )` 里的 `echo ... (xxx) ...` 被当块语法 → `and was unexpected` → 脚本崩；块内 echo 一律纯文本 |
+| **启动逻辑写在 `.cmd` 里** | 判定逻辑写不了判据 → 只能测「跑通/崩」，测不出「提示对不对」；现在 `.cmd` 只做解释器探测，体检搬进 `lzkg/launch.py` |
+| **端口占用不分三态** | 「端口被占」只分「占/不占」→ 别人占 8771 时用户会误以为「自己的站被劫持」；现在分 free/ours/other 三态 |
 
 ---
 
@@ -1023,7 +1028,8 @@ python -m lzkg segment-status   # 看索引版本 / 词典指纹 / 是否 stale
 │   ├── browserec.py         # 浏览记录存本站服务器（各存各的目录、白名单落盘）
 │   ├── nbkg.py              # 主库字段映射导出
 │   ├── app.py               # FastAPI（端点按契约实现）
-│   ├── __main__.py          # CLI：migrate / serve / stats / doctor / export / rebuild-*
+│   ├── launch.py            # ★ 启动前体检：依赖（缺则自动装）+ 端口三态判定
+│   ├── __main__.py          # CLI：migrate / serve / launch / stats / doctor / export / rebuild-*
 │                            #   ★ E1：reindex（重建词级索引）/ segment-status
 │   ├── schema/registry_columns.json  # ★ 登记表列定义单一事实来源（34 + 26 列）
 │   └── web/static/index.html# 前端单页（零 CDN，原生 JS）
@@ -1046,12 +1052,16 @@ python -m lzkg segment-status   # 看索引版本 / 词典指纹 / 是否 stale
 `config.py` 用「相对程序根目录 + 通配定位」找数据源（`../.. /02*(良渚文化)*/04_专题研究`），
 **整个项目目录搬走也能找到**。也可以用环境变量 `LZKG_SOURCE_ROOT` 覆盖。
 
-### 启动脚本的两条硬规矩
+### 启动脚本的三条硬规矩
 
 1. **`.cmd` 正文必须纯 ASCII + CRLF。** 中文写进 cmd 正文会被 cmd.exe 咬坏后续行，
    表现是「双击闪退」。中文可以出现在**文件名**里，不能出现在正文里。
 2. **解释器探测要问它自己的路径**（`sys.executable`）。
    PATH 上的 `python` 可能是 Microsoft Store 的占位桩，根本不是解释器。
+3. **`.cmd` 里只放「解释器探测 + 调用」，不放判定逻辑。**
+   体检（依赖 / 端口）在 `lzkg/launch.py` 里，因为 `.cmd` 里的逻辑写不了判据。
+   `if ( ... )` 块内的 `echo` 文本**不得带括号**（会被当块语法，报
+   `and was unexpected at this time` → 同样表现为「一闪就没」）。
 
 ---
 
@@ -1061,6 +1071,9 @@ python -m lzkg segment-status   # 看索引版本 / 词典指纹 / 是否 stale
 |---|---|---|
 | 双击闪退 | `.cmd` 被改成非 ASCII/非 CRLF | 用编辑器重新保存为 ANSI + CRLF |
 | 提示找不到 Python | 机器上没有 ≥3.10 | 装 Python 3.10+，或放一个便携版到 `runtime\` |
+| 提示「端口被**别的程序**占着」 | 8771 被非本站进程占 | `python -m lzkg serve --port 8772`，或改 `config.json` 的 `app.port` |
+| 提示「站点已经在跑了」 | 正常：上一个窗口的服务还活着 | 直接开 http://127.0.0.1:8771/ ；要重启就双击「停止.cmd」 |
+| 提示「依赖还缺」且装不上 | 换机器装不了（默认 PyPI 连不上） | 手动 `pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple` |
 | 页面显示「后端未启动」 | 服务没起来 | 看启动窗口的报错；`python -m lzkg doctor` 自检 |
 | 迁移失败 | 找不到 `04_专题研究` | 设 `LZKG_SOURCE_ROOT` 环境变量指向它 |
 | 端口被占 | 8771 被别的进程占 | 改 `config.json` 的 `app.port` |

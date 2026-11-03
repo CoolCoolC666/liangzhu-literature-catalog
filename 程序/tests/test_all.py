@@ -100,34 +100,76 @@ def test_requirements():
     check("硬依赖包数 == 12（实测真值）",
           len(declared) == 12, f"声明了 {len(declared)} 个：{sorted(declared)}")
 
-    # 启动脚本的探测清单必须与 requirements.txt 一致：
-    # 探测漏一个 → 探测通过 → 跳过安装 → 启动时缺模块 → 窗口闪退（比不探测更糟）。
+    # ★ 依赖判断与安装的**单一事实来源** = requirements.txt + lzkg/launch.py。
+    #   启动脚本不再自带探测清单（.cmd 里的逻辑写不了判据，半套探测正是「闪退」的来源）。
+    from lzkg import launch as _launch
+    check("launch.py 解析出的依赖清单 == requirements.txt（单一事实来源）",
+          set(_launch.requirement_names()) == declared,
+          f"launch={sorted(_launch.requirement_names())}")
+    miss = _launch.missing_deps()
+    check("本机硬依赖齐全（launch 的缺失清单为空）", not miss, f"缺：{miss}")
+
     for cmd in ("启动.cmd", "启动-公网.cmd"):
         p = PROGRAM_ROOT / cmd
         if not p.exists():
             continue
         txt = p.read_text(encoding="utf-8", errors="replace")
-        probed: set[str] = set()
-        for m in re.finditer(r'-c\s+"import ([A-Za-z0-9_,]+)"', txt):
-            probed |= {x.strip() for x in m.group(1).split(",") if x.strip()}
-        gap = sorted({PIP_TO_IMPORT.get(x, x) for x in declared} - probed)
-        check(f"{cmd} 的依赖探测清单覆盖 requirements.txt 全部包",
-              not gap, f"探测漏了：{gap}")
+        check(f"{cmd} 走 `lzkg launch`（依赖检查/安装 + 端口判断都在 Python 里）",
+              "lzkg launch" in txt, "未找到 lzkg launch")
+        # 解释器探测会用到 `-c "import sys..."`，那是**该有的**；
+        # 要禁的是「在 cmd 里再列一遍依赖清单」—— 两套逻辑必然漂移。
+        inline = sorted({d for d in declared
+                         if re.search(r"\b" + re.escape(PIP_TO_IMPORT.get(d, d)) + r"\b", txt)})
+        check(f"{cmd} 不再自带依赖探测清单（避免两套逻辑）",
+              not inline, f"仍内联出现：{inline}")
 
-    # 端口预检：服务已在跑时再双击 → uvicorn 秒退 → 窗口「一闪就没」。
-    # 预检必须排在起服务之前，并把话说明白（而不是让窗口自己关掉）。
-    for cmd, serve_marker in (("启动.cmd", "lzkg serve"),
-                               ("启动-公网.cmd", 'public.py" start')):
-        p = PROGRAM_ROOT / cmd
-        if not p.exists():
-            continue
-        txt = p.read_text(encoding="utf-8", errors="replace")
-        i_probe = txt.find("connect_ex")
-        i_serve = txt.find(serve_marker)
-        check(f"{cmd} 起服务前有端口占用预检（否则双击就是一闪就没）",
-              i_probe >= 0 and i_serve >= 0 and i_probe < i_serve
-              and "already in use" in txt,
-              f"预检位置={i_probe} 起服务位置={i_serve}")
+    # ★ 端口三态：空闲 / 本站在跑 / 被别人占 —— 分不清就说不清「一闪就没」。
+    import http.server
+    import json as _json
+    import socket as _socket
+    import threading
+
+    def _free_port() -> int:
+        s = _socket.socket()
+        s.bind(("127.0.0.1", 0))
+        p = s.getsockname()[1]
+        s.close()
+        return p
+
+    def _serve(port: int, payload: dict):
+        class H(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                body = _json.dumps(payload).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def log_message(self, *a):
+                pass
+        srv = http.server.ThreadingHTTPServer(("127.0.0.1", port), H)
+        t = threading.Thread(target=srv.serve_forever, daemon=True)
+        t.start()
+        return srv
+
+    p_free = _free_port()
+    check("端口三态：空闲 → free", _launch.port_state("127.0.0.1", p_free) == "free",
+          f"端口 {p_free}")
+    p_other = _free_port()
+    s1 = _serve(p_other, {"hello": "not our site"})
+    try:
+        check("端口三态：被别的程序占 → other（不是 ours）",
+              _launch.port_state("127.0.0.1", p_other) == "other", f"端口 {p_other}")
+    finally:
+        s1.shutdown()
+    p_ours = _free_port()
+    s2 = _serve(p_ours, {"lit_count": 1})
+    try:
+        check("端口三态：占着的是本站 → ours",
+              _launch.port_state("127.0.0.1", p_ours) == "ours", f"端口 {p_ours}")
+    finally:
+        s2.shutdown()
 
 
 # ── 数据层 ──────────────────────────────────────────────────────────────
