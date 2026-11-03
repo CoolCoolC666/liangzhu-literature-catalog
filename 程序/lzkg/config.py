@@ -47,6 +47,14 @@ def _find_source_root() -> Path:
     local_src = DATA_DIR / "source"
     if (local_src / "05_登记表").is_dir():
         candidates.append(local_src)
+    # ★ 数据包目录（v3.9-E3）：组员把 1.9 GB 数据包解压后**整个拖进** `数据包/`
+    #   目录，程序按**内容**认（里面有那几个子目录就是源数据根），不认目录名。
+    #   放在 data/source 之后：本机的副本优先（内容一样，只是少拷一份）。
+    try:
+        from .datapkg import candidate_roots
+        candidates.extend(candidate_roots())
+    except Exception:
+        pass
     if ASSIGNMENT_ROOT.exists():
         for d in sorted(ASSIGNMENT_ROOT.glob("02*")):
             candidates.append(d / "04_专题研究")

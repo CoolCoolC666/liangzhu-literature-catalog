@@ -70,6 +70,11 @@ REQUIRED = [
     "lzkg/rawtext.py", "lzkg/xmlexchange.py", "lzkg/api_raw.py",
     # 启动链路（v3.9）：体检依赖 + 端口三态（启动.cmd 只做薄壳，靠它）
     "lzkg/launch.py",
+    # 数据包接入（v3.9-E3）：落位与状态
+    "lzkg/datapkg.py",
+    "lzkg/api_datapkg.py",
+    "tests/test_datapackage.py",
+    "数据包/怎么放这里.md",
     # 图像检索 E2（v3.9）：**独立模块**（独立索引 / 独立端点 / 独立判据）
     "lzkg/imgsearch/__init__.py",
     "lzkg/imgsearch/clean.py",
@@ -136,6 +141,10 @@ def collect() -> list[tuple[Path, str]]:
         for p in sorted(bsrc.glob("*")):
             if p.is_file() and not _skip(p):
                 items.append((p, f"data/basemap/{p.name}"))
+    # 数据包目录：只带**说明**，不带数据本体（机构订阅件，不进公开包）
+    dp = PROGRAM / "数据包" / "怎么放这里.md"
+    if dp.exists():
+        items.append((dp, "数据包/怎么放这里.md"))
     # 库文件单独处理（很大，放最后）
     db = PROGRAM / "data" / "lzkg.db"
     if db.exists():
@@ -190,6 +199,13 @@ def build(version: str, out: Path) -> dict:
         raise SystemExit(
             f"[X] 拒绝出包：包内出现了 {len(leaked)} 个 data/source/ 文件 —— "
             "源数据是机构订阅件，对接包只带程序与库，原始文件单独分发。")
+    # ★ 同一条红线在「数据包/」下再设一道：这个目录只许放**说明**（.md），
+    #   组员把 1.9 GB 数据包拖进来后本地打包，绝不能把原件卷进公开包。
+    leaked_dp = [n for n in names if n.startswith(f"{TOP}/数据包/") and not n.endswith(".md")]
+    if leaked_dp:
+        raise SystemExit(
+            f"[X] 拒绝出包：数据包/ 下出现了 {len(leaked_dp)} 个非说明文件 —— "
+            "数据包是机构订阅件，只随单独的「原始数据包」分发。")
 
     h = hashlib.sha256(out.read_bytes()).hexdigest()[:16]
     return {

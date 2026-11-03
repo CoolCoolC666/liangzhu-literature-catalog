@@ -276,13 +276,16 @@ def safe_resolve(root: Path, rel: str) -> Path | None:
       而 `root` 通常指向 `04_专题研究` 本身 → 两种拼法都要试。
     ★ 安全：`resolve()` 之后必须仍在 root 之内，否则判非法。
     """
-    if not rel or "/" in str(rel) and ".." in str(rel):
-        if ".." in str(rel):
-            return None
     rel = (rel or "").strip()
-    if not rel or ".." in rel:
+    if not rel:
         return None
     rel = rel.replace("\\", "/")
+    # \* \* 路径穿越要看**分段**，不能看子串：
+    #   实测 LIT-000082 的文件名里含省略号（From_2D_to_3D_..._Relics.md），
+    #   子串判据会把 ".." 当成穿越 → 原文通道 404（文件明明在磁盘上）。
+    #   → 只在**某一段正好是 ".."** 时判非法。
+    if any(seg == ".." for seg in rel.split("/")):
+        return None
     cands = [root / rel]
     # 去掉首段（`04_专题研究/...` → 相对 root 本身）
     if "/" in rel:

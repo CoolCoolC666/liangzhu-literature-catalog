@@ -1218,6 +1218,7 @@ from .api_segment import router as _router_segment   # noqa: E402
 
 # 图像检索 E2：**独立模块**（独立索引表 / 独立端点前缀 / 独立判据）
 from .imgsearch.api import router as _router_imgsearch   # noqa: E402
+from .api_datapkg import router as _router_datapkg   # noqa: E402
 
 
 @app.exception_handler(ApiError)
@@ -1252,6 +1253,7 @@ app.include_router(_router_v2)
 app.include_router(_router_raw)
 app.include_router(_router_segment)
 app.include_router(_router_imgsearch)
+app.include_router(_router_datapkg)
 
 # ── 本地第三方库（Leaflet 等）──────────────────────────────────────────
 # ★ 为什么需要挂

@@ -40,10 +40,10 @@ TRUE_PDF_WITH_PATH = 195      # pdf_path 是真路径的条数
 TRUE_PDF_PLACEHOLDER = 5      # pdf_path == 「（无PDF文件）」的条数
 TRUE_MD_PATH_COUNT = 200      # md_path 非空的条数
 TRUE_MD_PREFIX = "04_专题研究/"  # md_path 的统一首段
-TRUE_IMG_COUNT_SAME = 50      # MD 图数 == 库图数（可按序映射）的文献数
+TRUE_IMG_COUNT_SAME = 51      # MD 图数 == 库图数（可按序映射）的文献数
 TRUE_IMG_COUNT_DIFF = 17      # 两者不等（整篇不重写）的文献数
 TRUE_IMG_NOFIG = 132          # MD 里没有图引用的文献数
-TRUE_IMG_UNRESOLVED = 1       # md_path 文件名过长、路径解析不到的（LIT-000082）
+TRUE_IMG_UNRESOLVED = 0       # md_path 解析不到的条数（2026-11-03 修 safe_resolve 后为 0）
 TRUE_CAPTION_HIT_MIN = 0.30   # 图注校验命中率下限（实测 0.398）
 TRUE_XML_NS = "urn:lzkg:literature:1"
 TRUE_XML_FIELDS = 23          # 交换格式里参与交换的题录字段数

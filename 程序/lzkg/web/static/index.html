@@ -2245,6 +2245,7 @@ function renderWorkbench(sub) {
   if (sub === "webdev") return renderWebDevPage();
   if (sub === "exchange") return renderExchangePage();
   if (sub === "segment") return renderSegmentPage();
+  if (sub === "datapkg") return renderDatapkgPage();
   return renderWorkbenchHome();
 }
 /* 子界面统一的顶部条：← 返回工作台 */
@@ -2304,7 +2305,11 @@ function renderWorkbenchHome() {
     { id: "segment", t: "⑩ 分词实验室与词典",
       what: "维护良渚领域词典（词条 / 同义组 / 领域后缀表），发现候选新词并人工勾选采纳，重建词级索引。",
       eps: "GET /api/segment/dict · POST /api/segment/dict · POST /api/segment/newwords · POST /api/segment/adopt · POST /api/segment/reindex",
-      perm: "仅管理员可见", adminOnly: true }
+      perm: "仅管理员可见", adminOnly: true },
+    { id: "datapkg", t: "⑪ 数据包（图片 / 原文）",
+      what: "看图版图片、原文 PDF 与 Markdown 有没有就位。没放数据包时，图版只剩占位图、原文读不了。",
+      eps: "GET /api/datapackage/status",
+      perm: "无需登录" }
   ];
   var html = '<div class="subbar"><h3>工作台</h3>' +
     '<span class="small muted">入口页：每个功能点进去是独立界面。' +
@@ -2384,6 +2389,18 @@ function loadHomeStatuses() {
   });
   /* Web Dev：浏览记录是**本地**的（不在服务器），所以这里直接数 localStorage */
   setStatus("webdev", "我的浏览记录 " + fmtNum(browseCount()) + " 条（存在本浏览器）");
+  api("/api/datapackage/status").then(function (r) {
+    if (!r.ok) { setStatus("datapkg", "状态不可用（" + r.error + "）"); return; }
+    var d = r.data || {};
+    var miss = (d.missing || []).length;
+    if (!d.installed) {
+      setStatus("datapkg", "未放数据包（图版与原文不可用）");
+    } else if (miss) {
+      setStatus("datapkg", "源数据在「" + nz(d.origin) + "」，还缺 " + miss + " 项");
+    } else {
+      setStatus("datapkg", "已就绪 · 源数据在「" + nz(d.origin) + "」");
+    }
+  });
   /* 总闸状态（开/关）也显示出来，管理员一眼能看到 */
   api("/api/webdev/status").then(function (r) {
     if (!r.ok) return;
@@ -2391,6 +2408,47 @@ function loadHomeStatuses() {
     if (state.webdev.enabled === false) {
       setStatus("webdev", "已被管理员关闭");
     }
+  });
+}
+/* 数据包状态：图版图片 / 原文 PDF·Markdown 有没有就位 */
+function loadDatapkgHint(elId) {
+  api("/api/datapackage/status").then(function (r) {
+    var box = $("#" + elId);
+    if (!box || !r.ok) return;
+    var d = r.data || {};
+    if (d.installed && !(d.missing || []).length) { box.innerHTML = ""; return; }
+    box.innerHTML = '<div class="small" style="color:var(--warn)">' + esc(d.note || "") + "</div>";
+  });
+}
+function renderDatapkgPage() {
+  view.innerHTML = subBar("⑪ 数据包（图片 / 原文）", "GET /api/datapackage/status") +
+    '<div class="fullblk"><div class="barhead">源数据是否就位</div>' +
+    '<div class="small muted">对接包里带的是<b>库</b>（题录、图版标注、全文索引），不带<b>文件本体</b>' +
+    '（图版图片、原始 PDF、MinerU 解析出来的 Markdown —— 机构订阅件，不进公开包）。<br>' +
+    '把 1.9 GB 的数据包解压后，把那个文件夹<b>整个拖进程序目录下的「数据包/」</b>即可：' +
+    '不用改配置、不用敲命令，放进去就生效（连重启都不用）。</div>' +
+    '<div id="dp-body"><div class="loading"><span class="spin"></span>读取中…</div></div></div>';
+  loadDatapkgBody();
+}
+function loadDatapkgBody() {
+  api("/api/datapackage/status").then(function (r) {
+    var box = $("#dp-body");
+    if (!box) return;
+    if (!r.ok) { box.innerHTML = '<div class="small">状态不可用：' + esc(r.error) + "</div>"; return; }
+    var d = r.data || {};
+    var h = '<div class="small">源数据来源：<b>' + esc(d.origin || "-") + "</b>" +
+      (d.root_name ? ("（" + esc(d.root_name) + "）") : "") + "</div>";
+    h += '<div class="tablewrap" style="margin:6px 0"><table class="grid"><thead><tr>' +
+      '<th>项目</th><th>就绪 / 应有</th><th>状态</th><th>解锁的功能</th></tr></thead><tbody>';
+    (d.items || []).forEach(function (it) {
+      var sk = it.skipped ? ('<br><span class="small muted">另有 ' + fmtNum(it.skipped) + ' 条登记为「无此文件」</span>') : "";
+      h += "<tr><td>" + esc(it.label) + "</td><td>" + fmtNum(it.ready) + " / " + fmtNum(it.total) + sk +
+        "</td><td>" + (it.ok ? '<span style="color:var(--ok)">已就绪</span>' : '<span style="color:var(--warn)">未就绪</span>') +
+        "</td><td>" + esc(it.feature) + "</td></tr>";
+    });
+    h += "</tbody></table></div>";
+    h += '<div class="small">' + esc(d.note || "") + "</div>";
+    box.innerHTML = h;
   });
 }
 /* ==================================================================
@@ -5046,11 +5104,13 @@ function renderImgSearch() {
   h += "<span class=\"small muted\">复核状态只作显示，不参与检索过滤与排序。</span>";
   h += "</div>";
   h += "<div id=\"im-scope\"></div>";
+  h += "<div id=\"im-dp\"></div>";
   h += "<div id=\"im-list\"></div>";
   view.innerHTML = h;
   bindImgSearch();
   loadImgStats();
   loadImgSearch();
+  loadDatapkgHint("im-dp");
 }
 function bindImgSearch() {
   var p = state.img;
