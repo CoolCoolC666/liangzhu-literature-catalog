@@ -1216,6 +1216,9 @@ from .api_raw import router as _router_raw   # noqa: E402
 # 检索增强 E1：领域词典编辑 + 词级索引 + 新词发现（另装）
 from .api_segment import router as _router_segment   # noqa: E402
 
+# 图像检索 E2：**独立模块**（独立索引表 / 独立端点前缀 / 独立判据）
+from .imgsearch.api import router as _router_imgsearch   # noqa: E402
+
 
 @app.exception_handler(ApiError)
 async def _api_v2_error_handler(request: Request, exc: ApiError):
@@ -1248,6 +1251,7 @@ def _ensure_runtime_columns():
 app.include_router(_router_v2)
 app.include_router(_router_raw)
 app.include_router(_router_segment)
+app.include_router(_router_imgsearch)
 
 # ── 本地第三方库（Leaflet 等）──────────────────────────────────────────
 # ★ 为什么需要挂

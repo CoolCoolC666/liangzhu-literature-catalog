@@ -838,7 +838,7 @@ LIKE 降级分支的片段定位写错了：
 
 | 包 | 内容 | 体积 | 给谁 |
 |---|---|---|---|
-| `良渚文献目录站_对接包_v3.9.zip` | 程序 + 库（`lzkg.db`，**可检索的全文与解析 JSON 已在库内**） | ~120 MB | 组员：装完就能跑、能检索 |
+| `良渚文献目录站_对接包_v3.9.zip` | 程序 + 库（`lzkg.db`，**可检索的全文与解析 JSON 已在库内**） | 约 120 MB（随每次构建微变） | 组员：装完就能跑、能检索 |
 | `良渚文化原始数据包_v3.8.zip` | `data/source/**`（PDF / 解析结果 / MD / 图版 / 登记表） | ~1.96 GB | 需要**原始 PDF 与图版文件本体**的人 |
 
 解压方式：数据包解开后，把 `良渚文化原始数据/` 里的五个子目录放进
@@ -949,7 +949,7 @@ python -m lzkg segment-status   # 看索引版本 / 词典指纹 / 是否 stale
 
 `tests/test_segment.py`（**31 项**）+ `tests/test_all.py --api`（**177 项**）一并跑，全绿。
 收尾全量回归：`test_segment` 31 + `test_all --api` 177 + `favsearch` 30 + `rawtext` 97
-+ `source_data` 35 = **370 项全通过**。
++ `source_data` 35 = **370 项全通过**（E2 落地后全量重跑为 **404 项全通过**，见 §四之十）。
 
 ### ★ 本轮踩过的坑（别再踩一遍）
 
@@ -976,6 +976,70 @@ python -m lzkg segment-status   # 看索引版本 / 词典指纹 / 是否 stale
 | **端口占用不分三态** | 「端口被占」只分「占/不占」→ 别人占 8771 时用户会误以为「自己的站被劫持」；现在分 free/ours/other 三态 |
 
 ---
+
+## 四之十、图像检索 E2：图版可检索（**独立模块**）
+
+### 1. 为什么做成独立模块
+
+检索是全站最容易长歪的地方。一旦图版检索和文献检索共用同一段查询代码、同一个索引表，
+以后改一边就会弄坏另一边，数据也互相污染。
+
+→ 本模块自带清洗规则、索引、查询、端点，**与文献检索唯一的耦合点是 `lit_id`**。
+
+| 维度 | 图像检索 E2 |
+|---|---|
+| 目录 | `lzkg/imgsearch/`（`clean.py` / `index.py` / `query.py` / `api.py`） |
+| 索引表 | `img_fts`（FTS5 trigram）+ `img_index_meta`（自己的表，不碰 `docs_fts`） |
+| 端点前缀 | `/api/imgsearch/*`（**不复用** `/api/images`） |
+| 前端入口 | 独立页签 `#/imgsearch`（**不塞进文献检索页**） |
+| CLI | `python -m lzkg img-reindex` / `img-status` |
+| 判据 | `tests/test_imgsearch.py`（34 项） |
+| 新增依赖 | **零**（FTS5 是 SQLite 自带的） |
+
+### 2. 端点
+
+| 端点 | 方法 | 权限 | 说明 |
+|---|---|---|---|
+| `/api/imgsearch/search` | GET | 谁都能读 | 检索图版；`mode` = `exact`（图版自身文本）/ `both`（+标签文本） |
+| `/api/imgsearch/stats` | GET | 谁都能读 | 索引状态 + 筛选选项 + 复核分布 |
+| `/api/imgsearch/related` | GET | 谁都能读 | 相关图版（同文献优先，其次同标签） |
+| `/api/imgsearch/reindex` | POST | **管理员** | 重建索引（幂等） |
+
+### 3. ★ 复核状态**只显示，不影响检索**
+
+用户口径明确：**复核仅仅是显示「已复核」或「待复核」，不影响检索**。
+
+→ 端点**没有** `review` 参数，**不过滤、不降权、不排序**；界面只挂两个徽标。
+AI 兜底句（模板句「具体视觉细节以原图为准」）同理：只标记，不降权。
+
+### 4. 清洗三规则（只归一与分列，**不改写、不纠错、不补充**）
+
+1. **NFKC 归一**：全角 → 半角（库里图注是全角混排，不归一则子串匹配几乎全废）。
+2. **中英分列**：按 `；` 分段，**段内含中日韩字符归中文侧**，否则归英文侧。
+3. **剥前缀**：中文侧剥「图N」，剥完没剩中文 → 留空（**只有图号不算图题**，图号另有 `fig_no` 列）。
+
+### 5. 实测（2026-11-03）
+
+| 项 | 实测真值 |
+|---|---|
+| 索引行数 | **3162 行**，覆盖 **174 篇** |
+| 中文图题 | **2168 条（68.6%）**；英文图题 **1047 条（33.1%）**；两者都有 62 |
+| AI 兜底句 | **273 条（8.6%）** |
+| 图版复核覆盖 | **619 / 3162 = 19.6%**（已复核）；待复核 79.7% |
+
+命中数（both / exact）：玉琮 160 / 160（LIKE）· 遗址 1162 / 824（LIKE）·
+良渚文化 2170 / 126（FTS5）· GIS 146 / 19（FTS5）· 空间数据库 12 / 12 ·
+神人兽面 59 / 59 · 反山 85 · 水坝 25 · 城墙 6 · diagram 28。
+
+### 6. ★ 本轮踩过的坑
+
+- **分列判据写成「有没有 Fig 标记」** → 纯英文图注进了中文列 → 中文图题解析率虚高 710 条
+  （91.0% → 68.6%）。由**独立实现交叉验证**判据抓出。
+- **`img_fts` 与 `images` 有同名列** → LIKE 条件必须写 `img_fts.<col>`，否则 `ambiguous column name`。
+- **trigram 索引不了 2 字词** → 只要有一个 token < 3 字符，整条退回 LIKE。
+- **自定义异常类必须复用 `api_v2.ApiError`** → 否则走 FastAPI 默认信封，与契约 §0 不符。
+- 父包模块要用 `from ..auth` / `from ..db`。
+
 
 ## 六、工程结构
 
@@ -1023,6 +1087,11 @@ python -m lzkg segment-status   # 看索引版本 / 词典指纹 / 是否 stale
 │   ├── api_raw.py           # ★ 原文与 XML 的五个端点
 │   ├── segment.py           # ★ E1：jieba 封装 / 领域词典读写 / 词级索引 / 新词发现
 │   ├── api_segment.py       # ★ E1：/api/segment/* 端点（词典管理 = require_admin）
+│   ├── imgsearch/           # ★ E2：图像检索**独立模块**（唯一耦合 = lit_id）
+│   │   ├── clean.py         #   图注归一 + 中英分列 + AI 兜底句标记
+│   │   ├── index.py         #   img_fts（FTS5 trigram）+ img_index_meta
+│   │   ├── query.py         #   分词 / 两级降级 / 命中层级 / 片段 / 相关图版
+│   │   └── api.py           #   /api/imgsearch/* 四个端点
 │   ├── data/dict/lzkg_domain.json  # ★ E1：领域词典（**源数据**，可视化编辑 + 可编辑 JSON）
 │   ├── webdav.py            # WebDAV 后端代理（SSRF 防护、MKCOL 建目录）
 │   ├── browserec.py         # 浏览记录存本站服务器（各存各的目录、白名单落盘）
@@ -1031,11 +1100,13 @@ python -m lzkg segment-status   # 看索引版本 / 词典指纹 / 是否 stale
 │   ├── launch.py            # ★ 启动前体检：依赖（缺则自动装）+ 端口三态判定
 │   ├── __main__.py          # CLI：migrate / serve / launch / stats / doctor / export / rebuild-*
 │                            #   ★ E1：reindex（重建词级索引）/ segment-status
+│                            #   ★ E2：img-reindex（重建图版索引）/ img-status
 │   ├── schema/registry_columns.json  # ★ 登记表列定义单一事实来源（34 + 26 列）
 │   └── web/static/index.html# 前端单页（零 CDN，原生 JS）
 └── tests/
     ├── test_all.py          # 主验收（可独立运行；--api / --layout）
     ├── test_segment.py      # ★ E1 检索增强判据（31 项）
+    ├── test_imgsearch.py    # ★ E2 图像检索判据（34 项，独立文件）
     ├── test_graphview.py    # 图谱降密 + 详情页地图标记（48 项）
     ├── test_rawtext.py      # 原文通道 + XML 往返 + 图版重写（97 项）
     ├── test_favsearch.py    # 收藏页两层检索（26 项）
@@ -1089,16 +1160,21 @@ python tests/test_all.py --api --layout     # 169 项
 python tests/test_graphview.py --api        # 48 项（图谱降密 + 地图标记）
 python tests/test_rawtext.py --api          # 97 项（原文通道 + XML 往返 + 图版重写）
 python tests/test_favsearch.py              # 26 项（收藏页两层检索）
+python tests/test_imgsearch.py --api        # 34 项（图版检索 E2，独立模块）
 node tests/test_favsearch.js               # 11 项（片段高亮与转义）
 python tests/test_source_data.py --api     # 35 项（源数据副本 + 自包含 + 不外传红线）
 ```
 
-**386 项判据**，覆盖：迁移条数、标签规范化与受控词表唯一码、
+**404 项判据**，覆盖：迁移条数、标签规范化与受控词表唯一码、
 检索两级降级、图谱裁剪与社区划分可复现、API 各端点、
 CSV 导出行数与 BOM、离线图谱零外链依赖、缺图返回占位而非报错；
 以及**图谱降密度**（边裁剪真值 / 无孤点 / 最大度数 = cap×2 /
 布局跨进程换 `PYTHONHASHSEED` 逐位可复现 / 标签社区覆盖与散布指标 / 渐进披露三档）
 与**详情页地图标记**（四档精度 / 「未定位」不编造 / 与统计页共用关键词表）；
+**图像检索 E2**
+（模块静态独立性 / 索引行数与 images 对账 / 无孤儿行 / 中文图题独立实现交叉验证 /
+10 组查询 × 2 模式与独立实现逐条对账 / 命中层级不多标 / 片段含 `<mark>` / 两字词不 500 /
+★ **复核只显示不影响检索** / 重建幂等 / 前端独立页签 + 零外链）；
 **原文通道与 XML 协作**
 （PDF/MD 端点状态码与字节数 / 附件下载头 / 图版重写实测真值 200·50·17·132·1 /
 MD 渲染零 CDN 残留 / XML 23 字段往返一致 / 导出 200 篇 / 预检只报差异不写库）；

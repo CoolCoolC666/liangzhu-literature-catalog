@@ -70,6 +70,12 @@ REQUIRED = [
     "lzkg/rawtext.py", "lzkg/xmlexchange.py", "lzkg/api_raw.py",
     # 启动链路（v3.9）：体检依赖 + 端口三态（启动.cmd 只做薄壳，靠它）
     "lzkg/launch.py",
+    # 图像检索 E2（v3.9）：**独立模块**（独立索引 / 独立端点 / 独立判据）
+    "lzkg/imgsearch/__init__.py",
+    "lzkg/imgsearch/clean.py",
+    "lzkg/imgsearch/index.py",
+    "lzkg/imgsearch/query.py",
+    "lzkg/imgsearch/api.py",
     # 检索增强 E1（v3.9）：分词层 + 领域词典 + 管理员可视化编辑器
     "lzkg/segment.py", "lzkg/api_segment.py",
     "lzkg/data/dict/lzkg_domain.json",
@@ -77,6 +83,7 @@ REQUIRED = [
     "lzkg/web/static/index.html",
     "tests/test_all.py",
     "tests/test_segment.py",
+    "tests/test_imgsearch.py",
     "tests/test_graphview.py",
     "tests/test_rawtext.py",
     "tests/test_favsearch.py",

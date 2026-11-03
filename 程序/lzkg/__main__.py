@@ -206,6 +206,38 @@ def cmd_reindex(args):
     return 0 if rep.get("ok") else 1
 
 
+def cmd_img_reindex(args):
+    """重建图版索引（图像检索 E2 · 独立模块）。
+
+        python -m lzkg img-reindex
+
+    ★ 索引是派生物（源数据 = 登记表 images + img_tags），随时可重建。
+    ★ 零新依赖：FTS5 是 SQLite 自带的。
+    """
+    from .db import connect
+    from .imgsearch import index
+    conn = connect()
+    try:
+        rep = index.build_index(conn)
+    finally:
+        conn.close()
+    print(json.dumps(rep, ensure_ascii=False, indent=2))
+    return 0 if rep.get("ok") else 1
+
+
+def cmd_img_status(args):
+    """看图版索引状态（行数 / 版本 / 指纹 / 是否过期）。"""
+    from .db import connect
+    from .imgsearch import index
+    conn = connect()
+    try:
+        st = index.status(conn)
+    finally:
+        conn.close()
+    print(json.dumps(st, ensure_ascii=False, indent=2))
+    return 0
+
+
 def cmd_segment_status(args):
     """看词级索引的状态（版本、词典指纹、是否过期）。"""
     from .db import connect
@@ -320,6 +352,12 @@ def main(argv=None):
 
     p = sub.add_parser("segment-status", help="看词级索引状态（版本/词典指纹/是否过期）")
     p.set_defaults(func=cmd_segment_status)
+
+    p = sub.add_parser("img-reindex", help="重建图版索引（图像检索 E2）")
+    p.set_defaults(func=cmd_img_reindex)
+
+    p = sub.add_parser("img-status", help="看图版索引状态（行数/版本/指纹/是否过期）")
+    p.set_defaults(func=cmd_img_status)
 
     p = sub.add_parser("set-source", help="设定数据源目录（写进 config.json）")
     p.add_argument("path", help="04_专题研究 目录，或它的上一级目录")
