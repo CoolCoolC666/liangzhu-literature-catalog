@@ -282,7 +282,12 @@ def cmd_launch(args):
     info = preflight(host, port, install=not args.no_install)
     if not info["deps_ok"]:
         print(f"[lzkg] 依赖还缺：{' '.join(info['missing'])}")
-        print(f"[lzkg] 手动装：\"{sys.executable}\" -m pip install -r requirements.txt")
+        print(f"[lzkg] 手动装（非管理员机器请加 --user）：")
+        print(f"    \"{sys.executable}\" -m pip install --user -r requirements.txt")
+        print("[lzkg] 若这台机器断网：让组员先在一台联网机器上执行")
+        print("    pip download -r requirements.txt -d wheels")
+        print("    再把 wheels 文件夹拷过去，执行：")
+        print(f"    \"{sys.executable}\" -m pip install --user --no-index --find-links wheels -r requirements.txt")
         return 3
     if info["port"] == PORT_OURS:
         print(f"[lzkg] 站点已经在跑了：{url}（不重复起）")

@@ -69,8 +69,21 @@ def missing_deps() -> list[str]:
     return missing
 
 
+def in_venv() -> bool:
+    """当前解释器是不是在 venv 里（venv 里 --user 会直接报错，不能乱加）。"""
+    return getattr(sys, "base_prefix", sys.prefix) != sys.prefix
+
+
 def install_deps(verbose: bool = True) -> bool:
-    """缺依赖就装；默认源失败就用镜像再试。返回是否装成功。"""
+    """缺依赖就装。返回是否装成功。
+
+    ★ 装到**当前解释器**（sys.executable）——即启动脚本选中的那个 Python，
+      不是项目内独立 venv：组员机器上第一个被找到的 Python 3.10+ 就是它。
+    ★ 回退顺序（组员机器常见坑 → 逐个兜）：
+      ① 默认源；② 默认源 + --user（非管理员 + 系统级 Python 时只有这条能装）；
+      ③ 清华镜像；④ 镜像 + --user。
+      venv 里不加 --user（会报 Can not perform a '--user' install）。
+    """
     def _pip(args: list[str]) -> bool:
         cmd = [sys.executable, "-m", "pip", "install", "-r", str(REQUIREMENTS)] + args
         if verbose:
@@ -88,12 +101,18 @@ def install_deps(verbose: bool = True) -> bool:
             print("[lzkg] " + tail[-1])
         return False
 
-    if _pip([]):
-        return True
+    plans: list[list[str]] = [[]]
+    if not in_venv():
+        plans.append(["--user"])
     for mirror in MIRRORS:
-        print(f"[lzkg] 默认源失败，换镜像重试：{mirror}")
-        if _pip(["-i", mirror]):
+        plans.append(["-i", mirror])
+        if not in_venv():
+            plans.append(["-i", mirror, "--user"])
+    for args in plans:
+        if _pip(args):
             return True
+        if args:
+            print(f"[lzkg] 换一种装法再试：pip install {' '.join(args)}")
     return False
 
 

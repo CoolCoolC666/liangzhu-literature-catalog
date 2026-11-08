@@ -109,6 +109,19 @@ def test_requirements():
     miss = _launch.missing_deps()
     check("本机硬依赖齐全（launch 的缺失清单为空）", not miss, f"缺：{miss}")
 
+    # ★ 分发到组员机器：依赖装到**哪个环境**、装不上时怎么办 —— 这两条必须有判据守着。
+    import inspect as _inspect
+    _src = _inspect.getsource(_launch.install_deps)
+    check("依赖装到当前解释器（不另建 venv → 装到启动脚本选中的那个 Python）",
+          "sys.executable" in _src)
+    check("非管理员机器有 --user 回退（系统级 Python 无写权限时只有这条能装）",
+          '"--user"' in _src)
+    check("venv 里不加 --user（venv 里 --user 会直接报错）",
+          "in_venv()" in _src and isinstance(_launch.in_venv(), bool))
+    _main = (PROGRAM_ROOT / "lzkg" / "__main__.py").read_text(encoding="utf-8")
+    check("装不上时给的提示带 --user 与断网时的离线装法",
+          "--user" in _main and "pip download" in _main)
+
     for cmd in ("启动.cmd", "启动-公网.cmd"):
         p = PROGRAM_ROOT / cmd
         if not p.exists():

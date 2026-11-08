@@ -1203,7 +1203,7 @@ AI 兜底句（模板句「具体视觉细节以原图为准」）同理：只�
 `config.py` 用「相对程序根目录 + 通配定位」找数据源（`../.. /02*(良渚文化)*/04_专题研究`），
 **整个项目目录搬走也能找到**。也可以用环境变量 `LZKG_SOURCE_ROOT` 覆盖。
 
-### 启动脚本的三条硬规矩
+### 启动脚本的四条硬规矩
 
 1. **`.cmd` 正文必须纯 ASCII + CRLF。** 中文写进 cmd 正文会被 cmd.exe 咬坏后续行，
    表现是「双击闪退」。中文可以出现在**文件名**里，不能出现在正文里。
@@ -1213,6 +1213,12 @@ AI 兜底句（模板句「具体视觉细节以原图为准」）同理：只�
    体检（依赖 / 端口）在 `lzkg/launch.py` 里，因为 `.cmd` 里的逻辑写不了判据。
    `if ( ... )` 块内的 `echo` 文本**不得带括号**（会被当块语法，报
    `and was unexpected at this time` → 同样表现为「一闪就没」）。
+4. **依赖装到「当前解释器」（`sys.executable`），不是另建 venv。**
+   → 换台机器装的就是**那台机器上第一个被找到的 Python 3.10+**；
+   → 非管理员 + 系统级 Python 会 `Permission denied` → 启动器自动回退 `--user`；
+   → venv 里**不能**加 `--user`（venv 会直接报错）；
+   → 断网机器：联网机 `pip download -r requirements.txt -d wheels`，拷过去用
+     `--no-index --find-links wheels` 离线装。
 
 ---
 
@@ -1224,7 +1230,9 @@ AI 兜底句（模板句「具体视觉细节以原图为准」）同理：只�
 | 提示找不到 Python | 机器上没有 ≥3.10 | 装 Python 3.10+，或放一个便携版到 `runtime\` |
 | 提示「端口被**别的程序**占着」 | 8771 被非本站进程占 | `python -m lzkg serve --port 8772`，或改 `config.json` 的 `app.port` |
 | 提示「站点已经在跑了」 | 正常：上一个窗口的服务还活着 | 直接开 http://127.0.0.1:8771/ ；要重启就双击「停止.cmd」 |
-| 提示「依赖还缺」且装不上 | 换机器装不了（默认 PyPI 连不上） | 手动 `pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple` |
+| 提示「依赖还缺」且装不上 | 换机器装不了（默认 PyPI 连不上） | 手动 `pip install --user -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple` |
+| 装依赖报 `Permission denied` | 系统级 Python + 非管理员 | 加 `--user`：`pip install --user -r requirements.txt` |
+| 目标机器完全断网 | pip 装不了 | 联网机 `pip download -r requirements.txt -d wheels`，拷过去 `pip install --user --no-index --find-links wheels -r requirements.txt` |
 | 页面显示「后端未启动」 | 服务没起来 | 看启动窗口的报错；`python -m lzkg doctor` 自检 |
 | 迁移失败 | 找不到 `04_专题研究` | 设 `LZKG_SOURCE_ROOT` 环境变量指向它 |
 | 端口被占 | 8771 被别的进程占 | 改 `config.json` 的 `app.port` |
