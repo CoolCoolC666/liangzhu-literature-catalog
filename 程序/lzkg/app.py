@@ -120,6 +120,46 @@ def basemap_file(name: str):
                  "Content-Length": str(len(data))})
 
 
+# ── 卫星影像瓦片（本地切片，零外链）────────────────────────────────
+# ★ 为什么要有：卫星影像天然是在线服务，而本项目硬约束是「零外链、禁 CDN、
+#   断网可用」→ 只能把瓦片缓存到本地，再由本站同源供图。
+# ★ 只随「组内离线包」分发：许可条款未核实（见 02-报告/良渚文献目录站_
+#   卫星地图可行性勘察_20261108.md），不进公开仓库、不挂公开 Release。
+# ★ 目录结构：data/basemap_tiles/{z}/{x}/{y}.jpg（Web Mercator XYZ）。
+TILES_DIR = Path(__file__).resolve().parent.parent / "data" / "basemap_tiles"
+
+
+@app.get("/tiles/manifest.json")
+def tile_manifest():
+    # 卫星瓦片清单。没有瓦片就 404 —— 前端据此**隐藏**「卫星」按钮
+    # （优雅降级），而不是让用户点了看到一片碎图。
+    p = TILES_DIR / "manifest.json"
+    if not p.exists() or not p.is_file():
+        raise HTTPException(status_code=404, detail="本包未随附卫星影像")
+    data = p.read_bytes()
+    return Response(content=data, media_type="application/json",
+                    headers={"Cache-Control": "public, max-age=3600",
+                             "Content-Length": str(len(data))})
+
+
+@app.get("/tiles/{z}/{x}/{y}.jpg")
+def tile_file(z: int, x: int, y: int):
+    # 卫星影像瓦片（单张）。
+    # ★ 安全性：z/x/y 全部声明为 int，路径里不可能出现目录穿越字符；
+    #   再按层级范围与网格范围硬校验一次，越界一律 404。
+    if z < 14 or z > 19:
+        raise HTTPException(status_code=404, detail="瓦片不存在")
+    if x < 0 or y < 0 or x >= 2 ** z or y >= 2 ** z:
+        raise HTTPException(status_code=404, detail="瓦片不存在")
+    p = TILES_DIR / str(z) / str(x) / (str(y) + ".jpg")
+    if not p.exists() or not p.is_file():
+        raise HTTPException(status_code=404, detail="瓦片不存在")
+    data = p.read_bytes()
+    return Response(content=data, media_type="image/jpeg",
+                    headers={"Cache-Control": "public, max-age=86400",
+                             "Content-Length": str(len(data))})
+
+
 def _is_loopback(ip: str) -> bool:
     ip = (ip or "").strip()
     if ip in ("127.0.0.1", "::1", "localhost", "::ffff:127.0.0.1"):

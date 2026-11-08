@@ -343,6 +343,274 @@ footer p{margin:3px 0}
 .badge.hit{background:#e8f3fb;border-color:#c8dff0;color:#1d5f88}
 .badge.pass{background:#eaf6ee;border-color:#c6e4d0;color:#1e6b38}
 .badge.pending{background:#fdf3e3;border-color:#f0dcb8;color:#7a5510}
+
+/* ---- 故宫式检索版式：顶部搜索行 + 左分类栏 + 右结果区 ---- */
+.srch-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--card);
+  border:1px solid var(--line);border-radius:6px;padding:11px 13px;margin-bottom:14px}
+.srch-bar #l-q,.srch-bar #im-q{flex:1;min-width:260px}
+.srch-bar .srch-sel{display:inline-flex;align-items:center;gap:5px}
+.srch-bar .srch-sel .fl{margin:0;font-size:12px;color:var(--ink2)}
+.srch-bar .srch-sel select{width:auto}
+/* 数据管理条：结果区底部的横向工具条 */
+.databar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:14px;padding-top:12px;
+  border-top:1px solid var(--line)}
+.databar .small.muted{margin-right:4px}
+.srch{display:grid;grid-template-columns:236px 1fr;gap:16px;align-items:start}
+.srch-side{position:sticky;top:12px;background:var(--card);border:1px solid var(--line);
+  border-radius:6px;padding:12px 13px;max-height:calc(100vh - 30px);overflow:auto}
+.srch-side h4{margin:14px 0 9px;font-size:12.5px;letter-spacing:1px;color:var(--ink2);
+  border-bottom:1px solid var(--line);padding-bottom:6px;font-weight:600}
+.srch-side h4:first-child{margin-top:0}
+.srch-side .fgroup{margin-bottom:11px}
+/* 左栏里的按钮竖排：并排会把「下载空白模板」这类长文案挤到裁掉 */
+.srch-side .fgroup .btn{display:block;width:100%;margin-bottom:6px;text-align:left}
+.srch-side .fgroup .btn:last-child{margin-bottom:0}
+.srch-side .fgroup > label.fl{display:block;font-size:12px;color:var(--ink2);margin-bottom:4px}
+.srch-side select{width:100%}
+.srch-side .seg{width:100%}
+.srch-side .segbtn{flex:1}
+.srch-main{min-width:0}
+@media(max-width:900px){.srch{grid-template-columns:1fr}.srch-side{position:static;max-height:none}}
+/* 图版列表视图：一行一条（左图 / 中信息 / 右操作） */
+.imgrows{display:flex;flex-direction:column;gap:8px}
+.imgrow{display:grid;grid-template-columns:92px 1fr 168px;gap:12px;align-items:center;
+  background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+.imgrow .thumb{width:92px;height:70px;background:#f4f7f9;border:1px solid var(--line);
+  border-radius:4px;overflow:hidden;cursor:zoom-in}
+.imgrow .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.imgrow .ttl{font-weight:600;line-height:1.4}
+.imgrow .snip{font-size:12.5px;color:var(--ink2);line-height:1.5;margin-top:3px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.imgrow .badges{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+.imgrow .act{display:flex;flex-direction:column;gap:6px;align-items:flex-end;text-align:right}
+@media(max-width:900px){.imgrow{grid-template-columns:80px 1fr}.imgrow .act{grid-column:1/-1;
+  flex-direction:row;align-items:center;justify-content:space-between}}
+
+/* ---------- 详情页小地图：底图切换（矢量 / 卫星）---------- */
+.litmap-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:8px}
+.litmap-bar .seg{display:inline-flex;align-items:center;gap:8px}
+.litmap-bar .segbtn{padding:4px 12px;font-size:12px;cursor:pointer}
+.litmap-bar .segbtn[disabled]{opacity:.45;cursor:not-allowed}
+.litmap-note{font-size:12px;color:var(--ink2)}
+.litmap-bar [hidden]{display:none !important}
+</style>
+<style id="bpTheme">
+/* ================================================================
+   壁纸系统：一套规则 + N 套令牌
+   ★ 结构约定：**规则只有一份**（body.bp 下），**壁纸 = 令牌集**（body.bp.t-xxx）。
+     换壁纸 = 换 class + 换令牌值，不改任何选择器、不改任何 HTML 结构。
+   ★ 壁纸 1 工程图纸（陶土）· 壁纸 2 宫墙（墨绿 + 描金）· 原版 = 不加 class
+   ★ 每套壁纸：一支强调色 + 冷/中性底 + 纸白卡；错误用同族砖红，
+     待复核徽标用中性虚线（不另起色相）。
+   ================================================================ */
+body.bp{
+  /* 原版变量的映射（两套壁纸共用） */
+  --ink:var(--bp-ink); --ink2:var(--bp-ink2); --line:var(--bp-line);
+  --bg:var(--bp-field); --card:var(--bp-paper);
+  --brand:var(--bp-btn); --brand2:var(--bp-soft);
+  --warn:#5E686B; --ok:var(--bp-accent-deep); --mark:#F5E3C8;
+  background-color:var(--bp-field);
+  background-image:
+    linear-gradient(var(--bp-grid) 1px,transparent 1px),
+    linear-gradient(90deg,var(--bp-grid) 1px,transparent 1px);
+  background-size:34px 34px;
+  background-attachment:fixed;
+}
+/* ---------- 壁纸 1：工程图纸（陶土） ---------- */
+body.bp.t-terra{
+  --bp-field:#101619; --bp-grid:rgba(224,138,78,.06);
+  --bp-top:rgba(16,22,25,.94); --bp-scrim:rgba(8,12,14,.97);
+  --bp-paper:#F1F3F3; --bp-line:#C4C9C9;
+  --bp-ink:#191E20; --bp-ink2:#5E686B; --bp-ink3:#8A9599; --bp-dim:#E6EBEC;
+  --bp-accent:#B5672F; --bp-accent-bright:#E3965C; --bp-accent-deep:#8A4B18;
+  --bp-btn:#A65A26; --bp-soft:#F7EDE4;
+  --bp-radius:2px;
+}
+/* ---------- 壁纸 2：宫墙（墨绿 + 描金） ---------- */
+body.bp.t-museum{
+  --bp-field:#24463F; --bp-grid:rgba(224,185,120,.07);
+  --bp-top:#2A514D; --bp-scrim:rgba(18,36,33,.97);
+  --bp-paper:#F7F7F8; --bp-line:#D3D5D0;
+  --bp-ink:#26302E; --bp-ink2:#5E6B69; --bp-ink3:#B9CAC6; --bp-dim:#EAF0EE;
+  --bp-accent:#C1925B; --bp-accent-bright:#E0B978; --bp-accent-deep:#8A6524;
+  --bp-btn:#2A514D; --bp-soft:#F3EDE2;
+  --bp-radius:2px;
+}
+/* ---- 顶栏 ---- */
+body.bp .topbar{background:var(--bp-top);border-bottom:1px solid var(--bp-line);box-shadow:none}
+body.bp .topbar h1{color:var(--bp-dim);letter-spacing:.5px}
+body.bp .sub{color:var(--bp-ink3)}
+body.bp .sub .mono{color:var(--bp-accent-bright)}
+body.bp .tabs button{color:var(--bp-ink3)}
+body.bp .tabs button:hover{color:var(--bp-accent-bright);background:rgba(224,185,120,.10)}
+body.bp .tabs button.active{color:var(--bp-dim);border-bottom-color:var(--bp-accent-bright)}
+body.bp .syncbox .btn{background:transparent;border-color:var(--bp-line);color:var(--bp-accent-bright);
+  border-radius:var(--bp-radius)}
+body.bp .syncbox .btn:hover{border-color:var(--bp-accent-bright);background:rgba(224,185,120,.10)}
+body.bp .syncbox .btn.on{background:var(--bp-btn);border-color:var(--bp-btn);color:#fff}
+/* 壁纸选择器：放在顶栏，跟着主题走 */
+body.bp #bp-theme{background:transparent;border:1px solid var(--bp-line);color:var(--bp-accent-bright);
+  border-radius:var(--bp-radius);font-size:12.5px;padding:4px 6px}
+body.bp #bp-theme option{background:#fff;color:#191E20}
+/* ---- 直接落在深底上的文字 ---- */
+body.bp h2.sec{color:var(--bp-dim);border-left-color:var(--bp-accent-bright)}
+body.bp h3.sub2{color:var(--bp-accent-bright)}
+body.bp .loading{color:var(--bp-ink3)}
+/* ---- 页头（工程标题条）---- */
+body.bp .pagehead{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;
+  flex-wrap:wrap;padding:16px 0 12px;margin-bottom:14px;border-bottom:1px solid var(--bp-line)}
+body.bp .ph-zh{font-size:26px;font-weight:700;letter-spacing:8px;color:var(--bp-dim);line-height:1.1}
+body.bp .ph-en{font-family:Consolas,"Cascadia Mono",monospace;font-size:11px;letter-spacing:2.4px;
+  color:var(--bp-accent-bright);margin-top:6px}
+body.bp .ph-read{font-family:Consolas,"Cascadia Mono",monospace;font-size:11.5px;color:var(--bp-ink3);
+  line-height:1.8;text-align:right}
+body.bp .ph-read b{color:var(--bp-accent-bright);font-weight:700}
+/* ---- 口径条 ---- */
+body.bp .scope{background:var(--bp-paper);border:1px solid var(--bp-line);border-left:3px solid var(--bp-accent);
+  border-radius:var(--bp-radius);padding:9px 13px}
+body.bp .scope .k{font-family:Consolas,"Cascadia Mono",monospace;font-size:11px;letter-spacing:.6px;
+  color:#7C8689}
+body.bp .scope b{font-family:Consolas,"Cascadia Mono",monospace;color:var(--bp-accent-deep);font-variant-numeric:tabular-nums}
+/* ---- 工具条 ---- */
+body.bp .toolbar{background:var(--bp-paper);border:1px solid var(--bp-line);border-radius:var(--bp-radius);padding:12px 14px}
+body.bp .toolbar .btn{background:var(--bp-btn);border-color:var(--bp-btn);border-radius:var(--bp-radius)}
+body.bp .toolbar .btn:hover{filter:brightness(1.18)}
+body.bp .toolbar .btn.ghost{background:transparent;color:var(--bp-accent-deep);border-color:var(--bp-line)}
+body.bp .toolbar .btn.ghost:hover{background:var(--bp-soft)}
+body.bp .toolbar .small{color:#7C8689}
+/* 分段控件：**选中 = 填充强调色（永远最跳），未选中 = 透明底描边（退后）**。
+   ★ 旧版反了：宫墙下选中块是深墨绿 #2A514D，落在墨绿底 #24463F 上等于隐形，
+     反而未选中的白块最显眼 —— 看图会以为「没选的那个才是选中的」。 */
+body.bp .segbtn{background:transparent;border:1px solid var(--bp-line);
+  border-radius:var(--bp-radius);color:var(--bp-ink2)}
+body.bp .segbtn:hover{background:var(--bp-soft);color:var(--bp-ink)}
+body.bp.t-terra .segbtn.on{background:var(--bp-btn);border-color:var(--bp-btn);color:#fff}
+/* 描金底配深墨字 = 6.03:1（描金底配白字只有 2.79:1，不达标） */
+body.bp.t-museum .segbtn.on{background:var(--bp-accent);border-color:var(--bp-accent);color:#191E20}
+/* 侧栏是深底，未选中的字要走浅色才看得见 */
+body.bp.t-museum .srch-side .segbtn:not(.on){color:var(--bp-ink3)}
+body.bp.t-museum .srch-side .segbtn:not(.on):hover{background:rgba(224,185,120,.12);color:var(--bp-dim)}
+body.bp input[type=text],body.bp input[type=number],body.bp select{border:1px solid var(--bp-line);
+  border-radius:var(--bp-radius);background:#fff}
+body.bp input[type=text]:focus,body.bp select:focus{border-color:var(--bp-accent);outline:none}
+/* ---- 图版卡：图纸块 ---- */
+body.bp .imgcards{grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
+body.bp .imgcard{position:relative;background:var(--bp-paper);border:1px solid var(--bp-line);
+  border-radius:var(--bp-radius);box-shadow:0 1px 0 rgba(0,0,0,.28)}
+body.bp .imgcard .thumb{position:relative;height:152px;background:var(--bp-field);border-bottom:1px solid var(--bp-line)}
+body.bp .imgcard .thumb img{height:152px}
+/* 图框网格叠加 */
+body.bp .imgcard .thumb::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(224,185,120,.16) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(224,185,120,.16) 1px,transparent 1px);
+  background-size:16px 16px}
+/* 图号牌 */
+body.bp .imgcard .pnl{position:absolute;left:0;bottom:0;z-index:2;background:var(--bp-scrim);
+  color:var(--bp-accent-bright);font-family:Consolas,"Cascadia Mono",monospace;font-size:10.5px;
+  letter-spacing:.4px;padding:2px 7px}
+/* 角标：左上 L 形图框角标 */
+body.bp .imgcard::before{content:"";position:absolute;top:5px;left:5px;z-index:3;width:11px;height:11px;
+  border-top:1px solid var(--bp-accent-bright);border-left:1px solid var(--bp-accent-bright);pointer-events:none}
+body.bp .imgcard .meta{padding:10px 12px 12px;display:flex;flex-direction:column}
+body.bp .imgcard .meta > div:last-child{margin-top:auto!important;padding-top:8px}
+body.bp .imgcard .ttl{font-size:13.5px;line-height:1.5;color:var(--bp-ink);margin-bottom:4px;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+body.bp .imgcard .snip{font-size:12px;line-height:1.55;color:var(--bp-ink2);margin:2px 0 0;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+body.bp .imgcard .badges{margin:8px 0 6px}
+body.bp .imgcard .small{font-family:Consolas,"Cascadia Mono",monospace;font-size:10.5px;
+  letter-spacing:.4px;color:#7C8689}
+/* 「打开该文献」降为文字链 */
+body.bp .imgcard .btn.ghost{background:transparent;border:none;color:var(--bp-accent-deep);padding:0;font-size:12.5px}
+body.bp .imgcard .btn.ghost:hover{background:transparent;text-decoration:underline}
+/* ---- 复核状态：已复核=实印，待复核=中性虚线 ---- */
+body.bp .badge{border-radius:var(--bp-radius);font-family:Consolas,"Cascadia Mono",monospace;font-size:10.5px;
+  letter-spacing:.6px;padding:2px 6px;background:#E8EBEB;border-color:#CFD4D4;color:var(--bp-ink2)}
+body.bp .badge.pass{background:var(--bp-soft);border-color:var(--bp-accent);color:var(--bp-accent-deep)}
+body.bp .badge.pending{background:transparent;border-style:dashed;border-color:#AEB6B8;color:#6C7679}
+body.bp .badge.hit{background:var(--bp-soft);border-color:var(--bp-accent);color:var(--bp-accent-deep)}
+/* ---- 其它容器：素纸 + 2px 直角 ---- */
+body.bp .card,body.bp .secblk,body.bp .stat,body.bp .bars,body.bp .litlist,body.bp .pager,
+body.bp .sidepanel,body.bp .empty,body.bp .rawbody,body.bp .jsonlist{border-radius:var(--bp-radius)}
+body.bp .pager{border:1px solid var(--bp-line)}
+body.bp .pager .btn.ghost{background:transparent;color:var(--bp-accent-deep);border-color:var(--bp-line);
+  border-radius:var(--bp-radius)}
+body.bp .stat .n{color:var(--bp-accent-deep);font-variant-numeric:tabular-nums}
+body.bp .btn{border-radius:var(--bp-radius)}
+/* ---- 灯箱 ---- */
+body.bp #lb{background:var(--bp-scrim)}
+body.bp .lbcap{color:var(--bp-accent-bright)}
+body.bp .lbimg img{border:1px solid var(--bp-line)}
+/* ---- 页脚 ---- */
+body.bp footer{background:var(--bp-top);border-top:1px solid var(--bp-line);color:var(--bp-ink3)}
+body.bp footer .mono{color:var(--bp-accent-bright)}
+/* ---- 图表色统一到强调色 ---- */
+body.bp .barrow .fl{background:linear-gradient(90deg,var(--bp-accent),var(--bp-accent-bright))}
+body.bp .barrow .tr{background:#E4E8E8}
+body.bp .svgchart .bl{fill:var(--bp-accent)}
+body.bp .svgchart .ax{stroke:var(--bp-line)}
+body.bp .svgchart .tx{fill:var(--bp-ink2)}
+/* ---- 键盘焦点必须看得见 ---- */
+body.bp :focus-visible{outline:2px solid var(--bp-accent-bright);outline-offset:2px}
+/* ---------- 壁纸 2 的布局变体：博物馆图录（暗底画廊，无卡片） ---------- */
+body.bp.t-museum .imgcards{grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:30px 26px}
+body.bp.t-museum .imgcard{background:transparent;border:none;box-shadow:none;border-radius:0}
+body.bp.t-museum .imgcard .thumb{height:224px;border:1px solid var(--bp-line);border-radius:0}
+body.bp.t-museum .imgcard .thumb img{height:224px}
+body.bp.t-museum .imgcard .meta{padding:10px 2px 0}
+body.bp.t-museum .imgcard .ttl{font-size:16px;line-height:1.45;color:var(--bp-dim);font-weight:600;
+  -webkit-line-clamp:2}
+body.bp.t-museum .imgcard .snip{color:var(--bp-ink3)}
+body.bp.t-museum .imgcard .small{color:var(--bp-ink3)}
+/* 编号牌改成「展签」：纸底金字，压在图的下缘 */
+body.bp.t-museum .imgcard .pnl{background:var(--bp-paper);color:var(--bp-accent-deep);
+  border:1px solid var(--bp-line);border-bottom:none;padding:2px 8px}
+body.bp.t-museum .imgcard .badges{margin:10px 0 6px}
+body.bp.t-museum .badge{background:transparent;border:1px solid var(--bp-line);color:var(--bp-ink3)}
+body.bp.t-museum .badge.pass{border-color:var(--bp-accent);color:var(--bp-accent-bright)}
+body.bp.t-museum .badge.hit{border-color:var(--bp-accent);color:var(--bp-accent-bright)}
+body.bp.t-museum .imgcard .btn.ghost{color:var(--bp-accent-bright)}
+body.bp.t-museum .pagehead{border-bottom-color:var(--bp-line)}
+body.bp.t-museum .ph-zh{letter-spacing:12px}
+
+/* ---- 检索页版式在壁纸下的适配 ---- */
+body.bp .srch-bar,body.bp .srch-side,body.bp .imgrow{border-radius:var(--bp-radius)}
+body.bp.t-museum .srch-side{background:rgba(255,255,255,.06)}
+body.bp.t-museum .srch-side h4{color:var(--bp-ink3);border-bottom-color:var(--bp-line)}
+body.bp.t-museum .srch-side .fgroup > label.fl{color:var(--bp-ink3)}
+body.bp.t-museum .srch-side select{background:rgba(255,255,255,.06);color:var(--bp-dim);
+  border-color:var(--bp-line)}
+body.bp.t-museum .srch-side select option{background:#fff;color:#191E20}
+body.bp.t-museum .imgrow{background:rgba(255,255,255,.06)}
+/* 暗底画廊：文字必须走浅色，否则深墨字糊在墨绿底上 */
+body.bp.t-museum .imgrow .ttl{color:var(--bp-dim)}
+body.bp.t-museum .imgrow .snip{color:var(--bp-ink3)}
+body.bp.t-museum .imgrow .act .small.muted{color:var(--bp-ink3)}
+body.bp.t-museum .imgrow .btn.ghost{background:transparent;border-color:var(--bp-line);
+  color:var(--bp-accent-bright)}
+body.bp.t-museum .imgrow .btn.ghost:hover{background:rgba(224,185,120,.10)}
+/* ---- 对比度：深底上的标题不能沿用纸面色 ----
+   宫墙下 --brand 是深墨绿 #2A514D，落在墨绿底上等于隐形。 */
+body.bp .subbar h3{color:var(--bp-accent-bright)}
+body.bp .subbar .small.muted{color:var(--bp-ink3)}
+/* ---- 侧栏里的 ghost 按钮：白底橙字在纸面上太扎眼且对比度不达标 ---- */
+body.bp .srch-side .btn.ghost{background:transparent;border-color:var(--bp-line);
+  color:var(--bp-accent-deep)}
+body.bp .srch-side .btn.ghost:hover{background:var(--bp-soft)}
+body.bp .srch-side .btn{background:var(--bp-btn);border-color:var(--bp-btn);color:#fff}
+body.bp .srch-side .small.muted{color:var(--bp-ink3)}
+body.bp .databar{background:var(--bp-paper);border-top:1px solid var(--bp-line);
+  border-radius:var(--bp-radius);padding:10px 12px}
+body.bp .databar .btn{background:var(--bp-btn);border-color:var(--bp-btn);color:#fff}
+body.bp .databar .btn.ghost{background:transparent;border-color:var(--bp-line);
+  color:var(--bp-accent-deep)}
+body.bp .databar .btn.ghost:hover{background:var(--bp-soft)}
+body.bp .databar .small.muted{color:var(--bp-ink2)}
+/* ---- 工作台卡片：标题走强调深色，状态块换成壁纸纸色 ---- */
+body.bp .wcard h4{color:var(--bp-accent-deep)}
+body.bp .wcard .statline{background:var(--bp-soft);border-color:var(--bp-line);color:var(--bp-ink)}
+body.bp .wcard .eps{color:var(--bp-ink2)}
+body.bp .wcard .perm{color:var(--bp-ink2)}
 </style>
 </head>
 <body>
@@ -363,6 +631,7 @@ footer p{margin:3px 0}
     </nav>
     <!-- 右上角同步控件：主按钮=自动同步开关（未设置时点它跳配置页） -->
     <div class="syncbox">
+      <select id="bp-theme" title="切换壁纸"><option value="plain">原版</option><option value="terra">图纸 · 陶土</option><option value="museum">宫墙 · 墨绿</option></select>
       <button type="button" class="btn ghost" id="sync-auto" title="自动同步">同步：读取中…</button>
       <button type="button" class="btn ghost" id="sync-now" title="立即同步一次（下载合并 + 上传）">⟳ 立即同步</button>
     </div>
@@ -513,7 +782,7 @@ var state = {
     mode: "both"
   },
   /* 图版检索（E2 · 独立模块）：与 list 各管各的，不共用状态 */
-  img: { q: "", mode: "both", img_type: "", obj_type: "", dim: "", tag: "", page: 1, size: 20 },
+  img: { q: "", mode: "both", img_type: "", obj_type: "", dim: "", tag: "", page: 1, size: 20, view: "grid" },
   imgStats: null,          /* /api/imgsearch/stats 缓存（筛选选项 + 索引状态） */
   detailId: null,
   /* 词级索引状态（E1）：/api/segment/status，谁都能读 */
@@ -880,7 +1149,38 @@ function dimOptions(dim) {
   return state.tagOpts[dim] || [];
 }
 /* ---------- 文献页控件（浏览 + 检索合并） ---------- */
-function listToolbarHtml() {
+/* 左栏分组：标签在上、控件在下 */
+function srchGroup(label, ctrl) {
+  return '<div class="fgroup"><label class="fl">' + esc(label) + "</label>" + ctrl + "</div>";
+}
+/* ★ 顶部搜索行：关键词 + 检索方式 + 应用/重置 + 导出（照故宫：搜索框在顶，分类在左） */
+function listSearchBarHtml() {
+  var p = state.list;
+  return '<div class="srch-bar">' +
+    '<input type="text" id="l-q" value="' + esc(p.q) +
+    '" placeholder="留空＝浏览；填词＝检索（题名/作者/关键词/MD 全文/原始 JSON）">' +
+    '<span class="seg" id="l-mode"><label class="fl">检索方式</label>' +
+    [["exact", "整句精确"], ["syn", "分词扩召回"], ["both", "两者合并"]].map(function (o) {
+      return '<button type="button" class="segbtn' + (p.mode === o[0] ? " on" : "") +
+        '" data-mode="' + o[0] + '" title="' +
+        (o[0] === "exact" ? "原文里逐字出现才算命中（子串匹配）"
+          : o[0] === "syn" ? "分词后按词匹配，并按领域词典的同义组扩展召回"
+            : "两种语义合并，召回最全（默认）") + '">' + esc(o[1]) + "</button>";
+    }).join("") + "</span>" +
+    '<button class="btn" id="l-apply">应用</button>' +
+    '<button class="btn ghost" id="l-reset">重置</button>' +
+    '<span class="srch-sel"><label class="fl">排序</label><select id="l-sort">' +
+    [["lit_id", "编号"], ["year", "出版年"], ["title", "题名"]].map(function (o) {
+      return '<option value="' + o[0] + '"' + (p.sort === o[0] ? " selected" : "") + ">" + o[1] + "</option>";
+    }).join("") + "</select></span>" +
+    '<span class="srch-sel"><label class="fl">每页</label><select id="l-size">' +
+    [20, 50, 100].map(function (n) { return '<option value="' + n + '"' + (p.size === n ? " selected" : "") + ">" + n + "</option>"; }).join("") +
+    "</select></span>" +
+    '<a class="btn ghost" id="l-export" href="#">⬇ 导出当前结果 CSV</a>' +
+    "</div>";
+}
+/* 左分类栏：类别筛选 + 排序展示 + 数据管理 */
+function listSideHtml() {
   var p = state.list;
   var dimSel = function (dim, label) {
     var opts = state.tagOpts[dim] || [];
@@ -894,43 +1194,40 @@ function listToolbarHtml() {
       h += '<option value="' + esc(v) + '"' + (String(p[dim]) === String(v) ? " selected" : "") + ">" +
         esc(t.name) + (t.lit_count !== undefined ? "（" + t.lit_count + "）" : "") + "</option>";
     });
-    return '<span><label class="fl">' + esc(label) + "</label><select data-f='" + dim + "'>" + h + "</select></span>";
+    return srchGroup(label, '<select data-f="' + dim + '">' + h + "</select>");
   };
-  return '<div class="toolbar">' +
-    '<span><label class="fl">关键词</label><input type="text" id="l-q" value="' + esc(p.q) + '" placeholder="留空＝浏览；填词＝检索（题名/作者/关键词/MD 全文/原始 JSON）" style="width:250px"></span>' +
-    /* 检索方式（E1）：三种语义不同，必须能切。默认「两者合并」。 */
-    '<span class="seg" id="l-mode"><label class="fl">检索方式</label>' +
-    [["exact", "整句精确"], ["syn", "分词扩召回"], ["both", "两者合并"]].map(function (o) {
-      return '<button type="button" class="segbtn' + (p.mode === o[0] ? " on" : "") +
-        '" data-mode="' + o[0] + '" title="' +
-        (o[0] === "exact" ? "原文里逐字出现才算命中（子串匹配）"
-          : o[0] === "syn" ? "分词后按词匹配，并按领域词典的同义组扩展召回"
-            : "两种语义合并，召回最全（默认）") + '">' + esc(o[1]) + "</button>";
-    }).join("") + "</span>" +
-    '<span><label class="fl">类型</label><select data-f="doc_type">' + optList(dimOptions("doc_type"), "k", dimLabel, p.doc_type) + "</select></span>" +
-    '<span><label class="fl">语种</label><select data-f="lang">' + optList(dimOptions("lang"), "k", dimLabel, p.lang) + "</select></span>" +
-    '<span><label class="fl">年份</label><select data-f="year">' + optList(dimOptions("year"), "k", dimLabel, p.year) + "</select></span>" +
-    dimSel("period", "分期") + dimSel("region", "空间") + dimSel("topic", "主题") + dimSel("lineage", "谱系") +
-    '<span><label class="fl">排序</label><select id="l-sort">' +
-    [["lit_id", "编号"], ["year", "出版年"], ["title", "题名"]].map(function (o) {
-      return '<option value="' + o[0] + '"' + (p.sort === o[0] ? " selected" : "") + ">" + o[1] + "</option>";
-    }).join("") + "</select></span>" +
-    '<span><label class="fl">每页</label><select id="l-size">' +
-    [20, 50, 100].map(function (n) { return '<option value="' + n + '"' + (p.size === n ? " selected" : "") + ">" + n + "</option>"; }).join("") +
-    "</select></span>" +
-    '<button class="btn" id="l-apply">应用</button>' +
-    '<button class="btn ghost" id="l-reset">重置</button>' +
-    '<a class="btn ghost" id="l-export" href="#">⬇ 导出当前结果 CSV</a>' +
+  var h = '<aside class="srch-side">';
+  h += "<h4>类别筛选</h4>";
+  h += srchGroup("类型", '<select data-f="doc_type">' + optList(dimOptions("doc_type"), "k", dimLabel, p.doc_type) + "</select>");
+  h += srchGroup("语种", '<select data-f="lang">' + optList(dimOptions("lang"), "k", dimLabel, p.lang) + "</select>");
+  h += srchGroup("年份", '<select data-f="year">' + optList(dimOptions("year"), "k", dimLabel, p.year) + "</select>");
+  h += dimSel("period", "分期");
+  h += dimSel("region", "空间");
+  h += dimSel("topic", "主题");
+  h += dimSel("lineage", "谱系");
+  h += '<div class="small muted">关键词与类别同时生效（AND）；关键词留空即按类别浏览。</div>';
+  h += "</aside>";
+  return h;
+}
+/* 数据管理条：放在结果区底部（原在左栏，被侧栏内部滚动吃掉，够不着） */
+function listDataBarHtml() {
+  return '<div class="databar">' +
+    '<span class="small muted">数据管理</span>' +
     '<a class="btn ghost" id="l-export-xlsx" href="/api/export/literatures.xlsx" download>⬇ 导出 xlsx</a>' +
-    '<a class="btn" id="l-template" href="/api/template/literatures" download>⬇ 下载空白模板</a>' +
+    '<a class="btn ghost" id="l-template" href="/api/template/literatures" download>⬇ 下载空白模板</a>' +
     '<button class="btn ghost" id="l-import-btn">⬆ 导入登记表</button>' +
     '<button class="btn ghost" id="l-entry-btn">＋ 录入一条</button>' +
-    '<span class="small muted">关键词与类别同时生效（AND）；关键词留空即按类别浏览。</span>' +
     "</div>";
 }
 
 function renderList() {
-  view.innerHTML = listToolbarHtml() + '<div id="l-extra"></div><div id="l-scope"></div><div id="l-list"></div>';
+  view.innerHTML = '<div class="pagehead"><div><div class="ph-zh">文献检索</div>' +
+    '<div class="ph-en">LITERATURE INDEX / 良渚主题文献目录</div></div>' +
+    '<div class="ph-read">库内 <b id="ph-lit-total">—</b> 篇　当前命中 <b id="ph-lit-hit">—</b> 篇</div></div>' +
+    listSearchBarHtml() +
+    '<div class="srch">' + listSideHtml() +
+    '<div class="srch-main"><div id="l-extra"></div><div id="l-scope"></div><div id="l-list"></div>' +
+    listDataBarHtml() + "</div></div>";
   bindList();
   loadSegmentStatus();     /* 索引版本/词典状态（谁都能读） */
   loadList();
@@ -1049,6 +1346,11 @@ function paintList(d, hits) {
   var items = d.items || [];
   var total = d.total === undefined ? items.length : d.total;
   var libTotal = state.ov && state.ov.lit_count !== undefined ? state.ov.lit_count : "—";
+  /* ★ 标题条读数现算（不写死）：库内文献总数 / 当前命中 */
+  var phT = document.getElementById("ph-lit-total");
+  if (phT) phT.textContent = (libTotal === "—") ? "—" : fmtNum(libTotal);
+  var phH = document.getElementById("ph-lit-hit");
+  if (phH) phH.textContent = fmtNum(total);
   var byLit = {};
   (hits || []).forEach(function (h) {
     if (!h || !h.lit_id) return;
@@ -1536,6 +1838,11 @@ function renderDetail(litId) {
       '<span class="lz-tier public">公开权威坐标</span>公开资料　' +
       '<span class="lz-tier region">分区代表点</span>区块统一坐标，约 ±1.1 km　' +
       '<span class="lz-tier none">未定位</span>没有可定位坐标</div>' +
+      '<div class="litmap-bar"><span class="seg" id="litmap-mode">' +
+        '<label class="fl">底图</label>' +
+        '<button type="button" class="segbtn on" data-lm="vec">矢量</button>' +
+        '<button type="button" class="segbtn" data-lm="sat" id="litmap-sat-btn" hidden>卫星影像</button>' +
+        '</span><span class="litmap-note" id="litmap-note"></span></div>' +
       '<div id="litmap" style="margin-top:8px"><div class="loading"><span class="spin"></span>正在读取坐标标记…</div></div>' +
       '<div id="litmap-txt" style="margin-top:8px"></div></div>';
 
@@ -1658,7 +1965,7 @@ function renderDetail(litId) {
  *   分区代表点（±1.1 km）差一个数量级，混画会让人误以为
  *   「每篇文献都有一个精确位置」—— 那是骗人。
  * ================================================================ */
-var LITMAP = { map: null };
+var LITMAP = { map: null, sat: null, meta: null, metaTried: false };
 var LITMAP_TIER_ICON = { lit_coord: "lz-mk-t1", public: "lz-mk-t2",
                          region: "lz-mk-t3", none: "lz-mk-t0" };
 function litmapDestroy() {
@@ -1666,6 +1973,67 @@ function litmapDestroy() {
     try { LITMAP.map.remove(); } catch (e) { /* 容器已被换掉 */ }
   }
   LITMAP.map = null;
+}
+
+/* ── 卫星影像底图（本地切片，零外链）──────────────────────────────
+ * ★ 卫星影像天然是在线服务，而本项目硬约束是「零外链、禁 CDN、断网可用」
+ *   → 只能把瓦片缓存到本地，由本站同源供给（/tiles/...）。
+ * ★ 瓦片只随「组内离线包」分发；公开包没有 → 端点 404，
+ *   这里据此**隐藏**卫星按钮，而不是让用户点了看到一片碎图。
+ * ★ 覆盖范围有限（良渚古城核心区 4 km×4 km）→ 用 Leaflet 的 bounds
+ *   挡住范围外的请求，不去请求不存在的瓦片。
+ */
+function litmapSatMeta() {
+  if (LITMAP.metaTried) return Promise.resolve(LITMAP.meta);
+  LITMAP.metaTried = true;
+  return fetch("/tiles/manifest.json").then(function (r) {
+    if (!r.ok) throw new Error("no tiles");
+    return r.json();
+  }).then(function (j) { LITMAP.meta = j; return j; })
+    .catch(function () { LITMAP.meta = null; return null; });
+}
+function litmapSatLayer(map, meta) {
+  var b = (meta || {}).bbox || {};
+  return L.tileLayer("/tiles/{z}/{x}/{y}.jpg", {
+    minZoom: 14, maxZoom: 19, maxNativeZoom: 18, noWrap: true,
+    bounds: [[Number(b.lat_min), Number(b.lon_min)],
+             [Number(b.lat_max), Number(b.lon_max)]],
+    attribution: (meta && meta.attribution) || "影像：Esri World Imagery",
+    errorTileUrl: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+  });
+}
+function litmapBindMode() {
+  var bar = $("#litmap-mode");
+  if (!bar || bar.getAttribute("data-lm-bound")) return;
+  bar.setAttribute("data-lm-bound", "1");
+  bar.addEventListener("click", function (ev) {
+    var btns = bar.querySelectorAll("[data-lm]");
+    for (var i = 0; i < btns.length; i++) {
+      var b = btns[i];
+      if (ev.target === b || (b.contains && b.contains(ev.target))) {
+        litmapSetMode(b.getAttribute("data-lm"));
+        return;
+      }
+    }
+  });
+}
+function litmapSetMode(mode) {
+  var bar = $("#litmap-mode");
+  if (bar) {
+    var btns = bar.querySelectorAll("[data-lm]");
+    for (var i = 0; i < btns.length; i++) {
+      var b = btns[i];
+      var on = (b.getAttribute("data-lm") === mode);
+      b.className = b.className.replace(/\s*\bon\b/g, "") + (on ? " on" : "");
+    }
+  }
+  if (!LITMAP.map || !LITMAP.meta) return;
+  if (mode === "sat") {
+    if (!LITMAP.sat) LITMAP.sat = litmapSatLayer(LITMAP.map, LITMAP.meta).addTo(LITMAP.map);
+  } else if (LITMAP.sat) {
+    LITMAP.map.removeLayer(LITMAP.sat);
+    LITMAP.sat = null;
+  }
 }
 function loadLitMap(litId) {
   var box = $("#litmap"), txt = $("#litmap-txt");
@@ -1737,6 +2105,27 @@ function litmapDraw(d, ms, box) {
                          scrollWheelZoom: false });
   LITMAP.map = map;
   map.setView(c, 13);
+  /* 底图切换：矢量默认；卫星按「瓦片是否存在 + 本篇坐标是否在覆盖范围内」决定可用性 */
+  litmapBindMode();
+  litmapSatMeta().then(function (meta) {
+    if (!LITMAP.map) return;
+    var btn = $("#litmap-sat-btn");
+    var note = $("#litmap-note");
+    if (!meta) {
+      if (note) note.textContent = "本包未随附卫星影像瓦片（仅组内离线包含）。";
+      return;
+    }
+    var b = meta.bbox || {};
+    var inside = false;
+    for (var i = 0; i < pts.length; i++) {
+      if (pts[i][0] >= Number(b.lat_min) && pts[i][0] <= Number(b.lat_max) &&
+          pts[i][1] >= Number(b.lon_min) && pts[i][1] <= Number(b.lon_max)) { inside = true; break; }
+    }
+    if (btn) { btn.removeAttribute("hidden"); btn.disabled = !inside; }
+    if (note) note.textContent = inside
+      ? "卫星影像仅覆盖良渚古城核心区（约 4 km×4 km），拖出范围即无影像。"
+      : "本篇坐标在卫星覆盖范围之外（影像仅覆盖良渚古城核心区），卫星底图已停用。";
+  });
   /* 上下文：良渚遗址群范围框（虚线）与钱塘江水系／余杭区界（本地 geojson，零联网） */
   if (sg.lon_min !== undefined && sg.lon_min !== null && sg.lat_min !== undefined && sg.lat_min !== null &&
       sg.lon_max !== undefined && sg.lon_max !== null && sg.lat_max !== undefined && sg.lat_max !== null) {
@@ -5210,23 +5599,42 @@ function renderImgSearch() {
   var p = state.img;
   var st = state.imgStats || {};
   var tagOpts = (st.tag_options && p.dim && st.tag_options[p.dim]) ? st.tag_options[p.dim] : [];
-  var h = "<div class=\"toolbar\">";
-  h += "<input id=\"im-q\" placeholder=\"关键词（空格分隔；多个词按 AND）\" value=\"" + esc(p.q) + "\" style=\"min-width:230px\">";
-  h += "<span class=\"seg\" id=\"im-mode\">";
-  h += "<button class=\"segbtn" + (p.mode === "both" ? " on" : "") + "\" data-mode=\"both\">文本＋标签</button>";
-  h += "<button class=\"segbtn" + (p.mode === "exact" ? " on" : "") + "\" data-mode=\"exact\">仅图版文本</button>";
-  h += "</span>";
-  h += "<select id=\"im-type\"><option value=\"\">全部类型</option>" + imgOpts(st.img_types, p.img_type) + "</select>";
-  h += "<select id=\"im-obj\"><option value=\"\">全部对象类型</option>" + imgOpts(st.obj_types, p.obj_type) + "</select>";
-  h += "<select id=\"im-dim\"><option value=\"\">不限维度</option>" + imgOpts(st.dims, p.dim) + "</select>";
-  h += "<select id=\"im-tag\"><option value=\"\">不限标签</option>" + imgOpts(tagOpts, p.tag) + "</select>";
+  var h = "<div class=\"pagehead\"><div><div class=\"ph-zh\">图版检索</div>" +
+    "<div class=\"ph-en\">PLATE INDEX / 文献图版图像检索</div></div>" +
+    "<div class=\"ph-read\">库内 <b id=\"ph-total\">—</b> 条　覆盖 <b id=\"ph-lits\">—</b> 篇　当前命中 <b id=\"ph-hit\">—</b> 条</div></div>";
+  /* 顶部搜索行（照故宫：搜索框在顶，分类在左） */
+  h += "<div class=\"srch-bar\">";
+  h += "<input id=\"im-q\" placeholder=\"关键词（空格分隔；多个词按 AND）\" value=\"" + esc(p.q) + "\">";
   h += "<button class=\"btn\" id=\"im-go\">检索</button>";
   h += "<button class=\"btn ghost\" id=\"im-reset\">重置</button>";
   h += "<span class=\"small muted\">复核状态只作显示，不参与检索过滤与排序。</span>";
   h += "</div>";
+  h += "<div class=\"srch\">";
+  /* 左分类栏 */
+  h += "<aside class=\"srch-side\">";
+  h += "<h4>检索方式</h4>";
+  h += "<div class=\"fgroup\"><span class=\"seg\" id=\"im-mode\">";
+  h += "<button class=\"segbtn" + (p.mode === "both" ? " on" : "") + "\" data-mode=\"both\">文本＋标签</button>";
+  h += "<button class=\"segbtn" + (p.mode === "exact" ? " on" : "") + "\" data-mode=\"exact\">仅图版文本</button>";
+  h += "</span></div>";
+  h += "<h4>类别筛选</h4>";
+  h += srchGroup("图像类型", "<select id=\"im-type\"><option value=\"\">全部类型</option>" + imgOpts(st.img_types, p.img_type) + "</select>");
+  h += srchGroup("对象类型", "<select id=\"im-obj\"><option value=\"\">全部对象类型</option>" + imgOpts(st.obj_types, p.obj_type) + "</select>");
+  h += srchGroup("维度", "<select id=\"im-dim\"><option value=\"\">不限维度</option>" + imgOpts(st.dims, p.dim) + "</select>");
+  h += srchGroup("标签", "<select id=\"im-tag\"><option value=\"\">不限标签</option>" + imgOpts(tagOpts, p.tag) + "</select>");
+  h += "<h4>结果视图</h4>";
+  h += "<div class=\"fgroup\"><span class=\"seg\" id=\"im-view\">";
+  h += "<button class=\"segbtn" + (p.view === "list" ? "" : " on") + "\" data-view=\"grid\">网格</button>";
+  h += "<button class=\"segbtn" + (p.view === "list" ? " on" : "") + "\" data-view=\"list\">列表</button>";
+  h += "</span></div>";
+  h += "</aside>";
+  /* 右结果区 */
+  h += "<div class=\"srch-main\">";
   h += "<div id=\"im-scope\"></div>";
   h += "<div id=\"im-dp\"></div>";
   h += "<div id=\"im-list\"></div>";
+  h += "</div>";
+  h += "</div>";
   view.innerHTML = h;
   bindImgSearch();
   loadImgStats();
@@ -5249,7 +5657,7 @@ function bindImgSearch() {
   if (go) go.addEventListener("click", apply);
   var rs = $("#im-reset");
   if (rs) rs.addEventListener("click", function () {
-    state.img = { q: "", mode: "both", img_type: "", obj_type: "", dim: "", tag: "", page: 1, size: 20 };
+    state.img = { q: "", mode: "both", img_type: "", obj_type: "", dim: "", tag: "", page: 1, size: 20, view: "grid" };
     renderImgSearch();
   });
   var q = $("#im-q");
@@ -5265,6 +5673,17 @@ function bindImgSearch() {
   ["#im-type", "#im-obj", "#im-tag"].forEach(function (sel) {
     var e = $(sel);
     if (e) e.addEventListener("change", apply);
+  });
+  /* 视图切换：网格 / 列表（只换呈现，不重新检索） */
+  var vw = $("#im-view");
+  if (vw) vw.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-view]");
+    if (!b) return;
+    p.view = b.getAttribute("data-view");
+    Array.prototype.forEach.call(document.querySelectorAll("#im-view .segbtn"), function (x) {
+      x.className = "segbtn" + (x.getAttribute("data-view") === p.view ? " on" : "");
+    });
+    loadImgSearch();
   });
   var dm = $("#im-dim");
   if (dm) dm.addEventListener("change", function () {
@@ -5303,6 +5722,13 @@ function loadImgSearch() {
     var d = r.data || {};
     var items = d.items || [];
     var idx = d.index || {};
+    /* 工程标题条上的读数（现算，不写死） */
+    var phT = document.getElementById("ph-total");
+    if (phT) phT.textContent = fmtNum((state.imgStats && state.imgStats.total_images) || 0);
+    var phL = document.getElementById("ph-lits");
+    if (phL) phL.textContent = fmtNum((state.imgStats && state.imgStats.total_lits) || 0);
+    var phH = document.getElementById("ph-hit");
+    if (phH) phH.textContent = fmtNum(d.total);
     if (sc) {
       sc.innerHTML = scopeBar([
         ["库内图版总数", fmtNum((state.imgStats && state.imgStats.total_images) || 0), "条（images 表）"],
@@ -5317,29 +5743,56 @@ function loadImgSearch() {
       if (box) box.innerHTML = emptyBox("没有命中的图版。关键词留空即按类型浏览。");
       return;
     }
-    var h = "<div class=\"imgcards\">";
     LB_GROUPS.search = items.map(lbFromSearch);
-    items.forEach(function (it, i) {
-      var badges = "";
+    var badgesOf = function (it) {
+      var b = "";
       (it.hit_layers || []).forEach(function (L) {
-        badges += "<span class=\"badge hit\">" + esc(IMG_LAYER_LABEL[L] || L) + "</span>";
+        b += "<span class=\"badge hit\">" + esc(IMG_LAYER_LABEL[L] || L) + "</span>";
       });
-      badges += "<span class=\"badge " + (it.review_verified ? "pass" : "pending") + "\">" +
+      b += "<span class=\"badge " + (it.review_verified ? "pass" : "pending") + "\">" +
         (it.review_verified ? "已复核" : "待复核") + "</span>";
-      var title = it.caption_zh || it.img_title || ("图 " + (it.fig_no || ""));
-      h += "<div class=\"imgcard\">";
-      h += "<div class=\"thumb\" data-lbg=\"search\" data-lbi=\"" + i + "\" title=\"点击看大图\">" +
-        "<img src=\"" + esc(it.thumb_url) + "\" loading=\"lazy\" alt=\"" + esc(title) + "\"></div>";
-      h += "<div class=\"meta\">";
-      h += "<div class=\"ttl\">" + esc(title) + "</div>";
-      if (it.snippet) h += "<div class=\"snip\">" + it.snippet + "</div>";
-      h += "<div class=\"badges\">" + badges + "</div>";
-      h += "<div class=\"small muted\">" + esc(it.lit_id) + (it.fig_no ? "　图 " + esc(it.fig_no) : "") +
-        (it.img_type ? "　" + esc(it.img_type) : "") + "</div>";
-      h += "<div style=\"margin-top:6px\"><a class=\"btn ghost\" href=\"#/lit/" + esc(it.lit_id) + "\">打开该文献 →</a></div>";
-      h += "</div></div>";
-    });
-    h += "</div>";
+      return b;
+    };
+    var titleOf = function (it) { return it.caption_zh || it.img_title || ("图 " + (it.fig_no || "")); };
+    var h = "";
+    if (p.view === "list") {
+      /* 列表视图：一行一条（左缩略图 / 中信息 / 右操作） */
+      h += "<div class=\"imgrows\">";
+      items.forEach(function (it, i) {
+        var title = titleOf(it);
+        h += "<div class=\"imgrow\">";
+        h += "<div class=\"thumb\" data-lbg=\"search\" data-lbi=\"" + i + "\" title=\"点击看大图\">" +
+          "<img src=\"" + esc(it.thumb_url) + "\" loading=\"lazy\" alt=\"" + esc(title) + "\"></div>";
+        h += "<div>";
+        h += "<div class=\"ttl\">" + esc(title) + "</div>";
+        if (it.snippet) h += "<div class=\"snip\">" + it.snippet + "</div>";
+        h += "<div class=\"badges\">" + badgesOf(it) + "</div>";
+        h += "</div>";
+        h += "<div class=\"act\">";
+        h += "<span class=\"small muted\">" + esc(it.lit_id) + (it.fig_no ? " / " + esc(it.fig_no) : "") +
+          (it.img_type ? "　" + esc(it.img_type) : "") + "</span>";
+        h += "<a class=\"btn ghost\" href=\"#/lit/" + esc(it.lit_id) + "\">打开该文献 →</a>";
+        h += "</div></div>";
+      });
+      h += "</div>";
+    } else {
+      h += "<div class=\"imgcards\">";
+      items.forEach(function (it, i) {
+        var title = titleOf(it);
+        h += "<div class=\"imgcard\">";
+        h += "<div class=\"thumb\" data-lbg=\"search\" data-lbi=\"" + i + "\" title=\"点击看大图\">" +
+          "<img src=\"" + esc(it.thumb_url) + "\" loading=\"lazy\" alt=\"" + esc(title) + "\">" +
+          "<span class=\"pnl\">" + esc(it.lit_id) + (it.fig_no ? " / " + esc(it.fig_no) : "") + "</span></div>";
+        h += "<div class=\"meta\">";
+        h += "<div class=\"ttl\">" + esc(title) + "</div>";
+        if (it.snippet) h += "<div class=\"snip\">" + it.snippet + "</div>";
+        h += "<div class=\"badges\">" + badgesOf(it) + "</div>";
+        h += "<div class=\"small muted\">" + (it.img_type ? esc(it.img_type) : "") + "</div>";
+        h += "<div style=\"margin-top:6px\"><a class=\"btn ghost\" href=\"#/lit/" + esc(it.lit_id) + "\">打开该文献 →</a></div>";
+        h += "</div></div>";
+      });
+      h += "</div>";
+    }
     var pages = Math.max(1, Math.ceil((d.total || 0) / (d.size || p.size)));
     h += "<div class=\"pager\">";
     h += "<button class=\"btn ghost\" id=\"im-prev\"" + ((d.page || 1) <= 1 ? " disabled" : "") + ">上一页</button>";
@@ -5356,6 +5809,36 @@ function loadImgSearch() {
 /* ==================================================================
  * 路由与初始化
  * ================================================================== */
+/* ================================================================
+ * 风格开关：工程图纸主题（样例版）
+ *   状态存 localStorage；默认开启，方便直接对比新旧两版。
+ * ================================================================ */
+var BP_KEY = "lzkg.theme";
+/* 壁纸切换：plain=原版 / terra=图纸陶土 / museum=宫墙墨绿
+   ★ 规则只有一份（body.bp），壁纸差异全在令牌（body.bp.t-xxx）与各自的布局块。 */
+function bpApply(name) {
+  var b = document.body;
+  b.classList.remove("bp", "t-terra", "t-museum");
+  if (name && name !== "plain") {
+    b.classList.add("bp");
+    b.classList.add("t-" + name);
+  }
+  var s = document.getElementById("bp-theme");
+  if (s) s.value = name || "plain";
+  try { localStorage.setItem(BP_KEY, name || "plain"); } catch (e) {}
+}
+function bpInit() {
+  var v = "terra";
+  try {
+    var s0 = localStorage.getItem(BP_KEY);
+    /* 只认白名单里的壁纸名；旧版本存的值（如 "bp"）一律落到默认壁纸 */
+    if (s0 === "plain" || s0 === "terra" || s0 === "museum") v = s0;
+  } catch (e) {}
+  bpApply(v);
+  var s = document.getElementById("bp-theme");
+  if (s) s.addEventListener("change", function () { bpApply(s.value); });
+}
+
 function route() {
   var r = parseHash();
   state.tab = r.tab;
@@ -5417,6 +5900,7 @@ function loadNotes() {
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape" && rm && rm.style.display !== "none") rawHide();
   });
+  bpInit();
   api("/api/overview").then(function (r) {
     if (r.ok) {
       state.ov = r.data;

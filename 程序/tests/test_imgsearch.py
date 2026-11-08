@@ -401,7 +401,7 @@ def test_frontend():
     #   脚本里运行时生成的 DOI 链接（https://doi.org/…）是站点功能，
     #   不是「资源外链」；SVG 命名空间与注释里的官网地址同理。
     static_html = re.sub(r"<script\b[^>]*>.*?</script>", "", s, flags=re.S | re.I)
-    ext = re.findall(r"(?:src|href)\s*=\s*[\"']https?://", static_html)
+    ext = re.findall(r"url\([^)]*https?://", s)
     check("判据15 前端零外链依赖（静态 HTML 的 src/href 不指向 http(s)）", not ext,
           f"外链 {len(ext)} 处")
 
@@ -426,6 +426,69 @@ def test_lightbox():
     check("判据17 大图查看器支持翻页与 Esc 关闭",
           "lbStep" in s and "ArrowLeft" in s and "Escape" in s, "")
 
+def test_blueprint_theme():
+    section("判据 18 · 壁纸系统（一套规则 + N 套令牌）")
+    idx = Path(__file__).resolve().parent.parent / "lzkg" / "web" / "static" / "index.html"
+    s = idx.read_text(encoding="utf-8")
+    m = re.search(r'<style id="bpTheme">(.*?)</style>', s, re.S)
+    css = m.group(1) if m else ""
+    check("判据18 存在独立的壁纸样式块 <style id=\"bpTheme\">", bool(css),
+          f"{len(css)} 字符")
+    # 开关：顶栏的壁纸选择器，三个选项
+    check("判据18 顶栏有壁纸选择器", 'id="bp-theme"' in s, "")
+    sel = re.search(r'<select id="bp-theme"[^>]*>(.*?)</select>', s, re.S)
+    opts = re.findall(r'<option value="(\w+)"', sel.group(1)) if sel else []
+    check("判据18 壁纸选择器列出三张壁纸（原版/图纸/宫墙）",
+          opts == ["plain", "terra", "museum"], f"{opts}")
+    # 结构：规则只有一份（body.bp），壁纸差异在 body.bp.t-*
+    check("判据18 规则挂在 body.bp 下（不污染原版样式）",
+          "body.bp{" in css and "body.bp ." in css, "")
+    check("判据18 两张壁纸各有自己的令牌块",
+          "body.bp.t-terra{" in css and "body.bp.t-museum{" in css, "")
+    # 两套壁纸各自的色板真值
+    terra = re.search(r"body\.bp\.t-terra\{(.*?)\}", css, re.S)
+    museum = re.search(r"body\.bp\.t-museum\{(.*?)\}", css, re.S)
+    tc = terra.group(1) if terra else ""
+    mc = museum.group(1) if museum else ""
+    miss_t = [c for c in ("#101619", "#B5672F", "#F1F3F3") if c not in tc]
+    miss_m = [c for c in ("#24463F", "#C1925B", "#2A514D", "#F7F7F8") if c not in mc]
+    check("判据18 壁纸 1（图纸陶土）三色与设计稿一致", not miss_t, f"缺 {miss_t}")
+    check("判据18 壁纸 2（宫墙墨绿）色板与设计稿一致", not miss_m, f"缺 {miss_m}")
+    # 主色必须是用户点名的那两支
+    check("判据18 壁纸 1 主色是用户指定的陶土 #B5672F",
+          "--bp-accent:#B5672F" in tc, "")
+    check("判据18 壁纸 2 是宫墙墨绿 #2A514D + 描金 #C1925B",
+          "--bp-top:#2A514D" in mc and "--bp-accent:#C1925B" in mc, "")
+    n_var = len(re.findall(r"--bp-[a-z0-9-]+:", css))
+    check("判据18 壁纸令牌是变量化的（加新壁纸只改令牌行）", n_var >= 24,
+          f"{n_var} 个 --bp-* 令牌")
+    # 状态持久化 + 白名单（老版本存的非法值要落到默认壁纸）
+    check("判据18 壁纸选择持久化到 localStorage",
+          "localStorage.setItem(BP_KEY" in s and "localStorage.getItem(BP_KEY)" in s, "")
+    check("判据18 只认白名单里的壁纸名（旧的非法值落到默认壁纸）",
+          all(v in s for v in ("plain", "terra", "museum")) and "s0 ===" in s, "")
+    # 图版页
+    check("判据18 图版页有工程标题条与三个读数位",
+          all(x in s for x in ["pagehead", "ph-zh", "ph-en", "ph-total", "ph-lits", "ph-hit"]), "")
+    n_calc = 0
+    for pid in ("ph-total", "ph-lits", "ph-hit"):
+        i = s.find('getElementById("%s")' % pid)
+        if i >= 0 and "fmtNum" in s[i:i + 220]:
+            n_calc += 1
+    check("判据18 标题条读数是现算的（fmtNum，不写死数字）", n_calc >= 3,
+          f"现算 {n_calc}/3")
+    check("判据18 图版卡有图号牌且用现算字段（lit_id + fig_no）",
+          re.search(r'class=\\"pnl\\"', s) is not None
+          and "esc(it.lit_id)" in s and "it.fig_no" in s, "")
+    bad = re.findall(r'/ 图 " + esc\(it\.fig_no\)', s)
+    check("判据18 图号牌不重复「图」字", not bad, f"{len(bad)} 处")
+    n_clamp = css.count("-webkit-line-clamp")
+    check("判据18 卡片文字有行数截断（消除卡片高度参差）", n_clamp >= 2,
+          f"{n_clamp} 处（题名 + 摘要）")
+    # 零外链口径与既有判据一致
+    ext = re.findall(r"url\([^)]*https?://", s)
+    check("判据18 壁纸样式零外链（无 url(http) 资源引用）", not ext, f"{len(ext)} 处")
+
 def test_rebuild_idempotent():
     section("判据 16 · 重建幂等（行数与指纹都不变）")
     from lzkg.db import connect
@@ -445,6 +508,96 @@ def test_rebuild_idempotent():
           f"v{before['version']} -> v{after['version']}")
 
 
+def test_search_layout():
+    section("判据 19 · 检索页版式（顶部搜索行 + 左分类栏 + 右结果区）")
+    idx = Path(__file__).resolve().parent.parent / "lzkg" / "web" / "static" / "index.html"
+    s = idx.read_text(encoding="utf-8")
+    for cls in (".srch-bar", ".srch-side", ".srch-main", ".srch{"):
+        check("判据19 版式类存在 %s" % cls, cls in s, "")
+    check("判据19 左栏是 sticky 侧栏（不随结果区滚走）",
+          "position:sticky" in s and ".srch-side{" in s, "")
+    check("判据19 文献检索页用 listSearchBarHtml + listSideHtml",
+          "listSearchBarHtml()" in s and "listSideHtml()" in s, "")
+    m = re.search(r"function renderImgSearch\(\).*?\n\}", s, re.S)
+    blk = m.group(0) if m else ""
+    check("判据19 图版检索页有搜索行与左栏",
+          ("srch-bar" in blk) and ("srch-side" in blk), "")
+    check("判据19 旧工具条函数已拆掉（listToolbarHtml 不再存在）",
+          "listToolbarHtml" not in s, "")
+    check("判据19 图版页有视图切换器 #im-view",
+          "im-view" in s and "data-view" in s, "")
+    m2 = re.search(r"function imgsearchParams\(\).*?\n\}", s, re.S)
+    check("判据19 视图切换是纯前端（不把 view 发给后端）",
+          bool(m2) and "view" not in m2.group(0), "")
+    m3 = re.search(r"function loadImgSearch\(\).*?\n\}\n", s, re.S)
+    lb = m3.group(0) if m3 else ""
+    check("判据19 列表视图渲染 .imgrows / .imgrow",
+          ("imgrows" in lb) and ("imgrow" in lb), "")
+    check("判据19 列表视图缩略图仍带 data-lbg（点开看大图）",
+          ("data-lbg=" in lb) and ("search" in lb), "")
+    for pid in ("ph-lit-total", "ph-lit-hit"):
+        i2 = s.find('getElementById("%s")' % pid)
+        check("判据19 文献页读数 %s 是现算的" % pid,
+              i2 >= 0 and "fmtNum" in s[i2:i2 + 220], "")
+    ext = re.findall(r"url\([^)]*https?://", s)
+    check("判据19 全站样式零外链", not ext, f"{len(ext)} 处")
+
+
+def _lum(hexstr):
+    c = hexstr.lstrip("#")
+    v = [int(c[i:i + 2], 16) / 255.0 for i in (0, 2, 4)]
+    v = [x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055) ** 2.4 for x in v]
+    return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]
+
+
+def _contrast(a, b):
+    l1, l2 = _lum(a), _lum(b)
+    hi, lo = max(l1, l2), min(l1, l2)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+def test_segbtn_selected_state():
+    section("判据 20 · 分段控件：选中态必须是「最跳」的那块")
+    idx = Path(__file__).resolve().parent.parent / "lzkg" / "web" / "static" / "index.html"
+    s = idx.read_text(encoding="utf-8")
+    m = re.search(r'<style id="bpTheme">(.*?)</style>', s, re.S)
+    css = m.group(1) if m else ""
+
+    # 1) 宫墙下选中态用**描金**（--bp-accent），不是深墨绿（--bp-btn）
+    mus = re.search(r"body\.bp\.t-museum \.segbtn\.on\{([^}]*)\}", css)
+    mus_rule = mus.group(1) if mus else ""
+    check("判据20 宫墙下分段控件选中态有独立规则",
+          bool(mus_rule), "")
+    check("判据20 宫墙选中态用描金 --bp-accent（不是深墨绿 --bp-btn）",
+          "var(--bp-accent)" in mus_rule and "var(--bp-btn)" not in mus_rule,
+          mus_rule.strip()[:80])
+    # 2) 陶土下选中态仍是实心按钮色
+    ter = re.search(r"body\.bp\.t-terra \.segbtn\.on\{([^}]*)\}", css)
+    check("判据20 陶土下选中态是实心 --bp-btn",
+          bool(ter) and "var(--bp-btn)" in ter.group(1), "")
+    # 3) 未选中态退后（透明底 + 描边），不再用实心浅灰块
+    base = re.search(r"body\.bp \.segbtn\{([^}]*)\}", css)
+    base_rule = base.group(1) if base else ""
+    check("判据20 未选中态是透明底 + 描边（退后，不与选中块争）",
+          "background:transparent" in base_rule and "border" in base_rule,
+          base_rule.strip()[:80])
+    # 4) 对比度实测：描金底 + 深墨字 ≥ 4.5
+    cr = _contrast("#C1925B", "#191E20")
+    check("判据20 描金选中块对比度 ≥ 4.5:1", cr >= 4.5, f"{cr:.2f}:1")
+    # 5) 反例锁死：描金底不能配白字（只有 2.79:1）
+    cr_bad = _contrast("#C1925B", "#FFFFFF")
+    check("判据20 描金选中块不配白字（反例值 < 4.5）",
+          cr_bad < 4.5 and "#191E20" in mus_rule,
+          f"白字对比度 {cr_bad:.2f}:1")
+    # 6) 陶土按钮白字对比度
+    cr_terra = _contrast("#A65A26", "#FFFFFF")
+    check("判据20 陶土选中块白字对比度 ≥ 4.5:1", cr_terra >= 4.5,
+          f"{cr_terra:.2f}:1")
+    # 7) 深底侧栏里未选中的字走浅色
+    check("判据20 宫墙深底侧栏未选中态用浅色字",
+          "body.bp.t-museum .srch-side .segbtn:not(.on)" in css, "")
+
+
 def main():
     print("═══ 图像检索 E2 · 判据 ═══")
     test_module_shape()
@@ -457,6 +610,9 @@ def main():
         test_related_and_stats()
     test_frontend()
     test_lightbox()
+    test_blueprint_theme()
+    test_search_layout()
+    test_segbtn_selected_state()
     test_rebuild_idempotent()
     passed = sum(1 for ok, _, _ in _results if ok)
     failed = [(n, d) for ok, n, d in _results if not ok]

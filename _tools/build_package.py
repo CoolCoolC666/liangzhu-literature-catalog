@@ -35,6 +35,9 @@ INCLUDE_FILES = ["启动.cmd", "停止.cmd", "README.md", "requirements.txt",
 INCLUDE_DATA = ["遗址点位表.xlsx", "遗址坐标.json", "controlled_vocab_codes.json",
                 "受控词表-校准报告.xlsx", "坐标证据台账.xlsx",
                 "遗址坐标_公开检索报告.md"]
+# 卫星影像瓦片（本地切片，零外链）：**只随组内离线包分发**。
+#   公开版由 make_github_release.py 显式拒绝（许可条款未核实 + 不公开再分发）。
+TILES_SRC = PROGRAM / 'data' / 'basemap_tiles'
 # 底图：完整版 22 MB → 精简版 3 MB（区域图层裁剪 + 压精度），包里放**精简版**
 #   本机 data/basemap/ 保持完整版（可画任意范围），包内 data/basemap/ 用精简版，
 #   程序读路径不变，只是内容不同。
@@ -102,6 +105,8 @@ REQUIRED = [
     "data/controlled_vocab_codes.json",
     "data/遗址坐标.json",
     "data/basemap/manifest.json",
+    # 卫星影像瓦片（组内离线包必备；缺了说明瓦片没下载完）
+    "data/basemap_tiles/manifest.json",
 ]
 
 
@@ -135,6 +140,13 @@ def collect() -> list[tuple[Path, str]]:
         p = PROGRAM / "data" / f
         if p.exists():
             items.append((p, f"data/{f}"))
+    # 卫星影像瓦片：本地切片，组内包带上（公开版不带）
+    if TILES_SRC.exists():
+        for p in sorted(TILES_SRC.rglob("*.jpg")):
+            items.append((p, f"data/basemap_tiles/{p.relative_to(TILES_SRC).as_posix()}"))
+        mf = TILES_SRC / "manifest.json"
+        if mf.exists():
+            items.append((mf, "data/basemap_tiles/manifest.json"))
     # 底图：优先用精简版，没有就退回完整版
     bsrc = BASEMAP_LITE if BASEMAP_LITE.exists() else BASEMAP_FULL
     if bsrc.exists():
