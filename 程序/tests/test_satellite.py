@@ -107,6 +107,37 @@ def main() -> int:
           "Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community" in src,
           "World Imagery MapServer 的 copyrightText")
 
+    # ── 第三版：推广到工作台「统计与地图」大地图 ──
+    section("工作台大地图：卫星底图")
+    check("统计页有「矢量/卫星」切换条",
+          'id="mapst-mode"' in src and 'data-mm="sat"' in src and 'data-mm="vec"' in src)
+    check("切换条默认隐藏（公开包无瓦片时不露出来）",
+          'id="mapst-mode" hidden' in src)
+    check("两个地图共用一份瓦片清单缓存（不各写一套 fetch）",
+          "function satManifest()" in src and "satManifest().then" in src)
+    check("工作台卫星模式复用详情页那套瓦片图层（同端点、同署名）",
+          "litmapSatLayer(MAPST.map, MAPST.satMeta)" in src)
+    check("卫星模式下**不画矢量底图**（矢量多边形是实心的，会盖死底下的影像）",
+          src.index('if (MAPST.mode === "sat")') < src.index('if (tier === "world")'),
+          "卫星分支必须排在矢量分支之前")
+    check("卫星模式放大上限到 z18（z18 才看得出遗址本体），矢量模式仍限 z14",
+          "setMaxZoom(18)" in src and "setMaxZoom(14)" in src)
+    check("卫星模式缩放下限锁 z14（覆盖外没影像，别让人拖到一片空白）",
+          "setMinZoom(14)" in src and "setMinZoom(2)" in src)
+    check("工作台点图看大图复用图版灯箱（不搞第二套查看器）",
+          "function mapstSatClick" in src and "litmapSatBig(e.latlng, MAPST.satMeta)" in src)
+    check("点标记/范围框不触发大图：守卫走 getAttribute（SVG 的 className 不是字符串）",
+          'getAttribute("class")' in src and "leaflet-interactive" in src
+          and 'typeof cn === "string"' not in src,
+          "旧写法 typeof cn === 'string' 会漏判 SVG 元素")
+    check("范围框在卫星模式只描边（半透明填色既遮影像、又吃掉点图看大图的点击）",
+          "function litmapBoxFill" in src and "litmapBoxFill(MAPST.grp" in src
+          and "litmapBoxFill(LITMAP.box" in src)
+    check("工作台覆盖范围外用中性深底（#stats-map 是 ID 选择器，须单列一条）",
+          "#stats-map.lm-sat{background:#1b2126}" in src)
+    check("卫星切回矢量时还原矢量视图（停在 z14 的矢量底图是一片空地）",
+          "MAPST.vecCenter" in src and "MAPST.vecZoom" in src)
+
     # ── 清单与端点 ──
     section("后端：瓦片端点")
     st, body, ctype = http("/tiles/manifest.json")

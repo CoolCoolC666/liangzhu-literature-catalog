@@ -270,6 +270,8 @@ table.grid td.new{color:var(--ok)}
 /* 区域层是「陆地视角」（这一档画的是湖/河/海岸线，没有陆地多边形），
    背景换成陆地色，太湖（#DCEAF4）才看得出来；世界层/中国层是海洋视角，用水色背景。 */
 #stats-map.lz-land,.leaflet-container.lz-land{background:#F4F6F8}
+/* 卫星模式：覆盖范围外用中性深底（#stats-map 是 ID 选择器，优先级压过 .lm-sat，故单列一条） */
+#stats-map.lm-sat{background:#1b2126}
 .lz-wrap{position:relative}
 .lz-legend{position:absolute;left:10px;bottom:10px;z-index:600;background:rgba(255,255,255,.94);
   border:1px solid var(--line);border-radius:5px;padding:8px 10px;font-size:12px;line-height:1.5;
@@ -392,6 +394,7 @@ footer p{margin:3px 0}
 .litmap-bar .segbtn{padding:4px 12px;font-size:12px;cursor:pointer}
 .litmap-bar .segbtn[disabled]{opacity:.45;cursor:not-allowed}
 .litmap-note{font-size:12px;color:var(--ink2)}
+.litmap-bar[hidden]{display:none !important}
 .litmap-bar [hidden]{display:none !important}
 /* 卫星模式下，覆盖范围外没有影像 → 用中性深底表示「此处无卫星覆盖」，
    而不是留一大片浅灰看着像坏了 */
@@ -1970,7 +1973,7 @@ function renderDetail(litId) {
  *   分区代表点（±1.1 km）差一个数量级，混画会让人误以为
  *   「每篇文献都有一个精确位置」—— 那是骗人。
  * ================================================================ */
-var LITMAP = { map: null, sat: null, meta: null, metaTried: false };
+var LITMAP = { map: null, sat: null, meta: null, box: null };
 var LITMAP_TIER_ICON = { lit_coord: "lz-mk-t1", public: "lz-mk-t2",
                          region: "lz-mk-t3", none: "lz-mk-t0" };
 function litmapDestroy() {
@@ -1978,8 +1981,19 @@ function litmapDestroy() {
     try { LITMAP.map.remove(); } catch (e) { /* 容器已被换掉 */ }
   }
   LITMAP.map = null;
+  LITMAP.box = null;
 }
 
+/* ★ 卫星模式下把「良渚遗址群范围框」改成只描边：
+   它是罩住整个核心区的大半透明多边形 —— 填色时既遮住影像，
+   又把「点图看大图」的点击全吃掉（点框里＝点多边形上，事件不落到影像）。
+   描边后：框内点击落到影像 → 打开大图；框线本身仍可点（看范围框说明）。 */
+function litmapBoxFill(rect, on) {
+  if (!rect) return;
+  try {
+    rect.setStyle({ fill: !!on, fillOpacity: on ? (rect._lzFill || 0.07) : 0 });
+  } catch (e) { }
+}
 /* ── 卫星影像底图（本地切片，零外链）──────────────────────────────
  * ★ 卫星影像天然是在线服务，而本项目硬约束是「零外链、禁 CDN、断网可用」
  *   → 只能把瓦片缓存到本地，由本站同源供给（/tiles/...）。
@@ -1988,14 +2002,19 @@ function litmapDestroy() {
  * ★ 覆盖范围有限（良渚古城核心区 4 km×4 km）→ 用 Leaflet 的 bounds
  *   挡住范围外的请求，不去请求不存在的瓦片。
  */
-function litmapSatMeta() {
-  if (LITMAP.metaTried) return Promise.resolve(LITMAP.meta);
-  LITMAP.metaTried = true;
+/* 瓦片清单：详情页小地图与工作台大地图共用一份缓存，不各写一套 fetch。 */
+var SAT_META = null, SAT_META_TRIED = false;
+function satManifest() {
+  if (SAT_META_TRIED) return Promise.resolve(SAT_META);
+  SAT_META_TRIED = true;
   return fetch("/tiles/manifest.json").then(function (r) {
     if (!r.ok) throw new Error("no tiles");
     return r.json();
-  }).then(function (j) { LITMAP.meta = j; return j; })
-    .catch(function () { LITMAP.meta = null; return null; });
+  }).then(function (j) { SAT_META = j; return j; })
+    .catch(function () { SAT_META = null; return null; });
+}
+function litmapSatMeta() {
+  return satManifest().then(function (m) { LITMAP.meta = m; return m; });
 }
 function litmapSatLayer(map, meta) {
   var b = (meta || {}).bbox || {};
@@ -2034,6 +2053,7 @@ function litmapSetMode(mode) {
   }
   if (!LITMAP.map || !LITMAP.meta) return;
   var cont = LITMAP.map.getContainer ? LITMAP.map.getContainer() : null;
+  litmapBoxFill(LITMAP.box, mode !== "sat");
   if (mode === "sat") {
     if (!LITMAP.sat) LITMAP.sat = litmapSatLayer(LITMAP.map, LITMAP.meta).addTo(LITMAP.map);
     /* ★ 覆盖范围只有核心区 → 视图锁在范围内，且切进来就把范围铺满，
@@ -2082,8 +2102,11 @@ function litmapSatRelease(map) {
 function litmapSatClick(e) {
   var t = e.originalEvent && e.originalEvent.target;
   while (t) {
-    var cn = t.className;
-    if (typeof cn === "string" && cn.indexOf("leaflet-marker-icon") >= 0) return;
+    /* ★ 用 getAttribute("class") 而不是 t.className：
+       SVG 元素的 className 是 SVGAnimatedString（不是 string），
+       直接比字符串会漏判 → 点到范围框也会弹大图。 */
+    var cn = t.getAttribute ? (t.getAttribute("class") || "") : "";
+    if (cn.indexOf("leaflet-marker-icon") >= 0 || cn.indexOf("leaflet-interactive") >= 0) return;
     t = t.parentNode;
   }
   if (!e.latlng) return;
@@ -2243,6 +2266,8 @@ function litmapDraw(d, ms, box) {
       fillColor: MAP_COLORS.accent, fillOpacity: 0.07
     });
     rect.bindTooltip("良渚遗址群范围框<br>出处：" + esc(sg.source || ""), { sticky: true, className: "lz-tip" });
+    rect._lzFill = 0.07;
+    LITMAP.box = rect;
     rect.addTo(map);
   }
   mapstFetch("osm_qiantang_yuhang.geojson").then(function (gj) {
@@ -3581,12 +3606,19 @@ function loadStatsPage() {
     h += '<div class="fullblk" id="w-region-blk"></div>';
     /* 5 交互地图（Leaflet，本地底图；替换原来的静态 PNG 块） */
     h += '<div class="fullblk"><div class="barhead">⑤ 交互地图<span class="tag">/api/stats/mapdata · /basemap/*.geojson</span></div>' +
+      '<div class="litmap-bar" id="mapst-mode" hidden><span class="seg">' +
+      '<button class="segbtn on" data-mm="vec">矢量</button>' +
+      '<button class="segbtn" data-mm="sat">卫星影像</button></span>' +
+      '<span class="small muted" id="mapst-mode-note"></span></div>' +
       '<div class="lz-wrap"><div id="stats-map"></div></div>' +
       '<div id="w-map-info"><div class="small muted">点地图上的任一标记（文献坐标点 / 空间分区代表点 / 良渚遗址群范围框），' +
       '这里会显示它的类型、出处与关联文献；也可以直接点上面的「④ 空间分区」柱子定位。</div></div>' +
       '<div class="small muted" style="margin-top:8px">底图：Natural Earth（公共域）+ Overpass/OSM，<b>本地文件、零联网、零 CDN</b>；' +
       '缩放时自动切换「世界 → 中国 → 良渚区域」三档底图。中国一律画 <b>31 省 + 台湾的省级拼图</b>，' +
       '<b>不画 admin_0 国界多边形</b>；台湾与大陆同色同边线、不单独配色、不单独标注；边界仅作位置示意，<b>不作为官方界线依据</b>。</div>' +
+      '<div class="small muted" style="margin-top:6px">卫星影像：Esri World Imagery（<b>本地切片缓存</b>，零联网、零 CDN），' +
+      '仅覆盖良渚古城核心区约 4 km×4 km（z14–z18）。随包带了瓦片的本地版可在上面切到「卫星影像」，<b>点图看大图</b>；' +
+      '公开版未随附瓦片 → 切换条整条不显示。</div>' +
       '<div style="margin-top:8px"><a class="btn ghost" href="/api/stats/map.png" target="_blank" rel="noopener">导出静态图（用于报告/PPT）</a> ' +
       '<span class="small muted mono">/api/stats/map.png</span></div></div>';
     box.innerHTML = h;
@@ -3601,6 +3633,16 @@ function loadStatsPage() {
     if (md.ok) {
       MAPST.data = md.data || null;
       mapstInit();
+      mapstBindMode();
+      /* 有瓦片才露卫星切换条（公开包无瓦片 → 整条隐藏，别让用户点了看碎图） */
+      satManifest().then(function (meta) {
+        var bar = $("#mapst-mode");
+        if (!bar || !meta) return;
+        MAPST.satMeta = meta;
+        bar.removeAttribute("hidden");
+        var note = $("#mapst-mode-note");
+        if (note) note.textContent = "卫星影像仅覆盖良渚古城核心区（约 4 km×4 km，z14–z18）；点图看大图。";
+      });
     } else {
       MAPST.data = null;
       var w = $("#stats-map");
@@ -3637,7 +3679,11 @@ var MAPST = {
   hl: null,           /* 当前高亮的分区名 */
   regionSeries: [],   /* ④ 柱状图数据 */
   regionOk: true,
-  regionErr: ""
+  regionErr: "",
+  mode: "vec",       /* 底图模式：vec（矢量）/ sat（卫星影像） */
+  satMeta: null,      /* 瓦片清单；无瓦片（公开包）时为 null */
+  vecCenter: null,    /* 进卫星前的矢量视图，切回来时还原 */
+  vecZoom: null
 };
 var MAP_COLORS = {
   land: "#F4F6F8", border: "#C2CBD3", water: "#DCEAF4", river: "#9CC3DE",
@@ -3703,20 +3749,32 @@ function mapstAddLzRef(tier) {
   MAPST.tierLayers.push(m);
 }
 /* 切档：移除上一档图层 → 加新一档 */
-function mapstSetTier(tier) {
+function mapstSetTier(tier, force) {
   if (!MAPST.map) return;
-  if (MAPST.tier === tier) return;
+  if (MAPST.tier === tier && !force) return;
   MAPST.tierLayers.forEach(function (l) { MAPST.map.removeLayer(l); });
   MAPST.tierLayers = [];
   MAPST.tier = tier;
   /* 背景随档位切换：世界/中国层是海洋视角（水色），区域层是陆地视角（陆地色） */
   var cont = MAPST.map.getContainer();
-  if (cont && cont.classList) cont.classList.toggle("lz-land", tier === "region");
+  if (cont && cont.classList) {
+    cont.classList.toggle("lz-land", tier === "region" && MAPST.mode !== "sat");
+    cont.classList.toggle("lm-sat", MAPST.mode === "sat");
+  }
+  /* 卫星模式：范围框只描边（否则半透明填色遮住影像，还吃掉点图看大图的点击） */
+  litmapBoxFill(MAPST.grp, MAPST.mode !== "sat");
   var add = function (ly) {
     if (!MAPST.map || MAPST.tier !== tier) return;   /* 期间又切档了就丢弃 */
     ly.addTo(MAPST.map);
     MAPST.tierLayers.push(ly);
   };
+  /* ★ 卫星模式：底图换成瓦片影像，**不画矢量底图**
+     （矢量多边形是实心的，会把底下的影像整个盖死）。 */
+  if (MAPST.mode === "sat") {
+    if (MAPST.satMeta) add(litmapSatLayer(MAPST.map, MAPST.satMeta));
+    mapstAddLzRef(tier);
+    return;
+  }
   if (tier === "world") {
     mapstFetch("ne_110m_admin_0_countries.geojson").then(function (gj) {
       add(L.geoJSON(gj, { style: mapstPlainStyle }));
@@ -3807,6 +3865,7 @@ function mapstAddOverlays() {
       "东经 " + esc(sg.lon_min) + "～" + esc(sg.lon_max) +
       "，北纬 " + esc(sg.lat_min) + "～" + esc(sg.lat_max), { sticky: true, className: "lz-tip" });
     rect.on("click", function () { mapstShowGroup(); });
+    rect._lzFill = 0.08;
     rect.addTo(ov);
     MAPST.grp = rect;
   }
@@ -3998,6 +4057,79 @@ function mapstGoFilter(opts) {
     location.hash = "#/lit";         /* 换页 → hashchange 触发 route() → renderList() */
   }
 }
+/* ── 工作台大地图：卫星影像底图 ────────────────────────────────
+ * ★ 与详情页共用同一套瓦片端点（/tiles/...）、同一套大图灯箱（#lb）。
+ * ★ 与详情页的差别：大地图有三档矢量底图，卫星模式下换成瓦片影像；
+ *   矢量模式最大缩放仍是 14，卫星模式放到 18（z18 才看得出遗址本体）。
+ * ★ 卫星覆盖只有核心区 4 km×4 km → 缩放下限锁到 14，
+ *   免得缩到 z2 看到一片深底、以为图坏了。
+ * ================================================================ */
+function mapstBindMode() {
+  var bar = $("#mapst-mode");
+  if (!bar || bar.getAttribute("data-mm-bound")) return;
+  bar.setAttribute("data-mm-bound", "1");
+  bar.addEventListener("click", function (ev) {
+    var btns = bar.querySelectorAll("[data-mm]");
+    for (var i = 0; i < btns.length; i++) {
+      var b = btns[i];
+      if (ev.target === b || (b.contains && b.contains(ev.target))) {
+        mapstSetMode(b.getAttribute("data-mm"));
+        return;
+      }
+    }
+  });
+}
+function mapstSetMode(mode) {
+  var bar = $("#mapst-mode");
+  if (bar) {
+    var btns = bar.querySelectorAll("[data-mm]");
+    for (var i = 0; i < btns.length; i++) {
+      var b = btns[i];
+      var on = (b.getAttribute("data-mm") === mode);
+      b.className = b.className.replace(/\s*\bon\b/g, "") + (on ? " on" : "");
+    }
+  }
+  if (!MAPST.map) return;
+  if (mode === "sat") {
+    if (!MAPST.satMeta) return;
+    MAPST.mode = "sat";
+    /* ★ 记下矢量视图：矢量底图是区域尺度的，停在 z14 看是一片空地，
+       切回来必须回到原来的全览位置，否则像「底图没加载出来」。 */
+    MAPST.vecCenter = MAPST.map.getCenter();
+    MAPST.vecZoom = MAPST.map.getZoom();
+    MAPST.map.setMaxZoom(18);
+    MAPST.map.setMinZoom(14);
+    MAPST.map.off("click", mapstSatClick);
+    MAPST.map.on("click", mapstSatClick);
+    mapstSetTier(MAPST.tier || "region", true);
+    /* 切进卫星就把核心区铺满（容器宽，留一片空白看着像加载失败） */
+    try {
+      MAPST.map.fitBounds(L.latLngBounds(litmapSatBounds(MAPST.satMeta)), { animate: false });
+    } catch (e) { }
+  } else {
+    MAPST.mode = "vec";
+    MAPST.map.setMaxZoom(14);
+    MAPST.map.setMinZoom(2);
+    MAPST.map.off("click", mapstSatClick);
+    mapstSetTier(MAPST.tier || "region", true);
+    if (MAPST.vecCenter) {
+      try { MAPST.map.setView(MAPST.vecCenter, MAPST.vecZoom); } catch (e) { }
+    }
+  }
+}
+/* 点卫星图看大图：点在数据标记/范围框上不触发（那些是「看说明」的） */
+function mapstSatClick(e) {
+  var t = e.originalEvent && e.originalEvent.target;
+  while (t) {
+    /* SVG 元素的 className 不是字符串，必须走 getAttribute */
+    var cn = t.getAttribute ? (t.getAttribute("class") || "") : "";
+    if (cn.indexOf("leaflet-marker-icon") >= 0 || cn.indexOf("leaflet-interactive") >= 0) return;
+    t = t.parentNode;
+  }
+  if (!e.latlng) return;
+  litmapSatBig(e.latlng, MAPST.satMeta);
+}
+
 /* ---------------- 初始化 / 销毁 ---------------- */
 function mapstInit() {
   var el = $("#stats-map");
@@ -4030,6 +4162,8 @@ function mapstDestroy() {
   MAPST.grp = null;
   MAPST.tier = "";
   MAPST.tierLayers = [];
+  MAPST.mode = "vec";
+  MAPST.satMeta = null;
   MAPST.pts = {};
   MAPST.regs = {};
   MAPST.sgs = {};
