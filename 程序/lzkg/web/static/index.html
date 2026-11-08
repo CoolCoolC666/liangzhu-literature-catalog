@@ -393,6 +393,11 @@ footer p{margin:3px 0}
 .litmap-bar .segbtn[disabled]{opacity:.45;cursor:not-allowed}
 .litmap-note{font-size:12px;color:var(--ink2)}
 .litmap-bar [hidden]{display:none !important}
+/* 卫星模式下，覆盖范围外没有影像 → 用中性深底表示「此处无卫星覆盖」，
+   而不是留一大片浅灰看着像坏了 */
+.leaflet-container.lm-sat{background:#1b2126}
+/* 大图查看器里的卫星图不加白底（本来就是影像） */
+#lb .lbimg img.lb-sat{background:#1b2126;border-radius:0}
 </style>
 <style id="bpTheme">
 /* ================================================================
@@ -1702,7 +1707,7 @@ function lbStep(d) {
 function lbPaint() {
   var it = LB.items[LB.idx] || {};
   var im = document.getElementById("lb-img");
-  if (im) { im.src = it.src || ""; im.alt = it.fig || "图版大图"; }
+  if (im) { im.src = it.src || ""; im.alt = it.fig || "图版大图"; im.className = it.cls || ""; }
   var cp = document.getElementById("lb-cap");
   if (cp) {
     var s = '<div style="font-weight:700">' + esc(it.fig || "") + "</div>";
@@ -1998,7 +2003,7 @@ function litmapSatLayer(map, meta) {
     minZoom: 14, maxZoom: 19, maxNativeZoom: 18, noWrap: true,
     bounds: [[Number(b.lat_min), Number(b.lon_min)],
              [Number(b.lat_max), Number(b.lon_max)]],
-    attribution: (meta && meta.attribution) || "影像：Esri World Imagery",
+    attribution: (meta && meta.attribution) || "Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community",
     errorTileUrl: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
   });
 }
@@ -2028,12 +2033,113 @@ function litmapSetMode(mode) {
     }
   }
   if (!LITMAP.map || !LITMAP.meta) return;
+  var cont = LITMAP.map.getContainer ? LITMAP.map.getContainer() : null;
   if (mode === "sat") {
     if (!LITMAP.sat) LITMAP.sat = litmapSatLayer(LITMAP.map, LITMAP.meta).addTo(LITMAP.map);
-  } else if (LITMAP.sat) {
-    LITMAP.map.removeLayer(LITMAP.sat);
-    LITMAP.sat = null;
+    /* ★ 覆盖范围只有核心区 → 视图锁在范围内，且切进来就把范围铺满，
+     *   否则宽容器两侧会留下一大片空白（看着像加载失败） */
+    litmapSatApply(LITMAP.map, LITMAP.meta);
+    LITMAP.map.off("click", litmapSatClick);
+    LITMAP.map.on("click", litmapSatClick);
+    if (cont && cont.classList) cont.classList.add("lm-sat");
+  } else {
+    if (LITMAP.sat) {
+      LITMAP.map.removeLayer(LITMAP.sat);
+      LITMAP.sat = null;
+    }
+    LITMAP.map.off("click", litmapSatClick);
+    litmapSatRelease(LITMAP.map);
+    if (cont && cont.classList) cont.classList.remove("lm-sat");
   }
+}
+
+/* 卫星覆盖范围（bbox 四角） */
+function litmapSatBounds(meta) {
+  var b = (meta || {}).bbox || {};
+  return [[Number(b.lat_min), Number(b.lon_min)],
+          [Number(b.lat_max), Number(b.lon_max)]];
+}
+/* 切到卫星：锁范围 + 铺满 */
+function litmapSatApply(map, meta) {
+  if (!map || !meta) return;
+  try {
+    map.setMaxBounds(L.latLngBounds(litmapSatBounds(meta)));
+    map.fitBounds(L.latLngBounds(litmapSatBounds(meta)));
+  } catch (e) { /* Leaflet 缺失或范围非法 → 不锁 */ }
+}
+/* 切回矢量：解锁 */
+function litmapSatRelease(map) {
+  if (!map) return;
+  try { map.setMaxBounds(null); } catch (e) { }
+}
+
+/* ── 点卫星图看大图 ───────────────────────────────────────────────
+ * ★ 与图版大图查看器共用同一个灯箱（#lb），不做第二套。
+ * ★ 做法：按点击处为中心，把 z18 的瓦片在 canvas 上拼成一张大图
+ *   （瓦片与站点同源 → canvas 不被污染 → 能导出 dataURL）。
+ * ★ 点在坐标标记上不触发大图（标记是「看说明」的，不是「看图」的）。
+ */
+function litmapSatClick(e) {
+  var t = e.originalEvent && e.originalEvent.target;
+  while (t) {
+    var cn = t.className;
+    if (typeof cn === "string" && cn.indexOf("leaflet-marker-icon") >= 0) return;
+    t = t.parentNode;
+  }
+  if (!e.latlng) return;
+  litmapSatBig(e.latlng, LITMAP.meta);
+}
+function litmapSatBig(latlng, meta) {
+  var Z = 18, T = 256, W = 1440, H = 900;
+  var n = Math.pow(2, Z);
+  var cx = (latlng.lng + 180) / 360 * n * T;
+  var sy = Math.log(Math.tan(Math.PI / 4 + latlng.lat * Math.PI / 360));
+  var cy = (0.5 - sy / (2 * Math.PI)) * n * T;
+  var left = cx - W / 2, top = cy - H / 2;
+  var x0 = Math.floor(left / T), x1 = Math.floor((left + W) / T);
+  var y0 = Math.floor(top / T), y1 = Math.floor((top + H) / T);
+  var cv = document.createElement("canvas");
+  cv.width = W; cv.height = H;
+  var ctx = cv.getContext("2d");
+  ctx.fillStyle = "#1b2126";
+  ctx.fillRect(0, 0, W, H);
+  var pending = 0, done = 0, finished = false;
+  function finish() {
+    if (finished) return;
+    finished = true;
+    var url = "";
+    try { url = cv.toDataURL("image/jpeg", 0.9); } catch (e) { url = ""; }
+    if (!url) return;
+    LB_GROUPS.sat = [{
+      src: url,
+      fig: "卫星影像",
+      cls: "lb-sat",
+      caption: "中心 " + latlng.lat.toFixed(6) + "°N, " + latlng.lng.toFixed(6) + "°E",
+      meta: "比例 约 0.52 m/像素（z18 原生）　影像：" +
+            ((meta && meta.attribution) || "Esri World Imagery") + "　影像时相未标注"
+    }];
+    lbOpen("sat", 0);
+  }
+  for (var x = x0; x <= x1; x++) {
+    for (var y = y0; y <= y1; y++) {
+      if (x < 0 || y < 0 || x >= n || y >= n) continue;
+      pending++;
+      (function (tx, ty) {
+        var im = new Image();
+        im.onload = function () {
+          ctx.drawImage(im, tx * T - left, ty * T - top);
+          done++;
+          if (done >= pending) finish();
+        };
+        im.onerror = function () {
+          done++;
+          if (done >= pending) finish();
+        };
+        im.src = "/tiles/" + Z + "/" + tx + "/" + ty + ".jpg";
+      })(x, y);
+    }
+  }
+  if (!pending) finish();
 }
 function loadLitMap(litId) {
   var box = $("#litmap"), txt = $("#litmap-txt");
@@ -2123,8 +2229,10 @@ function litmapDraw(d, ms, box) {
     }
     if (btn) { btn.removeAttribute("hidden"); btn.disabled = !inside; }
     if (note) note.textContent = inside
-      ? "卫星影像仅覆盖良渚古城核心区（约 4 km×4 km），拖出范围即无影像。"
+      ? "卫星影像仅覆盖良渚古城核心区（约 4 km×4 km）；点图看大图。"
       : "本篇坐标在卫星覆盖范围之外（影像仅覆盖良渚古城核心区），卫星底图已停用。";
+    /* ★ 本地版（有瓦片）默认就用卫星底图；公开包无瓦片 → 仍走矢量 */
+    if (inside) litmapSetMode("sat");
   });
   /* 上下文：良渚遗址群范围框（虚线）与钱塘江水系／余杭区界（本地 geojson，零联网） */
   if (sg.lon_min !== undefined && sg.lon_min !== null && sg.lat_min !== undefined && sg.lat_min !== null &&

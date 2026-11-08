@@ -56,7 +56,7 @@ def save_manifest(manifest):
 def main():
     total = done = 0
     manifest = {"source": "Esri World Imagery (server.arcgisonline.com)", "bbox": BBOX,
-                "attribution": "影像：Esri World Imagery",
+                "attribution": "Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community",
                 "note": "影像时相未标注；许可未核实 → 不进公开仓库/公开 Release", "levels": []}
     save_manifest(manifest)   # ★ 先落一份：即使中途断网，前端也能拿到 bbox 正常降级
     for z in ZOOMS:

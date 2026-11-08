@@ -89,6 +89,23 @@ def main() -> int:
           "影像来源必须署名")
     check("无瓦片时前端走降级分支（提示而不是碎图）",
           "本包未随附卫星影像瓦片" in src)
+    # ── 第二版：默认卫星 / 覆盖锁定 / 点图看大图 / 官方署名 ──
+    check("有瓦片时默认就用卫星底图（本地版默认）",
+          'if (inside) litmapSetMode("sat")' in src,
+          "公开包无瓦片 → 仍走矢量")
+    check("卫星模式把视图锁在覆盖范围内（不拖出空白）",
+          "setMaxBounds" in src and "fitBounds" in src)
+    check("覆盖范围外用中性深底表示（不是一片浅灰）",
+          ".leaflet-container.lm-sat{background:#1b2126}" in src)
+    check("点卫星图看大图：canvas 拼 z18 瓦片 → 灯箱",
+          "litmapSatBig" in src and "toDataURL" in src and 'lbOpen("sat", 0)' in src)
+    check("大图与图版大图查看器共用同一套灯箱",
+          "LB_GROUPS.sat" in src and 'fig: "卫星影像"' in src)
+    check("点坐标标记不触发大图（标记是看说明的）",
+          "leaflet-marker-icon" in src)
+    check("署名用 Esri 服务自带的版权行原文",
+          "Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community" in src,
+          "World Imagery MapServer 的 copyrightText")
 
     # ── 清单与端点 ──
     section("后端：瓦片端点")
@@ -105,6 +122,10 @@ def main() -> int:
               all(k in bb for k in ("lon_min", "lon_max", "lat_min", "lat_max"))
               and bool(mf.get("attribution")),
               "attribution=%s" % mf.get("attribution"))
+        check("署名 == Esri World Imagery 服务返回的版权行（实测真值）",
+              mf.get("attribution") ==
+              "Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community",
+              mf.get("attribution") or "")
 
         # 每层网格数现算对账
         bad = []
