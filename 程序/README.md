@@ -367,8 +367,11 @@ vis-network 的 `moveTo({scale})` **不触发** `zoom` 事件（实测 `fired=0`
 |---|---|---|
 | DNS | Cloudflare | `lztp` CNAME → `<your-tunnel-id>.cfargotunnel.com`，已代理 |
 | 隧道 | `~/.cloudflared/config.yml` | `lztp.example.com` → `http://localhost:8771`（**只追加**，原规则没动） |
-| 邮箱验证 | **Cloudflare Access** | 登录页输邮箱 → 收**一次性 PIN 码** → 通过。策略是「任意有效邮箱」 |
+| 邮箱验证 | **Cloudflare Access** | 登录页输邮箱 → 收**一次性 PIN 码** → 通过。策略 = **邮箱白名单**（管理员 + 已授权成员；**不是**任意邮箱） |
 | 开放注册 | 本站 | Access 验证过的邮箱 → **按邮箱自动开号**（角色 member） |
+
+★ **白名单怎么加**：Cloudflare 面板 → Zero Trust → Access → 应用「lztp-良渚文献目录站」
+→ Policies → `include` 里加该成员邮箱（两条策略 `open-email` 与 `owner-whitelist` 填同一份名单）。
 
 ★ **请求头是能伪造的**，所以本站**不直接读** `Cf-Access-Authenticated-User-Email`，
 而是**验签** `Cf-Access-Jwt-Assertion`（RS256）：
