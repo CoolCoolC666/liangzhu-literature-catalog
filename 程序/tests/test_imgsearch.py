@@ -542,6 +542,30 @@ def test_search_layout():
     ext = re.findall(r"url\([^)]*https?://", s)
     check("判据19 全站样式零外链", not ext, f"{len(ext)} 处")
 
+    section("判据 21 · 图纸显影动效（卡片像被晒出来）")
+    kr = re.search(r"@keyframes bpReveal\{([^}]*)\}", s)
+    kbody = kr.group(1) if kr else ""
+    check("判据21 有显影关键帧 bpReveal", bool(kr), "")
+    # 显影只许动 transform/opacity：动了别的属性就会触发 layout（卡顿）
+    check("判据21 显影只动 transform/opacity（不触发 layout）",
+          ("opacity" in kbody) and ("transform" in kbody)
+          and not re.search(r"\b(width|height|top|left|margin|padding)\s*:", kbody),
+          kbody[:80])
+    ks = re.search(r"@keyframes bpSweep\{([^}]*)\}", s)
+    sbody = ks.group(1) if ks else ""
+    check("判据21 扫描线关键帧只动 transform",
+          bool(ks) and ("transform" in sbody)
+          and not re.search(r"\b(width|height|top|left)\s*:", sbody), sbody[:60])
+    check("判据21 扫描线不拦截点击（pointer-events:none）",
+          ".imgcards.reveal .imgcard::after" in s and "pointer-events:none" in s, "")
+    check("判据21 逐个延迟靠 --i（不是写死 nth-child）",
+          "setProperty(\"--i\"" in s and "calc(var(--i" in s, "")
+    check("判据21 尊重 prefers-reduced-motion（整套降级为不动）",
+          "prefers-reduced-motion" in s and ".imgcards.reveal .imgcard{animation:none}" in s, "")
+    m4 = re.search(r"function loadImgSearch\(\).*?\n\}\n", s, re.S)
+    check("判据21 显影在图版渲染后触发",
+          bool(m4) and "revealImgCards(box)" in m4.group(0), "")
+
 
 def _lum(hexstr):
     c = hexstr.lstrip("#")

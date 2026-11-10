@@ -327,7 +327,7 @@ footer p{margin:3px 0}
 }
 /* 图版检索（E2 · 独立模块） */
 .imgcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(212px,1fr));gap:12px}
-.imgcard{background:var(--card);border:1px solid var(--line);border-radius:6px;overflow:hidden;display:flex;flex-direction:column}
+.imgcard{position:relative;background:var(--card);border:1px solid var(--line);border-radius:6px;overflow:hidden;display:flex;flex-direction:column}
 .imgcard .thumb{display:block;height:136px;background:#f4f7f9;border-bottom:1px solid var(--line);overflow:hidden}
 .imgcard .thumb img{width:100%;height:136px;object-fit:cover;display:block}
 .imgcard .meta{padding:8px 10px;font-size:12.5px;flex:1}
@@ -501,6 +501,17 @@ body.bp.t-museum .srch-side .segbtn:not(.on):hover{background:rgba(224,185,120,.
 body.bp input[type=text],body.bp input[type=number],body.bp select{border:1px solid var(--bp-line);
   border-radius:var(--bp-radius);background:#fff}
 body.bp input[type=text]:focus,body.bp select:focus{border-color:var(--bp-accent);outline:none}
+/* ---- 图纸显影（BP8 样例版 · 仅图版卡）：卡片像被晒出来 ----
+   显影 = 淡入上移（只动 transform/opacity，不触发 layout）
+   扫描线 = 一道描金/主色斜光掠过卡片（pointer-events:none，不吃点击）
+   逐个延迟靠 --i；prefers-reduced-motion 下整套降级为不动 */
+@keyframes bpReveal{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes bpSweep{from{transform:translateX(-120%)}to{transform:translateX(120%)}}
+.imgcards.reveal .imgcard{animation:bpReveal .42s cubic-bezier(.22,.61,.36,1) both;animation-delay:calc(var(--i,0) * 38ms)}
+.imgcards.reveal .imgcard::after{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;
+  background:linear-gradient(100deg,rgba(224,185,120,0) 38%,var(--bp-accent-bright,rgba(120,180,205,.30)) 50%,rgba(224,185,120,0) 62%);
+  transform:translateX(-120%);animation:bpSweep .95s ease-out both;animation-delay:calc(var(--i,0) * 38ms + 120ms)}
+@media (prefers-reduced-motion: reduce){.imgcards.reveal .imgcard{animation:none}.imgcards.reveal .imgcard::after{display:none}}
 /* ---- 图版卡：图纸块 ---- */
 body.bp .imgcards{grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
 body.bp .imgcard{position:relative;background:var(--bp-paper);border:1px solid var(--bp-line);
@@ -5951,6 +5962,20 @@ function loadImgStats() {
     }
   });
 }
+/* 图纸显影：卡片像被晒出来 —— 逐个延迟淡入 + 扫描线掠过
+   ★ 只在图版网格用；--i 决定第几张卡（12 张封顶，避免尾部长）。 */
+function revealImgCards(box) {
+  if (!box) return;
+  var grid = box.querySelector(".imgcards");
+  if (!grid) return;
+  var cards = grid.querySelectorAll(".imgcard");
+  for (var i = 0; i < cards.length; i++) {
+    cards[i].style.setProperty("--i", Math.min(i, 12));
+  }
+  grid.classList.remove("reveal");
+  void grid.offsetWidth; /* 强制回流：同一批卡片翻页回来能重播 */
+  grid.classList.add("reveal");
+}
 function loadImgSearch() {
   var p = state.img;
   var box = $("#im-list"), sc = $("#im-scope");
@@ -6042,6 +6067,7 @@ function loadImgSearch() {
     h += "<button class=\"btn ghost\" id=\"im-next\"" + ((d.page || 1) >= pages ? " disabled" : "") + ">下一页</button>";
     h += "</div>";
     if (box) box.innerHTML = h;
+    revealImgCards(box);
     var pv = $("#im-prev"), nx = $("#im-next");
     if (pv) pv.addEventListener("click", function () { p.page = (d.page || 1) - 1; loadImgSearch(); });
     if (nx) nx.addEventListener("click", function () { p.page = (d.page || 1) + 1; loadImgSearch(); });
