@@ -816,6 +816,25 @@ def test_api():
           "Leaflet 本地引用")
     check("前端调用 mapdata 点级接口", "/api/stats/mapdata" in html, "")
     check("前端有点选联动逻辑", "barhit" in html and "mapstPickRegion" in html, "")
+    # ── 版心：顶栏与正文同宽居中（宽屏上不对齐，看着就像"右边被裁了"）──────
+    #   实测（真实浏览器，884/1265/1646/1885 四档视口）：
+    #     改之前 —— 顶栏标题左缘 L=221/340，正文首块左缘 L=18 → 差 203px / 322px
+    #     改之后 —— 两者左缘相等（30/221/340），横向滚动始终 scrollWidth == clientWidth
+    import re as _re
+    def _maxw(pat):
+        m = _re.search(pat + r"\{([^}]*)\}", html)
+        if not m:
+            return None
+        mm = _re.search(r"max-width:\s*(\d+)px", m.group(1))
+        return int(mm.group(1)) if mm else None
+    mw_main = _maxw(r"(?<![\w.-])main")
+    mw_wrap = _maxw(r"\.wrap")
+    check("正文主区有版心限宽（实测 1240px）",
+          mw_main == 1240, f"main max-width={mw_main}")
+    check("顶栏与正文版心同宽（宽屏上左右边缘对齐，实测差 0px）",
+          mw_main is not None and mw_main == mw_wrap, f"main={mw_main} wrap={mw_wrap}")
+    check("正文主区水平居中（margin:0 auto，宽屏上不会无限拉宽）",
+          bool(_re.search(r"(?<![\w.-])main\{[^}]*margin:0 auto", html)), "")
     check("本地 Leaflet 文件在位",
           (webdir / "vendor" / "leaflet" / "leaflet.js").exists(), "")
     check("Leaflet 许可声明随包",
