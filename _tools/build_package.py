@@ -89,6 +89,7 @@ REQUIRED = [
     "lzkg/data/dict/lzkg_domain.json",
     "lzkg/schema/registry_columns.json",
     "lzkg/web/static/index.html",
+    "lzkg/web/static/js/i18n.js",
     "tests/test_all.py",
     "tests/test_segment.py",
     "tests/test_imgsearch.py",

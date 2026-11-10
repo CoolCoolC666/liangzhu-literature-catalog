@@ -91,6 +91,22 @@ def index():
                         headers={"Cache-Control": "no-store, must-revalidate"})
 
 
+@app.get("/i18n.js", response_class=Response)
+def i18n_js():
+    """界面多语言词典（中文原文 → 英/日 译文查表）。
+
+    ★ 同源本地文件，零外链（词典随程序走，断网可用）。
+    ★ 固定文件名 + 不接受任何路径参数 → 没有目录穿越面
+      （不像 StaticFiles 整目录挂载，那会把 data/ 下的库文件一起暴露）。
+    """
+    f = STATIC_DIR / "js" / "i18n.js"
+    if not f.exists():
+        return Response("/* i18n 词典文件缺失 */", media_type="application/javascript; charset=utf-8")
+    return Response(f.read_text(encoding="utf-8"),
+                    media_type="application/javascript; charset=utf-8",
+                    headers={"Cache-Control": "no-store, must-revalidate"})
+
+
 # ── 离线底图（GeoJSON）─────────────────────────────────────────────────
 # 前端交互地图要自己画底图 → 必须能直接取到 GeoJSON 文件。
 # ★ 不用 StaticFiles 整目录挂载：那样会把 data/ 下的库文件一起暴露出去。

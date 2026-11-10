@@ -1057,6 +1057,101 @@ def test_extra():
         check(name, q is not None and q.returncode == 0, _last_line(q))
 
 
+def test_i18n():
+    """界面多语言（BP11）：**词典在位 + 两语对等 + 零外链 + 不翻元数据**。
+
+    ★ 为什么这四条要单独成判据
+      ① 词典是独立文件：打包清单漏一个文件 → 整站英文界面直接空白，
+         而这种错在浏览器里表现为「页面没字」，肉眼很难一眼看出是打包漏了。
+      ② 英/日必须**条目对等**：少一条译文 = 那一处界面在中/英/日之间来回跳。
+      ③ 英文译文里**不许残留汉字**：那是没翻完的文案，必须红。
+      ④ 元数据不翻：题名/图注/标签是数据，误翻就是数据损坏。
+    """
+    section("界面多语言（词典 / 切换器 / 元数据豁免）")
+    prog = Path(__file__).resolve().parent.parent
+    webdir = prog / "lzkg" / "web" / "static"
+    dict_path = webdir / "js" / "i18n.js"
+    idx = webdir / "index.html"
+    html = idx.read_text(encoding="utf-8") if idx.exists() else ""
+    js = dict_path.read_text(encoding="utf-8") if dict_path.exists() else ""
+
+    check("多语言词典文件在位（静态资源 js/i18n.js）",
+          dict_path.exists() and len(js) > 20000,
+          f"{dict_path.name} {len(js)} 字节")
+
+    # ── 词典条目：每条都有 [英文, 日语] 两个译文 ──
+    entries = re.findall(r'^    "([^"]+)": \[(.*)\],$', js, re.M)
+    check("词典条目数达到规模（实测 > 300 条）", len(entries) >= 300,
+          f"{len(entries)} 条")
+    two_lang = [k for k, v in entries if v.count('", "') >= 1]
+    check("英/日两语条目对等（每条都有两个译文）",
+          len(two_lang) == len(entries),
+          f"{len(two_lang)}/{len(entries)}")
+    # ── 英文译文里不许残留汉字 ──
+    en_cjk = []
+    for k, v in entries:
+        m = re.search(r'"((?:[^"\\]|\\.)*)"\s*,\s*"', v)
+        if not m:
+            continue
+        en = m.group(1)
+        if re.search(r"[\u4e00-\u9fff]", en):
+            en_cjk.append(f"{k}→{en}")
+    check("英文译文无汉字残留（没翻完的文案必须红）", not en_cjk,
+          "; ".join(en_cjk[:5]))
+
+    # ── 切换器在顶栏（三语 + 存浏览器）──
+    check("顶栏有语言下拉框（中/英/日三项）",
+          'id="ui-lang"' in html
+          and '<option value="zh">中文</option>' in html
+          and '<option value="en">English</option>' in html
+          and '<option value="ja">日本語</option>' in html, "")
+    check("语言偏好存浏览器本地（localStorage 键 lzkg.lang）",
+          '"lzkg.lang"' in js and "localStorage.setItem" in js, "")
+    check("切换语言会同步更新 <html lang>",
+          'setAttribute("lang"' in js, "")
+    check("首页同源引用本地词典（不走 CDN）",
+          'src="/i18n.js"' in html, "")
+
+    # ── 零外链：词典里不许出现任何外网地址 ──
+    check("词典零外链（不含 http(s) 引用）",
+          "http://" not in js and "https://" not in js, "")
+
+    # ── 元数据豁免：数据容器必须被跳过 ──
+    skip_line = re.search(r'var SKIP = "([^"]*)"', js)
+    skip = skip_line.group(1) if skip_line else ""
+    need_skip = [".ttl", ".snip", ".dl dd", ".rawbody", ".imgtile", ".cite", ".jsonlist"]
+    miss_skip = [x for x in need_skip if x not in skip]
+    check("元数据容器在豁免表里（题名/片段/著录值/原文/图注不被翻）",
+          not miss_skip, f"缺 {miss_skip}")
+
+    # ── 语法门 ──
+    node = shutil.which("node")
+    if node:
+        q = subprocess.run([node, "--check", str(dict_path)],
+                           capture_output=True, text=True, encoding="utf-8",
+                           errors="replace", timeout=60)
+        check("词典语法门（node --check）", q.returncode == 0,
+              (q.stderr or "").strip()[:120])
+    else:
+        print("  SKIP 词典语法门：本机没有 node")
+
+    # ── 后端把词典发出来（固定文件名，无目录穿越）──
+    try:
+        import requests
+        from lzkg.config import get_config
+        B = f"http://{get_config().host}:{get_config().port}"
+        r = requests.get(f"{B}/i18n.js", timeout=15)
+        check("后端提供 /i18n.js（200 且是脚本）",
+              r.status_code == 200 and "javascript" in r.headers.get("Content-Type", ""),
+              f"{r.status_code} {r.headers.get('Content-Type')}")
+        check("后端返回的词典与本地文件一致（不是缓存的旧版）",
+              r.status_code == 200 and len(r.text) == len(js),
+              f"{len(r.text)} vs {len(js)}")
+    except Exception as e:
+        check("后端提供 /i18n.js（200 且是脚本）", False, str(e)[:80])
+
+
+
 def main():
     print("良渚文化文献目录站 · 验收")
     # ★ 没有库就别硬跑数据层判据 ——
@@ -1081,6 +1176,7 @@ def main():
         print("    （公开仓库不带库：库里有 CNKI 机构订阅的文献全文，不能公开外传。）")
     test_extra()
     test_requirements()
+    test_i18n()
     if "--layout" in sys.argv or "--all" in sys.argv:
         if has_db:
             test_layout()
