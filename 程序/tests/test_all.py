@@ -1158,6 +1158,134 @@ def test_i18n():
 
 
 
+def test_bp12():
+    """BP12：地图增强 + 全局快捷键 + Agent 接口 + 第三套「古地图」壁纸。
+
+    ★ 为什么这批要单独成判据
+      ① 三个前端模块是**独立文件**：打包清单漏一个 → 页面少一块功能，
+         而这种错在浏览器里表现为「按钮点了没反应」，肉眼很难看出是漏打包。
+      ② 后端只放行**固定文件名**白名单：多放行一个就多一个暴露面，
+         少放行一个就 404。
+      ③ 地图图层分组数（MAPST.layers）与图层面板条目数（LAYERS）必须**相等**：
+         少一个 = 面板上有个开关点了没反应。
+      ④ 第三套壁纸必须同时出现在「下拉选项 / 读取白名单 / CSS 令牌」三处，
+         少一处 = 选了没反应或半途变色。
+      ⑤ 首页内联主脚本也要过语法门：v3.9 有一次落盘手误（单引号开头、
+         双引号结尾）让整页脚本挂掉、页面白屏 —— 这类错之前没有任何自动检查兜底。
+    """
+    section("BP12 地图增强 / 快捷键 / Agent 接口 / 古地图壁纸")
+    prog = Path(__file__).resolve().parent.parent
+    webdir = prog / "lzkg" / "web" / "static"
+    jsdir = webdir / "js"
+    idx = webdir / "index.html"
+    html = idx.read_text(encoding="utf-8") if idx.exists() else ""
+    MODULES = ["map-atlas.js", "shortcuts.js", "lzkg-api.js"]
+    node = shutil.which("node")
+
+    # ── 三个模块在位 + 语法门 ──
+    miss_mod = [m for m in MODULES if not (jsdir / m).exists()]
+    check("三个前端模块都在位（map-atlas / shortcuts / lzkg-api）",
+          not miss_mod, f"缺 {miss_mod}")
+    if node:
+        for m in MODULES:
+            f = jsdir / m
+            if not f.exists():
+                continue
+            q = subprocess.run([node, "--check", str(f)], capture_output=True, text=True,
+                               encoding="utf-8", errors="replace", timeout=60)
+            check(f"模块语法门（node --check {m}）", q.returncode == 0,
+                  (q.stderr or "").strip()[:120])
+
+    # ── 首页内联主脚本语法门 ──
+    if node:
+        m = re.search(r"<script>(.*?)</script>", html, re.S)
+        if m:
+            import tempfile
+            tf = Path(tempfile.gettempdir()) / "lzkg_inline_check.js"
+            tf.write_text(m.group(1), encoding="utf-8")
+            try:
+                q = subprocess.run([node, "--check", str(tf)], capture_output=True, text=True,
+                                   encoding="utf-8", errors="replace", timeout=60)
+                check("首页内联主脚本语法门（node --check）", q.returncode == 0,
+                      (q.stderr or "").strip()[:200])
+            finally:
+                if tf.exists():
+                    tf.unlink()
+        else:
+            check("首页内联主脚本语法门（node --check）", False, "没找到内联 <script>")
+
+    # ── 首页同源引用（零 CDN）+ 零外链 ──
+    miss_ref = [m for m in MODULES if ('src="/js/%s"' % m) not in html]
+    check("首页同源引用三个模块（零 CDN）", not miss_ref, f"缺 {miss_ref}")
+    ext = [m for m in MODULES
+           if (jsdir / m).exists() and re.search(r"https?://", (jsdir / m).read_text(encoding="utf-8"))]
+    check("三个模块零外链（不含 http(s) 引用）", not ext, f"{ext}")
+
+    # ── 后端路由：固定文件名白名单 ──
+    try:
+        import requests
+        from lzkg.config import get_config
+        B = "http://%s:%s" % (get_config().host, get_config().port)
+        bad = []
+        for m in MODULES:
+            r = requests.get("%s/js/%s" % (B, m), timeout=15)
+            if not (r.status_code == 200 and "javascript" in r.headers.get("Content-Type", "")):
+                bad.append("%s:%s" % (m, r.status_code))
+        check("后端提供三个模块（200 且是脚本）", not bad, "; ".join(bad))
+        r2 = requests.get("%s/js/app.py" % B, timeout=15)
+        check("白名单外的脚本被拒（404，不泄露源码）", r2.status_code == 404, str(r2.status_code))
+    except Exception as e:
+        check("后端提供三个模块（需要服务在跑）", False, str(e)[:80])
+
+    # ── 图层分组数 == 图层面板条目数（必须等于实测真值）──
+    m = re.search(r"MAPST\.layers\s*=\s*\{(.*?)\}", html, re.S)
+    layer_keys = re.findall(r"(\w+)\s*:", m.group(1)) if m else []
+    at = jsdir / "map-atlas.js"
+    mm = None
+    if at.exists():
+        mm = re.search(r"var LAYERS = \[(.*?)\];", at.read_text(encoding="utf-8"), re.S)
+    panel_keys = re.findall(r'k:\s*"(\w+)"', mm.group(1)) if mm else []
+    check("地图图层分组数 == 图层面板条目数（实测 4 == 4）",
+          len(layer_keys) == 4 and sorted(layer_keys) == sorted(panel_keys),
+          f"{layer_keys} / {panel_keys}")
+
+    # ── 地图增强的 DOM 锚点齐全 ──
+    need_ids = ["mapatlas-wrap", "mapatlas-q", "mapatlas-go", "mapatlas-layers",
+                "mapatlas-scrubbtn", "mapatlas-reset", "mapatlas-panel",
+                "mapatlas-scrub", "mapatlas-hover", "w-map-info"]
+    miss_id = [i for i in need_ids if ('id="%s"' % i) not in html]
+    check("地图增强的 DOM 锚点齐全（实测 10 个）", not miss_id, f"缺 {miss_id}")
+
+    # ── 第三套「古地图」壁纸：三处齐 ──
+    check("壁纸下拉有第三套「古地图 · 宣纸」",
+          '<option value="atlas">古地图 · 宣纸</option>' in html, "")
+    check("壁纸读取白名单含 atlas", 's0 === "atlas"' in html, "")
+    check("壁纸 CSS 令牌齐（body.bp.t-atlas）", "body.bp.t-atlas{" in html, "")
+    check("壁纸类名清理含 t-atlas",
+          'classList.remove("bp", "t-terra", "t-museum", "t-atlas")' in html, "")
+
+    # ── 快捷键 ──
+    sc = jsdir / "shortcuts.js"
+    scs = sc.read_text(encoding="utf-8") if sc.exists() else ""
+    keys = re.findall(r'^\s{4}(\w): "#/', scs, re.M)
+    check("快捷键键位齐全（实测 6 个页签 o/l/p/g/s/w）",
+          sorted(keys) == ["g", "l", "o", "p", "s", "w"], f"{keys}")
+    check("快捷键说明浮层有独立 id", "lzkg-shortcuts-overlay" in scs, "")
+
+    # ── Agent 接口 ──
+    aj = jsdir / "lzkg-api.js"
+    ajs = aj.read_text(encoding="utf-8") if aj.exists() else ""
+    check("Agent 接口挂到 window.lzkgAPI", "global.lzkgAPI = lzkgAPI" in ajs, "")
+    need_m = ["getVersion", "lang", "setLang", "go", "search", "lit", "stats", "regions", "theme"]
+    miss_m = [x for x in need_m if ("lzkgAPI.%s =" % x) not in ajs]
+    check("Agent 接口方法齐全（实测 9 个）", not miss_m, f"缺 {miss_m}")
+
+    # ── 打包清单登记（漏登记 = 组员拿到包少一块功能）──
+    bp = prog.parent / "_tools" / "build_package.py"
+    bps = bp.read_text(encoding="utf-8") if bp.exists() else ""
+    miss_b = [m for m in MODULES if m not in bps]
+    check("打包清单登记三个模块", not miss_b, f"缺 {miss_b}")
+
 def main():
     print("良渚文化文献目录站 · 验收")
     # ★ 没有库就别硬跑数据层判据 ——
@@ -1183,6 +1311,7 @@ def main():
     test_extra()
     test_requirements()
     test_i18n()
+    test_bp12()
     if "--layout" in sys.argv or "--all" in sys.argv:
         if has_db:
             test_layout()

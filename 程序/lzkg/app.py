@@ -107,6 +107,34 @@ def i18n_js():
                     headers={"Cache-Control": "no-store, must-revalidate"})
 
 
+# ── 前端独立脚本（固定文件名白名单）─────────────────────────────────
+# ★ 与 /i18n.js 同一套思路：**只放行固定文件名**，不接受任意路径，
+#   也没有把 static/ 整目录挂出去（那里还有别的东西，不该被静态暴露）。
+_JS_FILES = {
+    "map-atlas.js": "统计页地图增强（图层面板 / 比例尺 / 相机复位 / 搜索 / 年份刷选 / 悬停浮层）",
+    "shortcuts.js": "全局快捷键",
+    "lzkg-api.js": "浏览器端 Agent 接口 window.lzkgAPI",
+    "i18n.js": "界面多语言词典（/i18n.js 是同一条内容的旧路径）",
+}
+
+
+@app.get("/js/{name}", response_class=Response)
+def static_js(name: str):
+    """独立前端模块（ES5，零外链，随程序走，断网可用）。
+
+    ★ 安全性：固定文件名白名单 → 没有路径参数可穿越，
+      也不像 StaticFiles 整目录挂载那样把 data/ 下的库文件暴露出去。
+    """
+    if name not in _JS_FILES:
+        raise HTTPException(status_code=404, detail="前端脚本不存在")
+    f = STATIC_DIR / "js" / name
+    if not f.exists():
+        return Response("/* 文件缺失 */", media_type="application/javascript; charset=utf-8")
+    return Response(f.read_text(encoding="utf-8"),
+                    media_type="application/javascript; charset=utf-8",
+                    headers={"Cache-Control": "no-store, must-revalidate"})
+
+
 # ── 离线底图（GeoJSON）─────────────────────────────────────────────────
 # 前端交互地图要自己画底图 → 必须能直接取到 GeoJSON 文件。
 # ★ 不用 StaticFiles 整目录挂载：那样会把 data/ 下的库文件一起暴露出去。

@@ -654,7 +654,29 @@
     "请先选择一个文件": ["Please select a file first", "先にファイルを選択してください"],
     "云端解析需要 API Key（填在上面的框里，或先「保存到浏览器」）":
       ["Cloud parsing needs an API key (enter it in the box above, or “save to browser” first)",
-       "クラウド解析には API キーが必要です（上の入力欄に入力、または先に「ブラウザーに保存」）"]
+       "クラウド解析には API キーが必要です（上の入力欄に入力、または先に「ブラウザーに保存」）"],
+    /* ── 统计页 · 地图增强（BP12）── */
+    "图层": ["Layers", "レイヤー"],
+    "复位": ["Reset view", "表示リセット"],
+    "定位": ["Locate", "移動"],
+    "年份筛选": ["Year filter", "年フィルタ"],
+    "图层面板": ["Layers", "レイヤーパネル"],
+    "遗址群范围框": ["Site-group bounds", "遺跡群の範囲"],
+    "文献坐标点": ["Literature coordinate points", "文献座標点"],
+    "空间分区代表点": ["Spatial-zone representative points", "空間区分の代表点"],
+    "候选遗址（实测坐标）": ["Candidate sites (surveyed coordinates)", "候補遺跡（実測座標）"],
+    "出版年区间": ["Publication-year range", "出版年の範囲"],
+    "全部": ["All", "すべて"],
+    "个点位": ["points", "ポイント"],
+    "个匹配点位": ["matching points", "件の一致"],
+    "无匹配点位": ["No matching point", "一致する地点がありません"],
+    "无出版年信息": ["(without publication-year data)", "（出版年情報なし）"],
+    "勾掉即隐藏该类点位；数据本身不变。": ["Uncheck to hide that layer; the data itself is unchanged.", "チェックを外すとその種別は非表示（データは変わりません）。"],
+    "口径：按点位所关联文献的出版年过滤；无出版年信息的点位始终显示。": ["Filter by the publication year of the literature linked to each point; points without year data always stay visible.", "各地点に紐づく文献の出版年で絞り込み。出版年情報のない地点は常に表示されます。"],
+    "出处": ["Source", "出典"],
+    "关联文献": ["Related literature", "関連文献"],
+    "篇": ["items", "件"],
+    "搜索文献号 / 地名 / 分区名": ["Search by literature ID, place name or zone name", "文献番号・地名・区分名で検索"],
   };
 
   /* 只做**整段精确命中**的键：这些短词在数据里也会出现（图号、类型、年份…），
@@ -665,7 +687,11 @@
     "序号": 1, "主题": 1, "分期": 1, "空间": 1, "谱系": 1, "标签": 1,
     "条": 1, "个": 1, "篇": 1, "份": 1, "字符": 1, "第": 1,
     "已复核": 1, "待复核": 1, "说明": 1, "依据": 1, "来源": 1, "备注": 1,
-    "检索": 1, "关键词": 1, "摘要": 1
+    "检索": 1, "关键词": 1, "摘要": 1,
+    /* BP12 地图增强新增的界面短词：同样只做整段精确命中 */
+    "图层": 1, "复位": 1, "定位": 1, "年份筛选": 1, "全部": 1,
+    "出处": 1, "关联文献": 1, "个点位": 1, "个匹配点位": 1, "无匹配点位": 1,
+    "文献坐标点": 1, "空间分区代表点": 1, "候选遗址（实测坐标）": 1, "遗址群范围框": 1
   };
 
   /* ── 数据容器：这里面的中文是**数据**，一律不翻 ── */

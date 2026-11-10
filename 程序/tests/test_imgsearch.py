@@ -438,13 +438,14 @@ def test_blueprint_theme():
     check("判据18 顶栏有壁纸选择器", 'id="bp-theme"' in s, "")
     sel = re.search(r'<select id="bp-theme"[^>]*>(.*?)</select>', s, re.S)
     opts = re.findall(r'<option value="(\w+)"', sel.group(1)) if sel else []
-    check("判据18 壁纸选择器列出三张壁纸（原版/图纸/宫墙）",
-          opts == ["plain", "terra", "museum"], f"{opts}")
+    check("判据18 壁纸选择器列出四张壁纸（原版/图纸/宫墙/古地图）",
+          opts == ["plain", "terra", "museum", "atlas"], f"{opts}")
     # 结构：规则只有一份（body.bp），壁纸差异在 body.bp.t-*
     check("判据18 规则挂在 body.bp 下（不污染原版样式）",
           "body.bp{" in css and "body.bp ." in css, "")
-    check("判据18 两张壁纸各有自己的令牌块",
-          "body.bp.t-terra{" in css and "body.bp.t-museum{" in css, "")
+    check("判据18 三张壁纸各有自己的令牌块",
+          "body.bp.t-terra{" in css and "body.bp.t-museum{" in css
+          and "body.bp.t-atlas{" in css, "")
     # 两套壁纸各自的色板真值
     terra = re.search(r"body\.bp\.t-terra\{(.*?)\}", css, re.S)
     museum = re.search(r"body\.bp\.t-museum\{(.*?)\}", css, re.S)
@@ -459,6 +460,15 @@ def test_blueprint_theme():
           "--bp-accent:#B5672F" in tc, "")
     check("判据18 壁纸 2 是宫墙墨绿 #2A514D + 描金 #C1925B",
           "--bp-top:#2A514D" in mc and "--bp-accent:#C1925B" in mc, "")
+    # 壁纸 3（古地图 · 宣纸）：宣纸底 + 朱印色 + 衬线字体，且只用 Windows 必然有的字体族
+    atlas = re.search(r"body\.bp\.t-atlas\{(.*?)\n\}", css, re.S)
+    ac = atlas.group(1) if atlas else ""
+    miss_a = [c for c in ("#EDE3CC", "#A8322A", "#F8F2E2") if c not in ac]
+    check("判据18 壁纸 3（古地图宣纸）色板一致（宣纸底 + 朱印色）", not miss_a, f"缺 {miss_a}")
+    check("判据18 壁纸 3 用衬线字体族（KaiTi/STKaiti/SimSun，零外链）",
+          "--bp-serif:" in ac and "KaiTi" in ac and "SimSun" in ac, "")
+    check("判据18 壁纸 3 零外链（不引 Google 字体）",
+          "fonts.googleapis" not in css and "@import url(http" not in css, "")
     n_var = len(re.findall(r"--bp-[a-z0-9-]+:", css))
     check("判据18 壁纸令牌是变量化的（加新壁纸只改令牌行）", n_var >= 24,
           f"{n_var} 个 --bp-* 令牌")
@@ -466,7 +476,7 @@ def test_blueprint_theme():
     check("判据18 壁纸选择持久化到 localStorage",
           "localStorage.setItem(BP_KEY" in s and "localStorage.getItem(BP_KEY)" in s, "")
     check("判据18 只认白名单里的壁纸名（旧的非法值落到默认壁纸）",
-          all(v in s for v in ("plain", "terra", "museum")) and "s0 ===" in s, "")
+          all(v in s for v in ("plain", "terra", "museum", "atlas")) and "s0 ===" in s, "")
     # 图版页
     check("判据18 图版页有工程标题条与三个读数位",
           all(x in s for x in ["pagehead", "ph-zh", "ph-en", "ph-total", "ph-lits", "ph-hit"]), "")

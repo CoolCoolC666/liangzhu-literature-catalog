@@ -280,6 +280,35 @@ html[data-lang="en"] .ph-en,html[data-lang="ja"] .ph-en{display:none}
 /* 卫星模式：覆盖范围外用中性深底（#stats-map 是 ID 选择器，优先级压过 .lm-sat，故单列一条） */
 #stats-map.lm-sat{background:#1b2126}
 .lz-wrap{position:relative}
+/* ---------- 统计页 · 地图增强（借鉴「江湖时序」：图层面板 / 抽屉 / 悬停浮层 / 刷选器） ---------- */
+.map-atlas-wrap{display:grid;grid-template-columns:1fr 0;gap:12px;align-items:start}
+.map-atlas-wrap.open{grid-template-columns:1fr 320px}
+.map-atlas-main{position:relative;min-width:0}
+.map-atlas-drawer{overflow:hidden;border:1px solid var(--line);border-radius:6px;background:var(--card);
+  max-height:660px}
+.map-atlas-wrap.open .map-atlas-drawer{overflow:auto}
+.map-tools{position:absolute;right:10px;top:10px;z-index:620;display:flex;gap:6px;align-items:center}
+/* 搜索框左移 52px：Leaflet 的缩放控件（+.−）默认就在左上角 10px，
+   压在上面的话点「+」点到的是输入框，地图根本缩放不了（实测过）。 */
+.map-search{position:absolute;left:52px;top:10px;z-index:620;display:flex;gap:6px;align-items:center}
+.map-search input{width:190px}
+.layer-panel{position:absolute;right:10px;top:46px;z-index:640;background:var(--card);border:1px solid var(--line);
+  border-radius:6px;box-shadow:0 6px 18px rgba(20,40,60,.14);padding:10px 12px;min-width:212px;display:none}
+.layer-panel.open{display:block}
+.layer-panel .t{font-weight:700;font-size:12.5px;margin-bottom:6px}
+.layer-panel .li{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink2);margin:3px 0}
+.layer-panel .nt{font-size:11.5px;color:var(--ink2);border-top:1px solid var(--line);margin-top:6px;padding-top:5px}
+.map-hover{position:absolute;z-index:650;pointer-events:none;background:var(--card);border:1px solid var(--line);
+  border-radius:6px;box-shadow:0 4px 14px rgba(20,40,60,.16);padding:8px 10px;font-size:12px;max-width:270px;display:none}
+.map-hover .ht{font-weight:700;margin-bottom:3px}
+.map-hover .hr{color:var(--ink2)}
+.scrubber{position:absolute;left:10px;right:130px;bottom:10px;z-index:615;background:var(--card);
+  border:1px solid var(--line);border-radius:6px;padding:7px 10px;display:none}
+.scrubber.open{display:block}
+/* 刷选器展开时收起图例：两者都占左下角，一起开会互相压住 */
+.mz-scrub .lz-legend{display:none}
+.scrubber .row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink2);flex-wrap:wrap}
+.scrubber input[type=range]{flex:1;min-width:140px}
 .lz-legend{position:absolute;left:10px;bottom:10px;z-index:600;background:rgba(255,255,255,.94);
   border:1px solid var(--line);border-radius:5px;padding:8px 10px;font-size:12px;line-height:1.5;
   box-shadow:0 1px 4px rgba(20,40,60,.14);max-width:340px}
@@ -451,6 +480,46 @@ body.bp.t-museum{
   --bp-btn:#2A514D; --bp-soft:#F3EDE2;
   --bp-radius:2px;
 }
+/* ---------- 壁纸 3：古地图（宣纸 + 墨线 + 朱印） ----------
+   借鉴「江湖时序」的古籍质感，但**字体只用 Windows 必然有的族**（零外链红线：
+   不用 Google 字体）。宣纸底 + 墨线 + 朱印色，标题走楷体/宋体。 */
+body.bp.t-atlas{
+  --bp-field:#EDE3CC; --bp-grid:rgba(120,90,50,.10);
+  --bp-top:#3B2C1C; --bp-scrim:rgba(38,28,17,.96);
+  --bp-paper:#F8F2E2; --bp-line:#C7B491;
+  --bp-ink:#2A2117; --bp-ink2:#6A5A42; --bp-ink3:#8E7C60; --bp-dim:#F2E9D6;
+  --bp-accent:#A8322A; --bp-accent-bright:#C8553C; --bp-accent-deep:#7C211A;
+  --bp-btn:#8E2A21; --bp-soft:#F2E6CC;
+  --bp-radius:2px;
+  --bp-serif:"KaiTi","STKaiti","SimSun","Songti SC",serif;
+}
+body.bp.t-atlas .topbar{border-bottom-color:#8A6E45}
+body.bp.t-atlas h1,body.bp.t-atlas .ph-zh,body.bp.t-atlas h2.sec,body.bp.t-atlas .subbar h3{
+  font-family:var(--bp-serif);letter-spacing:4px}
+body.bp.t-atlas .pagehead{border-bottom-color:#8A6E45}
+body.bp.t-atlas .ph-en{font-family:Consolas,"Cascadia Mono",monospace;letter-spacing:2px}
+body.bp.t-atlas .card,body.bp.t-atlas .fullblk,body.bp.t-atlas .secblk,body.bp.t-atlas .wcard{
+  box-shadow:0 1px 0 rgba(80,55,25,.18)}
+body.bp.t-atlas .stat .n{color:var(--bp-accent)}
+/* 宣纸底是**浅底**：前两套壁纸（陶土/宫墙）是深底，标题才能用「浅字压深底」。
+   照抄到宣纸上 → 标题直接看不见（实测「统计与地图」几乎隐形）。
+   所以这里把页头/小标题改成墨色，把顶栏上的浅底反色文字提亮。 */
+body.bp.t-atlas .pagehead .ph-zh{color:var(--bp-ink)}
+body.bp.t-atlas .pagehead .ph-en{color:var(--bp-accent-deep)}
+body.bp.t-atlas .pagehead .ph-read{color:var(--bp-ink2)}
+body.bp.t-atlas .pagehead .ph-read b{color:var(--bp-accent-deep)}
+body.bp.t-atlas h2.sec{color:var(--bp-ink)}
+body.bp.t-atlas h3.sub2{color:var(--bp-accent-deep)}
+body.bp.t-atlas .topbar .sub{color:#C9B896}
+body.bp.t-atlas .tabs button{color:#C9B896}
+body.bp.t-atlas .tabs button.active{border-bottom-color:var(--bp-accent)}
+body.bp.t-atlas .segbtn.on{background:var(--bp-accent);border-color:var(--bp-accent);color:#F8F2E2}
+body.bp.t-atlas .btn{background:var(--bp-btn);border-color:var(--bp-btn);color:#F8F2E2}
+body.bp.t-atlas .btn.ghost{background:transparent;color:var(--bp-accent-deep);border-color:var(--bp-line)}
+body.bp.t-atlas .btn.ghost:hover{background:var(--bp-soft)}
+body.bp.t-atlas :focus-visible{outline:2px solid var(--bp-accent)}
+body.bp.t-atlas #stats-map{background:#E4DCC6}
+body.bp.t-atlas .lz-legend{background:rgba(248,242,226,.95);border-color:#C7B491}
 /* ---- 顶栏 ---- */
 body.bp .topbar{background:var(--bp-top);border-bottom:1px solid var(--bp-line);box-shadow:none}
 body.bp .topbar h1{color:var(--bp-dim);letter-spacing:.5px}
@@ -686,7 +755,7 @@ body.bp .wcard .perm{color:var(--bp-ink2)}
     <!-- 右上角同步控件：主按钮=自动同步开关（未设置时点它跳配置页） -->
     <div class="syncbox">
       <select id="ui-lang" title="界面语言"><option value="zh">中文</option><option value="en">English</option><option value="ja">日本語</option></select>
-      <select id="bp-theme" title="切换壁纸"><option value="plain">原版</option><option value="terra">图纸 · 陶土</option><option value="museum">宫墙 · 墨绿</option></select>
+      <select id="bp-theme" title="切换壁纸"><option value="plain">原版</option><option value="terra">图纸 · 陶土</option><option value="museum">宫墙 · 墨绿</option><option value="atlas">古地图 · 宣纸</option></select>
       <button type="button" class="btn ghost" id="sync-auto" title="自动同步">同步：读取中…</button>
       <button type="button" class="btn ghost" id="sync-now" title="立即同步一次（下载合并 + 上传）">⟳ 立即同步</button>
     </div>
@@ -3671,9 +3740,19 @@ function loadStatsPage() {
       '<button class="segbtn on" data-mm="vec">矢量</button>' +
       '<button class="segbtn" data-mm="sat">卫星影像</button></span>' +
       '<span class="small muted" id="mapst-mode-note"></span></div>' +
+      '<div class="map-atlas-wrap" id="mapatlas-wrap"><div class="map-atlas-main">' +
       '<div class="lz-wrap"><div id="stats-map"></div></div>' +
-      '<div id="w-map-info"><div class="small muted">点地图上的任一标记（文献坐标点 / 空间分区代表点 / 良渚遗址群范围框），' +
-      '这里会显示它的类型、出处与关联文献；也可以直接点上面的「④ 空间分区」柱子定位。</div></div>' +
+      '<div class="map-search"><input type="text" id="mapatlas-q" placeholder="搜索文献号 / 地名 / 分区名">' +
+      '<button class="btn ghost" id="mapatlas-go">定位</button></div>' +
+      '<div class="map-tools"><button class="btn ghost" id="mapatlas-layers">图层</button>' +
+      '<button class="btn ghost" id="mapatlas-scrubbtn">年份筛选</button>' +
+      '<button class="btn ghost" id="mapatlas-reset">复位</button></div>' +
+      '<div class="layer-panel" id="mapatlas-panel"></div>' +
+      '<div class="scrubber" id="mapatlas-scrub"></div>' +
+      '<div class="map-hover" id="mapatlas-hover"></div>' +
+      '</div><aside class="map-atlas-drawer"><div id="w-map-info"></div></aside></div>' +
+      '<div class="small muted" style="margin-top:6px">点地图上的任一标记（文献坐标点 / 空间分区代表点 / 良渚遗址群范围框），' +
+      '右侧会滑出它的类型、出处与关联文献；也可以直接点上面的「④ 空间分区」柱子定位。</div>' +
       '<div class="small muted" style="margin-top:8px">底图：Natural Earth（公共域）+ Overpass/OSM，<b>本地文件、零联网、零 CDN</b>；' +
       '缩放时自动切换「世界 → 中国 → 良渚区域」三档底图。中国一律画 <b>31 省 + 台湾的省级拼图</b>，' +
       '<b>不画 admin_0 国界多边形</b>；台湾与大陆同色同边线、不单独配色、不单独标注；边界仅作位置示意，<b>不作为官方界线依据</b>。</div>' +
@@ -3734,6 +3813,7 @@ var MAPST = {
   tier: "",           /* 当前底图档位：world / china / region */
   tierLayers: [],     /* 当前档位的图层（切档时整批移除） */
   ov: null,           /* 数据覆盖层（点、范围框……始终显示，不随底图切档） */
+  layers: {},         /* ★ 每类要素一个独立 layerGroup（图层面板逐项开关用） */
   pts: {},            /* point id → marker */
   regs: {},           /* 分区名 → marker */
   sgs: {},            /* 候选遗址名 → marker */
@@ -3912,6 +3992,14 @@ function mapstAddOverlays() {
   var d = MAPST.data || {};
   var ov = L.layerGroup().addTo(MAPST.map);
   MAPST.ov = ov;
+  /* ★ 每类要素单独成组：以前全塞进一个 ov，想「只藏文献坐标点」就得整张图重建。
+     分组后图层面板就是 add/remove 四个 group，别的图层不受影响。 */
+  MAPST.layers = {
+    box: L.layerGroup().addTo(MAPST.map),
+    points: L.layerGroup().addTo(MAPST.map),
+    regions: L.layerGroup().addTo(MAPST.map),
+    sites: L.layerGroup().addTo(MAPST.map)
+  };
   /* 1 良渚遗址群范围框（红色虚线 + 半透明填充） */
   var sg = d.site_group || {};
   var hasBox = sg.lon_min !== undefined && sg.lon_min !== null && sg.lon_min !== "" &&
@@ -3928,7 +4016,7 @@ function mapstAddOverlays() {
       "，北纬 " + esc(sg.lat_min) + "～" + esc(sg.lat_max), { sticky: true, className: "lz-tip" });
     rect.on("click", function () { mapstShowGroup(); });
     rect._lzFill = 0.08;
-    rect.addTo(ov);
+    rect.addTo(MAPST.layers.box);
     MAPST.grp = rect;
   }
   /* 2 文献坐标点（红色圆点；divIcon + zIndexOffset 保证盖在分区方块之上、点得到） */
@@ -3941,7 +4029,7 @@ function mapstAddOverlays() {
       "<br>出处：" + esc(p.source) +
       "<br>关联文献：" + esc(p.lit_count) + " 篇", { sticky: true, className: "lz-tip" });
     m.on("click", function () { mapstShowPoint(p); });
-    m.addTo(ov);
+    m.addTo(MAPST.layers.points);
     MAPST.pts[p.id] = m;
   });
   /* 3 空间分区代表点（橙色方块；on_map=false 的分区不画） */
@@ -3952,7 +4040,7 @@ function mapstAddOverlays() {
     mk.bindTooltip(esc(r.name) + "<br>空间分区代表点：<b>示意，±1.1 km，非实测坐标</b>" +
       "<br>依据：" + esc(r.basis), { sticky: true, className: "lz-tip" });
     mk.on("click", function () { mapstPickRegion(r.name); });
-    mk.addTo(ov);
+    mk.addTo(MAPST.layers.regions);
     MAPST.regs[r.name] = mk;
   });
   /* 4 候选遗址（只有实测坐标非空的才画；青绿三角） */
@@ -3961,7 +4049,7 @@ function mapstAddOverlays() {
     var mk = L.marker([s.lat, s.lon], { icon: mapstSiteIcon(), keyboard: false, riseOnHover: true });
     mk.bindTooltip(esc(s.name) + "<br>候选遗址（实测坐标）<br>" + esc(s.note || ""), { sticky: true, className: "lz-tip" });
     mk.on("click", function () { mapstShowSite(s); });
-    mk.addTo(ov);
+    mk.addTo(MAPST.layers.sites);
     MAPST.sgs[s.name] = mk;
   });
 }
@@ -3989,7 +4077,9 @@ function mapstLegend() {
 function mapstPanel(title, rows, lits, litCount, filterFn, filterLabel) {
   var box = $("#w-map-info");
   if (!box) return;
-  var h = '<div class="lz-info"><h4>' + esc(title) + "</h4>";
+  var h = '<div class="lz-info"><div style="display:flex;align-items:center;gap:8px">' +
+    '<h4 style="flex:1">' + esc(title) + "</h4>" +
+    '<button class="btn ghost" id="mad-close" title="收起面板">✕ 收起</button></div>';
   rows.forEach(function (r) {
     h += '<div class="kv"><b>' + esc(r[0]) + "：</b>" + r[1] + "</div>";
   });
@@ -4007,6 +4097,12 @@ function mapstPanel(title, rows, lits, litCount, filterFn, filterLabel) {
   }
   h += "</div>";
   box.innerHTML = h;
+  var wrap = document.getElementById("mapatlas-wrap");
+  if (wrap) wrap.classList.add("open");
+  var cb = $("#mad-close");
+  if (cb) cb.addEventListener("click", function () {
+    if (wrap) wrap.classList.remove("open");
+  });
   var btn = $("#lz-filter");
   if (btn) btn.addEventListener("click", filterFn);
 }
@@ -4213,6 +4309,8 @@ function mapstInit() {
   mapstAddOverlays();
   mapstLegend();
   mapstSetTier(mapstTierFor(9));
+  /* 地图增强（图层面板 / 抽屉 / 悬停浮层 / 搜索 / 刷选器）由独立模块接管 */
+  if (window.MAPATLAS) { try { MAPATLAS.init(); } catch (e) {} }
   setTimeout(function () { if (MAPST.map) MAPST.map.invalidateSize(); }, 150);
 }
 function mapstDestroy() {
@@ -6146,7 +6244,7 @@ var BP_KEY = "lzkg.theme";
    ★ 规则只有一份（body.bp），壁纸差异全在令牌（body.bp.t-xxx）与各自的布局块。 */
 function bpApply(name) {
   var b = document.body;
-  b.classList.remove("bp", "t-terra", "t-museum");
+  b.classList.remove("bp", "t-terra", "t-museum", "t-atlas");
   if (name && name !== "plain") {
     b.classList.add("bp");
     b.classList.add("t-" + name);
@@ -6160,7 +6258,7 @@ function bpInit() {
   try {
     var s0 = localStorage.getItem(BP_KEY);
     /* 只认白名单里的壁纸名；旧版本存的值（如 "bp"）一律落到默认壁纸 */
-    if (s0 === "plain" || s0 === "terra" || s0 === "museum") v = s0;
+    if (s0 === "plain" || s0 === "terra" || s0 === "museum" || s0 === "atlas") v = s0;
   } catch (e) {}
   bpApply(v);
   var s = document.getElementById("bp-theme");
@@ -6259,5 +6357,9 @@ function loadNotes() {
   });
 })();
 </script>
+<!-- BP12 独立前端模块：地图增强 / 全局快捷键 / 浏览器端 Agent 接口（ES5，零外链） -->
+<script src="/js/map-atlas.js"></script>
+<script src="/js/shortcuts.js"></script>
+<script src="/js/lzkg-api.js"></script>
 </body>
 </html>
