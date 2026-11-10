@@ -835,6 +835,27 @@ def test_api():
           mw_main is not None and mw_main == mw_wrap, f"main={mw_main} wrap={mw_wrap}")
     check("正文主区水平居中（margin:0 auto，宽屏上不会无限拉宽）",
           bool(_re.search(r"(?<![\w.-])main\{[^}]*margin:0 auto", html)), "")
+    # ── 可访问性基线：键盘焦点 / 模态语义 / 动效降级 ────────────────────
+    check("可访问性 灯箱是 dialog 且 aria-modal",
+          'id="lb" role="dialog" aria-modal="true"' in html, "")
+    check("可访问性 原文窗是 dialog 且 aria-modal",
+          'id="raw-modal" role="dialog" aria-modal="true"' in html, "")
+    check("可访问性 灯箱关闭后焦点归位（记住打开它的元素）",
+          "LB.ret" in html and "LB.ret.focus" in html, "")
+    check("可访问性 灯箱可用 Esc 关闭",
+          'e.key === "Escape"' in html and "lbClose" in html, "")
+    check("可访问性 有全局 :focus-visible 焦点环（非图纸主题也有）",
+          ":focus-visible{" in html, "")
+    check("可访问性 图纸主题另有描金焦点环",
+          "body.bp :focus-visible{" in html, "")
+    #   图版缩略图是 div，鼠标能点键盘够不着 —— 必须 role/tabindex + Enter/Space 才算可达
+    check("可访问性 缩略图可聚焦（role=button + tabindex）",
+          'role="button" tabindex="0"' in html, "")
+    check("可访问性 缩略图支持 Enter/Space 打开大图",
+          'e.key !== "Enter" && e.key !== " "' in html, "")
+    check("可访问性 有全局动效降级（prefers-reduced-motion 兜底块）",
+          "prefers-reduced-motion" in html
+          and "transition-duration:.01ms!important" in html, "")
     check("本地 Leaflet 文件在位",
           (webdir / "vendor" / "leaflet" / "leaflet.js").exists(), "")
     check("Leaflet 许可声明随包",

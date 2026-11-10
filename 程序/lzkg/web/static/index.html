@@ -501,17 +501,44 @@ body.bp.t-museum .srch-side .segbtn:not(.on):hover{background:rgba(224,185,120,.
 body.bp input[type=text],body.bp input[type=number],body.bp select{border:1px solid var(--bp-line);
   border-radius:var(--bp-radius);background:#fff}
 body.bp input[type=text]:focus,body.bp select:focus{border-color:var(--bp-accent);outline:none}
-/* ---- 图纸显影（BP8 样例版 · 仅图版卡）：卡片像被晒出来 ----
+/* ---- 图纸显影（BP8 样例版 → BP9 推广）：卡片像被晒出来 ----
    显影 = 淡入上移（只动 transform/opacity，不触发 layout）
-   扫描线 = 一道描金/主色斜光掠过卡片（pointer-events:none，不吃点击）
-   逐个延迟靠 --i；prefers-reduced-motion 下整套降级为不动 */
+   分层显影：卡片先亮 → 图版角标画出 → 图号牌亮起 → 描金扫描线斜掠过卡面
+   逐个延迟靠 --i；系统要求减少动态效果时，整套降级为不动 */
 @keyframes bpReveal{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @keyframes bpSweep{from{transform:translateX(-120%)}to{transform:translateX(120%)}}
-.imgcards.reveal .imgcard{animation:bpReveal .42s cubic-bezier(.22,.61,.36,1) both;animation-delay:calc(var(--i,0) * 38ms)}
+@keyframes bpMark{from{opacity:0;transform:scale(.25)}to{opacity:1;transform:scale(1)}}
+@keyframes bpFade{from{opacity:0}to{opacity:1}}
+/* 通用显影：任何 .reveal 容器里的这些块都"晒"一遍 */
+.reveal>.stat,.reveal>.imgcard,.reveal>.imgrow,.reveal>.litrow,.reveal>.card{
+  animation:bpReveal .42s cubic-bezier(.22,.61,.36,1) both;animation-delay:calc(var(--i,0) * 38ms)}
+/* 图版角标先画出来（图纸的 L 形角标） */
+.reveal>.imgcard::before{animation:bpMark .34s cubic-bezier(.22,.61,.36,1) both;animation-delay:calc(var(--i,0) * 38ms + 90ms)}
+/* 图号牌随后亮起 */
+.reveal>.imgcard .pnl{animation:bpFade .3s ease-out both;animation-delay:calc(var(--i,0) * 38ms + 150ms)}
+/* 描金扫描线斜掠过卡面（pointer-events:none，不吃点击） */
 .imgcards.reveal .imgcard::after{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;
   background:linear-gradient(100deg,rgba(224,185,120,0) 38%,var(--bp-accent-bright,rgba(120,180,205,.30)) 50%,rgba(224,185,120,0) 62%);
   transform:translateX(-120%);animation:bpSweep .95s ease-out both;animation-delay:calc(var(--i,0) * 38ms + 120ms)}
-@media (prefers-reduced-motion: reduce){.imgcards.reveal .imgcard{animation:none}.imgcards.reveal .imgcard::after{display:none}}
+/* 切页整体"重晒"一次 */
+@keyframes bpView{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}
+#view.view-in{animation:bpView .24s ease-out both}
+/* ---- 动效降级：系统要求减少动态效果时，显影/扫描线整套不动 ---- */
+@media (prefers-reduced-motion: reduce){
+  .reveal>.stat,.reveal>.imgcard,.reveal>.imgrow,.reveal>.litrow,.reveal>.card{animation:none}
+  .reveal>.imgcard::before,.reveal>.imgcard .pnl{animation:none}
+  .imgcards.reveal .imgcard::after{display:none}
+  #view.view-in{animation:none}
+}
+/* ---- 键盘焦点必须看得见（图纸主题用描金，其余主题用品牌色） ----
+   用 :focus-visible：只在键盘操作时出环，鼠标点击不留痕。
+   不认识 :focus-visible 的老浏览器会丢弃这条规则，但仍有 UA 默认焦点环，不会全丢。 */
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+/* ---- 全局动效兜底：任何 transition/animation 都不再动 ---- */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
 /* ---- 图版卡：图纸块 ---- */
 body.bp .imgcards{grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
 body.bp .imgcard{position:relative;background:var(--bp-paper);border:1px solid var(--bp-line);
@@ -660,7 +687,7 @@ body.bp .wcard .perm{color:var(--bp-ink2)}
 <main id="view"><div class="loading"><span class="spin"></span>正在初始化…</div></main>
 
 <!-- ★ 大图查看器：点图看大图，不跳文献（文献跳转改成显式按钮） -->
-<div id="lb" style="display:none">
+<div id="lb" role="dialog" aria-modal="true" aria-label="图版大图查看器" tabindex="-1" style="display:none">
   <div style="position:absolute;inset:0" id="lb-mask"></div>
   <div style="position:relative;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center">
     <div class="lbcap" id="lb-cap"></div>
@@ -669,7 +696,7 @@ body.bp .wcard .perm{color:var(--bp-ink2)}
   </div>
 </div>
 <!-- ★ 阅读原文窗口（模态） -->
-<div id="raw-modal" style="display:none;position:fixed;inset:0;background:rgba(18,26,34,.55);z-index:9000;">
+<div id="raw-modal" role="dialog" aria-modal="true" aria-label="文献原文阅读" tabindex="-1" style="display:none;position:fixed;inset:0;background:rgba(18,26,34,.55);z-index:9000;">
   <div style="position:absolute;inset:24px;background:var(--card);border-radius:8px;
               display:flex;flex-direction:column;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.3);">
     <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);">
@@ -1124,6 +1151,7 @@ function renderOverview() {
       }
 
       view.innerHTML = html;
+      revealIn(view);
     });
 }
 function statCard(n, t) {
@@ -1442,6 +1470,7 @@ function paintList(d, hits) {
       '<button class="btn ghost" id="l-next"' + ((d.page || 1) >= pages ? " disabled" : "") + ">下一页</button>" +
       "</div>";
     box.innerHTML = h;
+    revealIn(box);
     var pv = $("#l-prev"), nx = $("#l-next");
     if (pv) pv.addEventListener("click", function () { state.list.page = (d.page || 1) - 1; loadList(); });
     if (nx) nx.addEventListener("click", function () { state.list.page = (d.page || 1) + 1; loadList(); });
@@ -1704,14 +1733,22 @@ function lbOpen(gid, idx) {
   LB.items = items;
   LB.idx = idx || 0;
   LB.on = true;
+  /* 焦点：记住是谁开的，关闭时还回去（键盘用户不会"丢"在页面顶部） */
+  LB.ret = document.activeElement;
   lbPaint();
   var el = document.getElementById("lb");
-  if (el) el.style.display = "block";
+  if (el) {
+    el.style.display = "block";
+    try { el.focus(); } catch (e) {}
+  }
 }
 function lbClose() {
   LB.on = false;
   var el = document.getElementById("lb");
   if (el) el.style.display = "none";
+  /* 焦点归位到打开灯箱的那个元素 */
+  if (LB.ret && LB.ret.focus) { try { LB.ret.focus(); } catch (e) {} }
+  LB.ret = null;
 }
 function lbStep(d) {
   if (!LB.items.length) return;
@@ -1766,6 +1803,19 @@ function lbKey(e) {
 }
 document.addEventListener("click", lbDelegate, false);
 document.addEventListener("keydown", lbKey, false);
+/* 缩略图是 role="button" 的 div：键盘用户用 Enter/Space 也要能开大图 */
+document.addEventListener("keydown", function (e) {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  var t = e.target;
+  while (t && t !== document.body) {
+    if (t.getAttribute && t.getAttribute("data-lbg")) {
+      e.preventDefault();
+      lbOpen(t.getAttribute("data-lbg"), parseInt(t.getAttribute("data-lbi") || "0", 10));
+      return;
+    }
+    t = t.parentNode;
+  }
+}, false);
 (function () {
   var mk = document.getElementById("lb-mask");
   if (mk) mk.addEventListener("click", lbClose);
@@ -1774,7 +1824,7 @@ function imgTile(im, idx, gid) {
   var s = imgSrc(im);
   var fig = im.fig_no ? ("图 " + im.fig_no) : (im.filename || "");
   var h = '<div class="imgtile" data-lbg="' + (gid || "detail") + '" data-lbi="' +
-    (idx || 0) + '" title="点击看大图">';
+    (idx || 0) + '" role="button" tabindex="0" title="点击看大图" aria-label="查看大图：' + esc(fig) + '">';
   h += '<img class="ph" loading="lazy" src="' + esc(s) + '" alt="' + esc(fig) + '" onerror="this.style.visibility=\'hidden\';this.nextElementSibling.style.display=\'block\';">';
   h += '<div class="cap" style="display:none;color:#9aa7b1">图像文件未找到</div>';
   h += '<div class="cap"><div class="fn">' + esc(nz(fig)) + "</div>" +
@@ -5962,19 +6012,28 @@ function loadImgStats() {
     }
   });
 }
-/* 图纸显影：卡片像被晒出来 —— 逐个延迟淡入 + 扫描线掠过
-   ★ 只在图版网格用；--i 决定第几张卡（12 张封顶，避免尾部长）。 */
-function revealImgCards(box) {
-  if (!box) return;
-  var grid = box.querySelector(".imgcards");
-  if (!grid) return;
-  var cards = grid.querySelectorAll(".imgcard");
-  for (var i = 0; i < cards.length; i++) {
-    cards[i].style.setProperty("--i", Math.min(i, 12));
+/* 图纸显影：把一组块"晒"出来 —— 逐个延迟淡入；图版另有角标/图号牌分层点亮
+   按父容器分组，每组各自从 0 排延迟；--i = 组内第几个（12 个封顶，免得尾部长）。 */
+function revealIn(root) {
+  var scope = root || document;
+  var els = scope.querySelectorAll(".stat,.imgcard,.imgrow,.litrow,.card");
+  if (!els.length) return;
+  var groups = [], i, k, j;
+  for (i = 0; i < els.length; i++) {
+    var p = els[i].parentNode;
+    if (!p || !p.classList) continue;
+    var g = null;
+    for (k = 0; k < groups.length; k++) { if (groups[k].host === p) { g = groups[k]; break; } }
+    if (!g) { g = { host: p, items: [] }; groups.push(g); }
+    g.items.push(els[i]);
   }
-  grid.classList.remove("reveal");
-  void grid.offsetWidth; /* 强制回流：同一批卡片翻页回来能重播 */
-  grid.classList.add("reveal");
+  for (i = 0; i < groups.length; i++) {
+    var list = groups[i].items, host = groups[i].host;
+    for (j = 0; j < list.length; j++) list[j].style.setProperty("--i", Math.min(j, 12));
+    host.classList.remove("reveal");
+    void host.offsetWidth; /* 强制回流：同一批块重新渲染后能重播 */
+    host.classList.add("reveal");
+  }
 }
 function loadImgSearch() {
   var p = state.img;
@@ -6028,7 +6087,7 @@ function loadImgSearch() {
       items.forEach(function (it, i) {
         var title = titleOf(it);
         h += "<div class=\"imgrow\">";
-        h += "<div class=\"thumb\" data-lbg=\"search\" data-lbi=\"" + i + "\" title=\"点击看大图\">" +
+        h += '<div class="thumb" data-lbg="search" data-lbi="' + i + '" role="button" tabindex="0" title="点击看大图" aria-label="查看大图：' + esc(title) + '">' +
           "<img src=\"" + esc(it.thumb_url) + "\" loading=\"lazy\" alt=\"" + esc(title) + "\"></div>";
         h += "<div>";
         h += "<div class=\"ttl\">" + esc(title) + "</div>";
@@ -6047,7 +6106,7 @@ function loadImgSearch() {
       items.forEach(function (it, i) {
         var title = titleOf(it);
         h += "<div class=\"imgcard\">";
-        h += "<div class=\"thumb\" data-lbg=\"search\" data-lbi=\"" + i + "\" title=\"点击看大图\">" +
+        h += '<div class="thumb" data-lbg="search" data-lbi="' + i + '" role="button" tabindex="0" title="点击看大图" aria-label="查看大图：' + esc(title) + '">' +
           "<img src=\"" + esc(it.thumb_url) + "\" loading=\"lazy\" alt=\"" + esc(title) + "\">" +
           "<span class=\"pnl\">" + esc(it.lit_id) + (it.fig_no ? " / " + esc(it.fig_no) : "") + "</span></div>";
         h += "<div class=\"meta\">";
@@ -6067,7 +6126,7 @@ function loadImgSearch() {
     h += "<button class=\"btn ghost\" id=\"im-next\"" + ((d.page || 1) >= pages ? " disabled" : "") + ">下一页</button>";
     h += "</div>";
     if (box) box.innerHTML = h;
-    revealImgCards(box);
+    revealIn(box);
     var pv = $("#im-prev"), nx = $("#im-next");
     if (pv) pv.addEventListener("click", function () { p.page = (d.page || 1) - 1; loadImgSearch(); });
     if (nx) nx.addEventListener("click", function () { p.page = (d.page || 1) + 1; loadImgSearch(); });
@@ -6119,6 +6178,10 @@ function route() {
   if (r.tab !== "graph" && state.graph.scaleTimer) {
     clearInterval(state.graph.scaleTimer); state.graph.scaleTimer = null;
   }
+  /* 切页整体重晒一次：视图内容淡入上移（动效降级时自动不动） */
+  view.classList.remove("view-in");
+  void view.offsetWidth;
+  view.classList.add("view-in");
   if (r.tab === "overview") renderOverview();
   else if (r.tab === "list") renderList();
   else if (r.tab === "detail") renderDetail(r.id);

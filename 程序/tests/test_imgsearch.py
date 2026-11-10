@@ -561,10 +561,21 @@ def test_search_layout():
     check("判据21 逐个延迟靠 --i（不是写死 nth-child）",
           "setProperty(\"--i\"" in s and "calc(var(--i" in s, "")
     check("判据21 尊重 prefers-reduced-motion（整套降级为不动）",
-          "prefers-reduced-motion" in s and ".imgcards.reveal .imgcard{animation:none}" in s, "")
+          "prefers-reduced-motion" in s and "{animation:none}" in s
+          and ".imgcards.reveal .imgcard::after{display:none}" in s, "")
     m4 = re.search(r"function loadImgSearch\(\).*?\n\}\n", s, re.S)
     check("判据21 显影在图版渲染后触发",
-          bool(m4) and "revealImgCards(box)" in m4.group(0), "")
+          bool(m4) and "revealIn(box)" in m4.group(0), "")
+    check("判据21 通用显影规则覆盖多类块（stat/imgcard/imgrow/litrow/card）",
+          ".reveal>.stat" in s and ".reveal>.imgcard" in s
+          and ".reveal>.litrow" in s and ".reveal>.card" in s, "")
+    check("判据21 分层显影：角标画出 + 图号牌亮起",
+          "@keyframes bpMark" in s and "@keyframes bpFade" in s
+          and ".reveal>.imgcard::before" in s and ".reveal>.imgcard .pnl" in s, "")
+    check("判据21 切页整体重晒（bpView / view-in）",
+          "@keyframes bpView" in s and "#view.view-in" in s and "view-in" in s, "")
+    check("判据21 显影已推广到总览与文献页（revealIn 多处调用）",
+          s.count("revealIn(") >= 3, f"{s.count('revealIn(')} 处")
 
 
 def _lum(hexstr):
