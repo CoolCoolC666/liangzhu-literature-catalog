@@ -226,6 +226,113 @@
 
     " 张": [" localised", " 枚"],
 
+    "← 返回工作台": ["← Back to the workbench", "← ワークベンチへ戻る"],
+    "当前用户：": ["Signed in as: ", "現在のユーザー："],
+    "角色：": [" · Role: ", " · 役割："],
+    "退出登录": ["Sign out", "ログアウト"],
+    "管理员：可见「提案与审核」": ["Admins can see “Proposals and review”", "管理者は「提案と審査」を見られる"],
+    "非管理员：不显示「提案与审核」": ["Non-admins do not see “Proposals and review”", "管理者以外は「提案と審査」を表示しない"],
+    "这条链路怎么走：① 在下面改词典 → ② 「保存词典」 → ③ 「重建索引」 → 才生效。词典是源数据，索引是派生物；**改完不重建，检索还在用旧词典**。": ["How it works: ① edit the dictionary below → ② “Save the dictionary” → ③ “Rebuild the index” → only then does it take effect. The dictionary is the source data, the index is derived; if you edit without rebuilding, search still uses the old dictionary.", "使い方：① 下の辞書を編集 → ②「辞書を保存」→ ③「インデックスを再構築」→ これで反映されます。辞書が原本でインデックスは派生物です。再構築しないと検索は古い辞書のままです。"],
+    "索引状态：": ["Index status: ", "インデックス状態："],
+    "　词典 ": [" · Dictionary: ", " · 辞書 "],
+    " 词 / ": [" words / ", " 語 / "],
+    " 个同义组": [" synonym group(s)", " 個の同義語グループ"],
+    "　覆盖 ": [" · covering ", " · 対象 "],
+    "放弃改动，重新读取": ["Discard the changes and reload", "変更を破棄して読み直す"],
+    "恢复内置初始词典": ["Restore the built-in dictionary", "内蔵の初期辞書を復元"],
+    "① 领域词条（": ["① Domain entries (", "① 分野語条例（"],
+    "② 同义组（": ["② Synonym groups (", "② 同義語グループ（"],
+    " 组）": [" groups)", " グループ）"],
+    "词频统一给大，词才会压过通用分词的切分倾向（不然「兽面纹」会被切成「兽面/纹」）。": ["Give domain words a uniformly high frequency so they outweigh the generic tokenizer’s splitting habit (otherwise “兽面纹” gets cut into “兽面/纹”).", "分野語の頻度を，一律に高めにします。そうしないと汎用の分割傾向に負けて「獣面紋」が「獣面/紋」に切られてしまいます。"],
+    "删除": ["Delete", "削除"],
+    "人工添加": ["Added by hand", "手動追加"],
+    "直接添加词条": ["Add an entry directly", "語条を直接追加"],
+
+    "词": ["Word", "語"],
+    "分组": ["Group", "グループ"],
+    "说明": ["Note", "説明"],
+    "操作": ["Actions", "操作"],
+    "组名": ["Group name", "グループ名"],
+    "成员（逗号分隔）": ["Members (comma separated)", "メンバー（カンマ区切り）"],
+
+    "无需登录": ["No sign-in required", "ログイン不要"],
+    "需登录": ["Sign-in required", "ログイン要"],
+    "仅管理员可见": ["Admins only", "管理者のみ閲覧可"],
+    "需登录（提交提案要审核）": ["Sign-in required (submissions are reviewed)", "ログイン要（提案は承認が必要）"],
+    "需登录（导出）；导入预检仅管理员": ["Sign-in required (export); the import pre-check is admin-only", "ログイン要（書き出し）／インポートの事前チェックは管理者のみ"],
+    "已就绪 · 源数据在「程序自带副本」": ["Ready · source data in “the bundled copy”", "準備完了・原本データは「プログラム同梱のコピー」にあります"],
+    " 批": [" batches", " 件"],
+    "词级索引 v": ["Token index v", "単語インデックス v"],
+    " 词": [" words", " 語"],
+
+    "添加词条": ["Add an entry", "語条を追加"],
+    "同义组用于「Token + synonyms」：组内任一词命中，整组都算命中。系统不会自动生成同义 —— 自动 = 编造。": ["Synonym groups feed “Token + synonyms”: a hit on any member counts as a hit on the whole group. The system never invents synonyms on its own — automatic means made up.", "同義語グループは「Token + synonyms」で使われます。グループ内のどれか一つがヒットすればグループ全体がヒットします。系统在同義語を自動生成することはありません（自動＝作文）。"],
+    "添加同义组": ["Add a synonym group", "同義語グループを追加"],
+    "③ 领域后缀 / 前缀表（用于新词发现的领域加权）": ["③ Domain suffix / prefix list (weighting for new-word discovery)", "③ 分野接尾辞・接頭辞表（新規語発見の重み付け用）"],
+    "命中后缀或前缀的候选词加 3.0 分。加了之后候选榜的 Top10 从「半是垃圾」变成「全是真领域词」。": ["Candidates matching a suffix or prefix get +3.0 points. With that in place the candidate Top10 goes from “half rubbish” to “all real domain words”.", "接尾辞・接頭辞に一致する候補に 3.0 点を加算します。これを入れると候補上位 10 件が「半分がゴミ」から「全部が本物の分野語」に変わります。"],
+    "后缀": ["Suffixes", "接尾辞"],
+    "前缀": ["Prefixes", "接頭辞"],
+    "④ 候选新词（人工勾选才进词典）": ["④ Candidate words (only ticked ones enter the dictionary)", "④ 候補語（チェックしたものが辞書に入ります）"],
+    "最小频次": ["Min frequency", "最小頻度"],
+    "按得分": ["By score", "スコア順"],
+    "按频次": ["By frequency", "頻度順"],
+
+    "收藏检索两层：先题名/备注，再全文": ["Favourite search has two layers: title/note first, then full text", "收藏検索は2層：まず題名・書込、次に全文"],
+    "题名/备注": ["Title / note", "題名・書込"],
+    "全文关键词": ["Full-text keyword", "全文キーワード"],
+    "清空": ["Clear", "クリア"],
+    "两层是并且关系：先按题名/备注筛，再在剩下的收藏里做全文检索。检索只在你的收藏里进行，不会翻出没收藏的文献。": ["The two layers are combined with AND: filter by title/note first, then run the full-text search over the remaining favourites. The search never returns records you have not favourited.", "2層は AND 関係：まず題名・書込で絞り、その残った收藏の中で全文検索します。收藏していない文献が検索結果に混ざることはありません。"],
+    "本机能力探测": ["Local capability probe", "ローカル能力の探测"],
+    "正在探测…": ["Probing…", "探测中…"],
+    "解析一个 PDF": ["Parse a PDF", "PDF を1件解析"],
+    "解析后端": ["Parsing backend", "解析バックエンド"],
+    "本地": ["Local", "ローカル"],
+    "云端": ["Cloud", "クラウド"],
+    "本地：本机需先跑 mineru-api.exe --host 127.0.0.1 --port 8000（V1 协议，本地无 key）。": ["Local: you must first run mineru-api.exe --host 127.0.0.1 --port 8000 on this machine (V1 protocol, no key locally).", "ローカル：先にこのマシンで mineru-api.exe --host 127.0.0.1 --port 8000 を起動してください（V1 プロトコル、ローカルは key 不要）。"],
+    "★ key 只保存在这台机器的浏览器里（localStorage 键名 lzkg.mineru.apikey.v1）：提交解析请求时随请求发给本机后端再转发给 MinerU，后端不落盘、不写日志、不回显。同一台机器上的其他人（公用电脑）能读到它——公用电脑上不要填。": ["★ The key is stored only in the browser on this machine (localStorage key lzkg.mineru.apikey.v1): it is sent with the parse request to the local backend, which forwards it to MinerU. The backend never writes it to disk or a log and never echoes it back. Other people on the same machine (a shared computer) can read it — do not fill it in on a shared computer.", "★ key はこのマシンのブラウザにのみ保存されます（localStorage キー lzkg.mineru.apikey.v1）。解析リクエストと一緒にローカルバックエンドへ送られ、そこから MinerU へ転送されます。バックエンドは保存もログ出力もエコーバックもしません。同じマシンを使う他の人（共用 PC）にも読み取れるため、共用 PC では入力しないでください。"],
+    "提问": ["Ask", "質問"],
+    "AI 接口设置保存在你的浏览器里": ["The AI endpoint is configured in your own browser", "AI 接続先はあなたのブラウザに保存されます"],
+    "协议": ["Protocol", "プロトコル"],
+    "OpenAI 兼容（OpenAI / DeepSeek / 通义 / Kimi / one-api 等）": ["OpenAI-compatible (OpenAI / DeepSeek / Tongyi / Kimi / one-api etc.)", "OpenAI 互換（OpenAI / DeepSeek / 通義 / Kimi / one-api など）"],
+    "本地 / 私有接口（OpenAI 兼容，key 可空）": ["Local / private endpoint (OpenAI-compatible, key may be empty)", "ローカル / プライベート接続先（OpenAI 互換、key は空でも可）"],
+    "接口地址": ["Endpoint", "接続先アドレス"],
+    "sk-…（也支持大多数中转站的 sk- 开头）": ["sk-… (most relay services that use an sk- prefix work too)", "sk-…（sk- で始まる中継サービスの大部分も対応）"],
+    "这条链路怎么走": ["How the chain works", "この链路の進み方"],
+    "① 导出：下面": ["① Export: use the ", "① 書き出し：下の"],
+    "② 改：成员拿 XML 改完回传。XML 一条记录一个元素，比 xlsx 好 diff。": ["② Edit: members edit the XML and send it back. One element per record makes the XML much easier to diff than xlsx.", "② 編集：メンバーが XML を編集して返送します。1レコード＝1要素なので xlsx より差分が見やすくなります。"],
+    "③ 回传：在「文献 → 导入登记表」里把方式切到「协作交换 XML」→ 预检 → 管理员批准 → 入库。": ["③ Send back: in “Literature → Import registry”, switch the method to “Collaboration exchange XML” → pre-check → admin approval → import.", "③ 返送：「文献 → 登记表をインポート」で方式を「協働交換 XML」に切り替え → 事前チェック → 管理者が承認 → 取り込み。"],
+    "原文正文与图版文件不走 XML：正文用「详情 → Read the original」下载，图版在 04_文献图像/ 目录里，XML 里只给文件名与链接。": ["The full text and the plate files do not travel in the XML: download the text from “Detail → Read the original”, the plates live in 04_文献图像/, and the XML only carries file names and links.", "原文本文と図版ファイルは XML には含まれません：本文は「詳細 → Read the original」からダウンロード、図版は 04_文献图像/ にあり、XML はファイル名とリンクだけです。"],
+    "范围": ["Scope", "範囲"],
+    "全部文献": ["All records", "すべての文献"],
+    "仅当前筛选结果（文献页的筛选条件）": ["Only the current filtered result (the filters on the literature page)", "現在の絞り込み結果のみ（文献ページの絞り込み条件）"],
+    "⓪ 同步存哪": ["⓪ Where to sync", "⓪ 同期先をどこに保存するか"],
+    "● 本站服务器（零配置）": ["● This site’s server (zero config)", "● 本サイトサーバー（ゼロコンフィグ）"],
+    "右上角的「同步」按钮按这个顺序挑": ["The “Sync” button in the top-right picks in this order: ", "右上角の「同期」ボタンはこの順で選びます："],
+    "配了 WebDAV 就用你的网盘；没配就用本站服务器（零配置，登录即用）；两个都没有才显示「未设置」，点它会跳回本页。": ["if WebDAV is configured it uses your own drive; otherwise it uses this site’s server (zero config, works once signed in); only when neither is set does it show “not configured”, and clicking that brings you back to this page.", "WebDAV を設定済みなら自分のクラウドドライブ、未設定なら本サイトサーバー（ゼロコンフィグ、ログイン即可）を使い、どちらも無いときだけ「未設定」と表示します（押すとこのページに戻ります）。"],
+    "换设备时：本站服务器登录即可取回；WebDAV 要重新填一次凭据（凭据只存各自浏览器里）。": ["On another device: sign in to the site’s server to get it back; for WebDAV you must re-enter the credentials once (they live only in each person’s browser).", "別の端末では：本サイトサーバーにログインすれば取り戻せます。WebDAV は資格情報を一度入力し直す必要があります（資格情報は各人のブラウザにのみ保存）。"],
+    "本站服务器：已存 ": ["This site’s server: stored ", "本サイトサーバーに保存済み："],
+    "立即存到服务器": ["Store on the server now", "今すぐサーバーに保存"],
+    "管理员：关闭后所有成员都不能再存到本站服务器（各自浏览器里的记录不受影响）。": ["Admin: once closed, no member can store to this site’s server any more (records already in each person’s browser are unaffected).", "管理者：閉じると全メンバーが本サイトサーバーへ保存できなくなります（各人のブラウザ内の記録は影響を受けません）。"],
+    "关闭「存服务器」（对所有成员）": ["Close “store on the server” (for all members)", "「サーバーに保存」を閉じる（全メンバー対象）"],
+    "① 我的浏览数据（存在本浏览器里）": ["① My browsing data (kept in this browser)", "① 自分の閲覧データ（このブラウザーに保存）"],
+    "源数据是否就位": ["Is the source data in place", "原本データは揃っているか"],
+    "对接包里带的是库（题录、图版标注、全文索引），不带文件本体（图版图片、原始 PDF、MinerU 解析出来的 Markdown —— 机构订阅件，不进公开包）。": ["The package carries the database (bibliographic records, plate annotations, the full-text index) but not the files themselves (plate images, original PDFs, the Markdown produced by MinerU — these are institutionally licensed and never enter the public package).", "パッケージにはデータベース（書誌情報・図版注釈・全文索引）が入りますが、ファイル本体（図版画像・原文 PDF・MinerU の解析 Markdown）は入っていません（これらは機関購読物で公開パッケージには入れません）。"],
+    "把 1.9 GB 的数据包解压后，把那个文件夹整个拖进程序目录下的「数据包/」即可：不用改配置、不用敲命令，放进去就生效（连重启都不用）。": ["Unpack the 1.9 GB data package and drag the whole folder into 「数据包/」 under the program directory: no config change, no commands — drop it in and it works (no restart needed).", "1.9 GB のデータパッケージを展開し、プログラムディレクトリの「数据包/」へフォルダごとドラッグしてください。設定変更もコマンド入力も不要、置けばそのまま効きます（再起動も不要）。"],
+    "源Data source：": ["Source data source: ", "原本データ来源："],
+    "就绪 / 应有": ["Ready / expected", "準備 / 想定"],
+    "解锁的功能": ["Unlocked features", "解錠される機能"],
+    "已就绪": ["Ready", "準備完了"],
+
+    "（题录 + 标签 + 图版标注，不含原文正文与图版二进制）。": [" (bibliographic records + tags + plate annotations; no full text and no plate binaries).", "（書誌情報＋タグ＋図版注釈。原文本文と図版バイナリは含みません）。"],
+
+    "收藏检索": ["Favourite search", "收藏検索"],
+    "两层：先": ["Two layers: first ", "2層：まず"],
+    "，再全文": [", then the full text", "、次に全文"],
+    "两层是": ["The two layers are ", "2層は"],
+    "并且": ["combined with AND", "AND で結ばれて"],
+    "关系：先按题名/备注筛，再在剩下的收藏里做全文检索。检索": [": filter by title/note first, then run the full-text search over the remaining favourites. The search", "：まず題名・書込で絞り、その残った收藏の中で全文検索します。検索"],
+    "只作显示": ["is display only", "は表示のみ"],
+
   /* ── 页脚 ── */
     "数据来源": ["Data source", "データ出典"],
     "使用条件": ["Terms of use", "利用条件"],
@@ -628,6 +735,17 @@
     try { return !!(el && el.closest && el.closest(SKIP)); } catch (e) { return false; }
   }
 
+  /* ★ 交互控件里的文字**永远算界面文案**：
+     数据容器（如表格单元格里放按钮的那类）整体豁免时，
+     按钮上的「删除」这类文案会跟着一起被跳过 —— 那就白豁免了。 */
+  var UI_TAGS = { BUTTON: 1, A: 1, INPUT: 1, SELECT: 1, OPTION: 1 };
+  function skipText(el) {
+    if (!el) return true;
+    var t = el.tagName;
+    if (t && UI_TAGS[t]) return false;
+    return skip(el);
+  }
+
   var ATTRS = ["title", "aria-label", "placeholder", "alt"];
 
   function trAttr(el, name) {
@@ -666,7 +784,7 @@
     var w = global.document.createTreeWalker(root, 4 /* NodeFilter.SHOW_TEXT */, null, false);
     var n;
     while ((n = w.nextNode())) {
-      if (!skip(n.parentNode)) trTextNode(n);
+      if (!skipText(n.parentNode)) trTextNode(n);
     }
     if (root.nodeType === 1) {
       trAttrs(root);
@@ -728,14 +846,14 @@
     for (var i = 0; i < list.length; i++) {
       var m = list[i];
       if (m.type === "characterData") {
-        if (!skip(m.target.parentNode)) trTextNode(m.target);
+        if (!skipText(m.target.parentNode)) trTextNode(m.target);
       } else if (m.type === "attributes") {
         if (m.target.nodeType === 1) trAttrs(m.target);
       } else if (m.type === "childList") {
         for (var j = 0; j < m.addedNodes.length; j++) {
           var nd = m.addedNodes[j];
           if (nd.nodeType === 3) {
-            if (!skip(nd.parentNode)) trTextNode(nd);
+            if (!skipText(nd.parentNode)) trTextNode(nd);
           } else {
             walk(nd);
           }

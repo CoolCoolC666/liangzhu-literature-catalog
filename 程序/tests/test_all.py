@@ -1087,13 +1087,19 @@ def test_i18n():
     check("英/日两语条目对等（每条都有两个译文）",
           len(two_lang) == len(entries),
           f"{len(two_lang)}/{len(entries)}")
-    # ── 英文译文里不许残留汉字 ──
+    # ── 英文译文里不许残留汉字（专名/目录名除外，见下）──
+    # ★ EN 里允许出现的三处**专名/目录名**（本来就该保留中文，不是漏译）：
+    #   兽面纹 / 兽面/纹 —— 举例用的领域术语（解释「通用分词会把它切开」）；
+    #   04_文献图像/ 、数据包/ —— **真实目录名**，翻了反而找不到文件。
+    EN_ALLOWED_CJK = ["兽面纹", "兽面/纹", "04_文献图像/", "数据包/"]
     en_cjk = []
     for k, v in entries:
         m = re.search(r'"((?:[^"\\]|\\.)*)"\s*,\s*"', v)
         if not m:
             continue
         en = m.group(1)
+        for a in EN_ALLOWED_CJK:
+            en = en.replace(a, "")
         if re.search(r"[\u4e00-\u9fff]", en):
             en_cjk.append(f"{k}→{en}")
     check("英文译文无汉字残留（没翻完的文案必须红）", not en_cjk,
