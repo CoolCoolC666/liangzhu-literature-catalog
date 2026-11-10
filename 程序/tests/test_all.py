@@ -810,6 +810,20 @@ def test_api():
     webdir = Path(__file__).resolve().parent.parent / "lzkg" / "web" / "static"
     idx = webdir / "index.html"
     html = idx.read_text(encoding="utf-8") if idx.exists() else ""
+    # ── 统计与地图：已从工作台子界面升为顶层第六个页签 ────────────────
+    check("顶栏有独立的「统计」页签（在图谱与工作台之间）",
+          'data-tab="graph">图谱</button>' in html
+          and 'data-tab="stats">统计</button>' in html
+          and 'data-tab="work">工作台</button>' in html, "")
+    check("路由认得 stats（顶层页签直达 #/stats）",
+          '"stats"' in html and "renderStatsPage" in html
+          and 'r.tab === "stats"' in html, "")
+    check("旧链接 #/work/stats 仍可用（跳到新顶层页签）",
+          'location.hash = "#/stats"' in html, "")
+    check("统计与地图不在工作台卡片列表里了（已升为顶层）",
+          'id: "stats", t: "④' not in html, "")
+    check("统计页用顶层页头（不再挂「← 返回工作台」子界面条）",
+          "subBar(" not in html.split("function renderStatsPage")[1].split("function loadStatsPage")[0], "")
     check("前端引用本地 Leaflet（不走 CDN）",
           "vendor/leaflet/leaflet.js" in html and "vendor/leaflet/leaflet.css" in html
           and "unpkg.com" not in html and "cdn.jsdelivr.net/npm/leaflet" not in html,

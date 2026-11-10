@@ -510,7 +510,7 @@ body.bp input[type=text]:focus,body.bp select:focus{border-color:var(--bp-accent
 @keyframes bpMark{from{opacity:0;transform:scale(.25)}to{opacity:1;transform:scale(1)}}
 @keyframes bpFade{from{opacity:0}to{opacity:1}}
 /* 通用显影：任何 .reveal 容器里的这些块都"晒"一遍 */
-.reveal>.stat,.reveal>.imgcard,.reveal>.imgrow,.reveal>.litrow,.reveal>.card{
+.reveal>.stat,.reveal>.imgcard,.reveal>.imgrow,.reveal>.litrow,.reveal>.card,.reveal>.fullblk{
   animation:bpReveal .42s cubic-bezier(.22,.61,.36,1) both;animation-delay:calc(var(--i,0) * 38ms)}
 /* 图版角标先画出来（图纸的 L 形角标） */
 .reveal>.imgcard::before{animation:bpMark .34s cubic-bezier(.22,.61,.36,1) both;animation-delay:calc(var(--i,0) * 38ms + 90ms)}
@@ -525,7 +525,7 @@ body.bp input[type=text]:focus,body.bp select:focus{border-color:var(--bp-accent
 #view.view-in{animation:bpView .24s ease-out both}
 /* ---- 动效降级：系统要求减少动态效果时，显影/扫描线整套不动 ---- */
 @media (prefers-reduced-motion: reduce){
-  .reveal>.stat,.reveal>.imgcard,.reveal>.imgrow,.reveal>.litrow,.reveal>.card{animation:none}
+  .reveal>.stat,.reveal>.imgcard,.reveal>.imgrow,.reveal>.litrow,.reveal>.card,.reveal>.fullblk{animation:none}
   .reveal>.imgcard::before,.reveal>.imgcard .pnl{animation:none}
   .imgcards.reveal .imgcard::after{display:none}
   #view.view-in{animation:none}
@@ -673,6 +673,7 @@ body.bp .wcard .perm{color:var(--bp-ink2)}
       <button data-tab="list">文献</button>
       <button data-tab="imgsearch">图版</button>
       <button data-tab="graph">图谱</button>
+      <button data-tab="stats">统计</button>
       <button data-tab="work">工作台</button>
     </nav>
     <!-- 右上角同步控件：主按钮=自动同步开关（未设置时点它跳配置页） -->
@@ -1031,9 +1032,9 @@ function parseHash() {
     return parts.length > 1 ? { tab: "detail", id: parts[1], sub: "" } : { tab: "list", id: null, sub: "" };
   }
   if (parts[0] === "browse" || parts[0] === "search") return { tab: "list", id: null, sub: "" };
-  /* 工作台子界面：#/work、#/work/account、#/work/stats …（接口契约-v3 §1.1） */
+  /* 工作台子界面：#/work、#/work/account …（接口契约-v3 §1.1） */
   if (parts[0] === "work") return { tab: "work", id: null, sub: parts[1] || "" };
-  var tabs = ["overview", "list", "imgsearch", "graph", "work"];
+  var tabs = ["overview", "list", "imgsearch", "graph", "stats", "work"];
   if (tabs.indexOf(parts[0]) < 0) return { tab: "overview", id: null, sub: "" };
   return { tab: parts[0], id: parts[1] || null, sub: "" };
 }
@@ -2934,7 +2935,7 @@ function loadGraphAnalysis() {
 }
 
 /* ==================================================================
- * 工作台（登录 / 收藏 / 提案与审核 / 统计与地图 / AI 问答 / 导入历史）
+ * 工作台（登录 / 收藏 / 提案与审核 / MinerU 录入 / AI 问答 / 导入历史 等）
  * ================================================================== */
 /* 工作台：入口页 + 各功能独立界面（接口契约-v3 §1.1） */
 function renderWorkbench(sub) {
@@ -2942,7 +2943,7 @@ function renderWorkbench(sub) {
   if (sub === "account") return renderAccountPage();
   if (sub === "favorites") return renderFavPage();
   if (sub === "review") return renderReviewPage();
-  if (sub === "stats") return renderStatsPage();
+  if (sub === "stats") { location.hash = "#/stats"; return; }   /* 已升为顶层页签，老链接跳过去 */
   if (sub === "parse") return renderParsePage();
   if (sub === "ai") return renderAiPage();
   if (sub === "history") return renderHistoryPage();
@@ -2982,35 +2983,31 @@ function renderWorkbenchHome() {
       what: "逐条批准/驳回待审提案（导入与录入产生的提案都在这里）。",
       eps: "GET /api/staging?status=pending · POST /api/staging/{id}/approve|reject",
       perm: "仅管理员可见", adminOnly: true },
-    { id: "stats", t: "④ 统计与地图",
-      what: "时间分期 / 出版年份 / 文献类型 / 空间分区的条形图，以及后端出的空间分布图。",
-      eps: "/api/stats/timeline · /api/stats/region · /api/stats/map.png",
-      perm: "无需登录" },
-    { id: "parse", t: "⑤ MinerU 解析与录入",
+    { id: "parse", t: "④ MinerU 解析与录入",
       what: "上传 PDF 解析成 Markdown＋图版，填题录后作为提案提交入库。",
       eps: "/api/mineru/status · /api/mineru/parse · /api/mineru/jobs · /api/mineru/submit",
       perm: "需登录（提交提案要审核）" },
-    { id: "ai", t: "⑥ AI 问答",
+    { id: "ai", t: "⑤ AI 问答",
       what: "用自然语言问本库；接口配置存在各自浏览器里，不填则降级为本地检索摘要。",
       eps: "POST /api/ai/ask · /api/ai/providers · /api/ai/test",
       perm: "无需登录" },
-    { id: "history", t: "⑦ 导入历史",
+    { id: "history", t: "⑥ 导入历史",
       what: "历次登记表导入的批次、时间与写入条数。",
       eps: "GET /api/import/log",
       perm: "无需登录" },
-    { id: "webdev", t: "⑧ Web Dev（浏览数据与同步）", gated: true,
+    { id: "webdev", t: "⑦ Web Dev（浏览数据与同步）", gated: true,
       what: "浏览记录存在自己浏览器里（各存各的，本站不保存），可同步到自己的 WebDAV 网盘（坚果云等），换设备也能带走。",
       eps: "POST /api/webdav/test · /api/webdav/put · /api/webdav/get",
       perm: "需登录" },
-    { id: "exchange", t: "⑨ 协作交换（XML）",
+    { id: "exchange", t: "⑧ 协作交换（XML）",
       what: "把题录与图版标注导出成 XML，成员改完回传；回传件与 xlsx 走同一条「预检→批准→入库」链路。",
       eps: "GET /api/export/xml · POST /api/import/xml/preview",
       perm: "需登录（导出）；导入预检仅管理员" },
-    { id: "segment", t: "⑩ 分词实验室与词典",
+    { id: "segment", t: "⑨ 分词实验室与词典",
       what: "维护良渚领域词典（词条 / 同义组 / 领域后缀表），发现候选新词并人工勾选采纳，重建词级索引。",
       eps: "GET /api/segment/dict · POST /api/segment/dict · POST /api/segment/newwords · POST /api/segment/adopt · POST /api/segment/reindex",
       perm: "仅管理员可见", adminOnly: true },
-    { id: "datapkg", t: "⑪ 数据包（图片 / 原文）",
+    { id: "datapkg", t: "⑩ 数据包（图片 / 原文）",
       what: "看图版图片、原文 PDF 与 Markdown 有没有就位。没放数据包时，图版只剩占位图、原文读不了。",
       eps: "GET /api/datapackage/status",
       perm: "无需登录" }
@@ -3065,15 +3062,6 @@ function loadHomeStatuses() {
       if (!r.ok) { setStatus("review", "待审列表不可用（" + r.error + "）"); return; }
       var d = r.data || {};
       setStatus("review", "待审提案 " + fmtNum(d.total !== undefined ? d.total : (d.items || []).length) + " 条");
-    });
-  }
-  if (state.ov) {
-    setStatus("stats", "文献 " + fmtNum(state.ov.lit_count) + " 条 · 图像 " + fmtNum(state.ov.img_count) + " 张");
-  } else {
-    api("/api/overview").then(function (r) {
-      if (!r.ok) { setStatus("stats", "总览不可用（" + r.error + "）"); return; }
-      state.ov = r.data;
-      setStatus("stats", "文献 " + fmtNum(r.data.lit_count) + " 条 · 图像 " + fmtNum(r.data.img_count) + " 张");
     });
   }
   var cfg = aiCfgLoad();
@@ -3364,7 +3352,7 @@ function reviewStaging(id, act, btn) {
   });
 }
 /* ==================================================================
- * 工作台 · ④ 统计与地图（原生 SVG 条形图，不引任何外部库）
+ * 顶层页签 · 统计与地图（原生 SVG 条形图，不引任何外部库）
  * ================================================================== */
 function pickCount(o) {
   if (o === null || o === undefined) return null;
@@ -3615,7 +3603,7 @@ function askAi() {
   });
 }
 /* ==================================================================
- * 工作台 · 子界面：⑥ AI 问答 / ⑦ 导入历史
+ * 工作台 · 子界面：⑤ AI 问答 / ⑥ 导入历史
  * ================================================================== */
 function renderAiPage() {
   view.innerHTML = subBar("⑥ AI 问答", "POST /api/ai/ask · /api/ai/providers · /api/ai/test") +
@@ -3634,10 +3622,12 @@ function renderHistoryPage() {
   loadImportLogBlock();
 }
 /* ==================================================================
- * 工作台 · 子界面：④ 统计与地图（独立整页，块与块不并排）
+ * 顶层页签 · 统计与地图（独立整页，块与块不并排）
  * ================================================================== */
 function renderStatsPage() {
-  view.innerHTML = subBar("④ 统计与地图", "/api/stats/timeline · /api/stats/region · /api/stats/mapdata · /api/stats/map.png") +
+  view.innerHTML = '<div class="pagehead"><div><div class="ph-zh">统计与地图</div>' +
+    '<div class="ph-en">STATISTICS & MAP / 分期·类型·空间分布</div></div>' +
+    '<div class="ph-read">端点 <span class="mono">/api/stats/timeline · /api/stats/region · /api/stats/mapdata</span></div></div>' +
     '<div id="w-stats"></div>';
   loadStatsPage();
 }
@@ -3683,6 +3673,7 @@ function loadStatsPage() {
       '<div style="margin-top:8px"><a class="btn ghost" href="/api/stats/map.png" target="_blank" rel="noopener">导出静态图（用于报告/PPT）</a> ' +
       '<span class="small muted mono">/api/stats/map.png</span></div></div>';
     box.innerHTML = h;
+    revealIn(box);
     /* ④ 的柱状图（带点击与高亮） */
     MAPST.regionSeries = rg.ok
       ? normSeries((rg.data || {}).items || (rg.data || {}).regions || (rg.data || {}))
@@ -3712,7 +3703,7 @@ function loadStatsPage() {
   });
 }
 /* ==================================================================
- * 工作台 · 统计页「交互地图」模块（Leaflet 1.9.4，本地 vendor）
+ * 统计页「交互地图」模块（Leaflet 1.9.4，本地 vendor）
  * ------------------------------------------------------------------
  * ★ 合规（硬约束，别改坏）
  *   Natural Earth 的行政边界按国际普遍认知绘制，**不能当我国官方界线依据**。
@@ -4234,7 +4225,7 @@ window.addEventListener("resize", function () {
   if (MAPST.map) { try { MAPST.map.invalidateSize(); } catch (e) {} }
 });
 /* ==================================================================
- * 工作台 · 子界面：⑤ MinerU 解析与录入（接口契约-v3 §2 / §3）
+ * 工作台 · 子界面：④ MinerU 解析与录入（接口契约-v3 §2 / §3）
  * ★ 云端 token 存在**浏览器**里（localStorage），与 AI 接口同一套做法：
  *   key 只在这台机器的浏览器里；提交解析请求时随请求发给本机后端代理，
  *   后端不落盘、不写日志、不回显；公用电脑上不要填。
@@ -4554,7 +4545,7 @@ function loadMineruJobs() {
 }
 
 /* ==================================================================
- * 工作台 · ⑦ 导入历史
+ * 工作台 · ⑥ 导入历史
  * ================================================================== */
 function loadImportLogBlock() {
   var box = $("#w-importlog");
@@ -4575,7 +4566,7 @@ function loadImportLogBlock() {
   });
 }
 /* ==================================================================
- * 工作台 · ⑧ Web Dev（浏览数据与同步）
+ * 工作台 · ⑦ Web Dev（浏览数据与同步）
  * ------------------------------------------------------------------
  * ★ 浏览记录存在**用户自己的浏览器** localStorage 里（键名 lzkg.browse.v1），
  *   本站后端**不保存**任何人的浏览记录 —— 各存各的。
@@ -6016,7 +6007,7 @@ function loadImgStats() {
    按父容器分组，每组各自从 0 排延迟；--i = 组内第几个（12 个封顶，免得尾部长）。 */
 function revealIn(root) {
   var scope = root || document;
-  var els = scope.querySelectorAll(".stat,.imgcard,.imgrow,.litrow,.card");
+  var els = scope.querySelectorAll(".stat,.imgcard,.imgrow,.litrow,.card,.fullblk");
   if (!els.length) return;
   var groups = [], i, k, j;
   for (i = 0; i < els.length; i++) {
@@ -6171,7 +6162,7 @@ function route() {
   state.tab = r.tab;
   markTab(r.tab);
   /* 离开「统计与地图」页时把 Leaflet 实例拆掉，避免旧地图泄漏 */
-  if (!(r.tab === "work" && r.sub === "stats")) mapstDestroy();
+  if (r.tab !== "stats") mapstDestroy();
   /* 同理：详情页内嵌小地图，离开详情页就拆 */
   if (r.tab !== "detail") litmapDestroy();
   /* 图谱页离开时停掉 scale 轮询 */
@@ -6187,6 +6178,7 @@ function route() {
   else if (r.tab === "detail") renderDetail(r.id);
   else if (r.tab === "graph") renderGraph();
   else if (r.tab === "imgsearch") renderImgSearch();
+  else if (r.tab === "stats") renderStatsPage();
   else if (r.tab === "work") renderWorkbench(r.sub || "");
 }
 function loadOptions() {
