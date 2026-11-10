@@ -42,7 +42,8 @@
     /* ── 顶栏 · 壁纸 / 同步控件 ── */
     "切换壁纸": ["Switch wallpaper", "壁紙を切替"],
     "原版": ["Plain", "標準"],
-    "图纸 · 陶土": ["Blueprint · Terracotta", "図面 · テラコッタ"],
+    "图纸 · 石墨": ["Blueprint · Graphite", "図面 · グラファイト"],
+    "古地图 · 宣纸": ["Ancient Map · Xuan Paper", "古地図・宣紙"],
     "宫墙 · 墨绿": ["Palace Wall · Deep Green", "宮壁 · 深緑"],
     "界面语言": ["UI language", "表示言語"],
     "自动同步": ["Auto sync", "自動同期"],

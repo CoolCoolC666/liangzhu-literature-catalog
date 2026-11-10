@@ -453,10 +453,10 @@ def test_blueprint_theme():
     mc = museum.group(1) if museum else ""
     miss_t = [c for c in ("#101619", "#B5672F", "#F1F3F3") if c not in tc]
     miss_m = [c for c in ("#24463F", "#C1925B", "#2A514D", "#F7F7F8") if c not in mc]
-    check("判据18 壁纸 1（图纸陶土）三色与设计稿一致", not miss_t, f"缺 {miss_t}")
+    check("判据18 壁纸 1（图纸石墨）三色与设计稿一致", not miss_t, f"缺 {miss_t}")
     check("判据18 壁纸 2（宫墙墨绿）色板与设计稿一致", not miss_m, f"缺 {miss_m}")
     # 主色必须是用户点名的那两支
-    check("判据18 壁纸 1 主色是用户指定的陶土 #B5672F",
+    check("判据18 壁纸 1 主色是 #B5672F（陶土色，用户指定）",
           "--bp-accent:#B5672F" in tc, "")
     check("判据18 壁纸 2 是宫墙墨绿 #2A514D + 描金 #C1925B",
           "--bp-top:#2A514D" in mc and "--bp-accent:#C1925B" in mc, "")
@@ -473,6 +473,17 @@ def test_blueprint_theme():
     check("判据18 壁纸令牌是变量化的（加新壁纸只改令牌行）", n_var >= 24,
           f"{n_var} 个 --bp-* 令牌")
     # 状态持久化 + 白名单（老版本存的非法值要落到默认壁纸）
+    # 四个壁纸名都必须在多语言词典里：漏一条 → 英 / 日界面那个下拉项回落中文
+    dj = (Path(__file__).resolve().parent.parent / "lzkg" / "web" / "static" / "js" / "i18n.js")
+    ds = dj.read_text(encoding="utf-8") if dj.exists() else ""
+    miss_w = [w for w in ("原版", "图纸 · 石墨", "宫墙 · 墨绿", "古地图 · 宣纸")
+              if ('"' + w + '": [') not in ds]
+    check("判据18 四个壁纸名都在多语言词典里（英/日不回落中文）",
+          not miss_w, f"缺 {miss_w}")
+    # 默认壁纸：古地图 · 宣纸（用户 2026-11-10 拍板）
+    dflt = re.search(r'function bpInit\(\).*?var v = "(\w+)";', s, re.S)
+    check("判据18 默认壁纸是古地图 · 宣纸（实测 atlas）",
+          bool(dflt) and dflt.group(1) == "atlas", dflt.group(1) if dflt else "")
     check("判据18 壁纸选择持久化到 localStorage",
           "localStorage.setItem(BP_KEY" in s and "localStorage.getItem(BP_KEY)" in s, "")
     check("判据18 只认白名单里的壁纸名（旧的非法值落到默认壁纸）",
@@ -616,9 +627,9 @@ def test_segbtn_selected_state():
     check("判据20 宫墙选中态用描金 --bp-accent（不是深墨绿 --bp-btn）",
           "var(--bp-accent)" in mus_rule and "var(--bp-btn)" not in mus_rule,
           mus_rule.strip()[:80])
-    # 2) 陶土下选中态仍是实心按钮色
+    # 2) 石墨下选中态仍是实心按钮色
     ter = re.search(r"body\.bp\.t-terra \.segbtn\.on\{([^}]*)\}", css)
-    check("判据20 陶土下选中态是实心 --bp-btn",
+    check("判据20 石墨下选中态是实心 --bp-btn",
           bool(ter) and "var(--bp-btn)" in ter.group(1), "")
     # 3) 未选中态退后（透明底 + 描边），不再用实心浅灰块
     base = re.search(r"body\.bp \.segbtn\{([^}]*)\}", css)
@@ -634,9 +645,9 @@ def test_segbtn_selected_state():
     check("判据20 描金选中块不配白字（反例值 < 4.5）",
           cr_bad < 4.5 and "#191E20" in mus_rule,
           f"白字对比度 {cr_bad:.2f}:1")
-    # 6) 陶土按钮白字对比度
+    # 6) 石墨按钮白字对比度
     cr_terra = _contrast("#A65A26", "#FFFFFF")
-    check("判据20 陶土选中块白字对比度 ≥ 4.5:1", cr_terra >= 4.5,
+    check("判据20 石墨选中块白字对比度 ≥ 4.5:1", cr_terra >= 4.5,
           f"{cr_terra:.2f}:1")
     # 7) 深底侧栏里未选中的字走浅色
     check("判据20 宫墙深底侧栏未选中态用浅色字",

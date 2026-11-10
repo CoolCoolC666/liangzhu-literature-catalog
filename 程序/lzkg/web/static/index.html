@@ -443,7 +443,7 @@ footer p{margin:3px 0}
    壁纸系统：一套规则 + N 套令牌
    ★ 结构约定：**规则只有一份**（body.bp 下），**壁纸 = 令牌集**（body.bp.t-xxx）。
      换壁纸 = 换 class + 换令牌值，不改任何选择器、不改任何 HTML 结构。
-   ★ 壁纸 1 工程图纸（陶土）· 壁纸 2 宫墙（墨绿 + 描金）· 原版 = 不加 class
+   ★ 壁纸 1 工程图纸（石墨）· 壁纸 2 宫墙（墨绿 + 描金）· 壁纸 3 古地图（宣纸）· 原版 = 不加 class
    ★ 每套壁纸：一支强调色 + 冷/中性底 + 纸白卡；错误用同族砖红，
      待复核徽标用中性虚线（不另起色相）。
    ================================================================ */
@@ -460,7 +460,7 @@ body.bp{
   background-size:34px 34px;
   background-attachment:fixed;
 }
-/* ---------- 壁纸 1：工程图纸（陶土） ---------- */
+/* ---------- 壁纸 1：工程图纸（石墨） ---------- */
 body.bp.t-terra{
   --bp-field:#101619; --bp-grid:rgba(224,138,78,.06);
   --bp-top:rgba(16,22,25,.94); --bp-scrim:rgba(8,12,14,.97);
@@ -501,7 +501,7 @@ body.bp.t-atlas .ph-en{font-family:Consolas,"Cascadia Mono",monospace;letter-spa
 body.bp.t-atlas .card,body.bp.t-atlas .fullblk,body.bp.t-atlas .secblk,body.bp.t-atlas .wcard{
   box-shadow:0 1px 0 rgba(80,55,25,.18)}
 body.bp.t-atlas .stat .n{color:var(--bp-accent)}
-/* 宣纸底是**浅底**：前两套壁纸（陶土/宫墙）是深底，标题才能用「浅字压深底」。
+/* 宣纸底是**浅底**：前两套壁纸（石墨/宫墙）是深底，标题才能用「浅字压深底」。
    照抄到宣纸上 → 标题直接看不见（实测「统计与地图」几乎隐形）。
    所以这里把页头/小标题改成墨色，把顶栏上的浅底反色文字提亮。 */
 body.bp.t-atlas .pagehead .ph-zh{color:var(--bp-ink)}
@@ -755,7 +755,7 @@ body.bp .wcard .perm{color:var(--bp-ink2)}
     <!-- 右上角同步控件：主按钮=自动同步开关（未设置时点它跳配置页） -->
     <div class="syncbox">
       <select id="ui-lang" title="界面语言"><option value="zh">中文</option><option value="en">English</option><option value="ja">日本語</option></select>
-      <select id="bp-theme" title="切换壁纸"><option value="plain">原版</option><option value="terra">图纸 · 陶土</option><option value="museum">宫墙 · 墨绿</option><option value="atlas">古地图 · 宣纸</option></select>
+      <select id="bp-theme" title="切换壁纸"><option value="plain">原版</option><option value="terra">图纸 · 石墨</option><option value="museum">宫墙 · 墨绿</option><option value="atlas">古地图 · 宣纸</option></select>
       <button type="button" class="btn ghost" id="sync-auto" title="自动同步">同步：读取中…</button>
       <button type="button" class="btn ghost" id="sync-now" title="立即同步一次（下载合并 + 上传）">⟳ 立即同步</button>
     </div>
@@ -6240,7 +6240,7 @@ function loadImgSearch() {
  *   状态存 localStorage；默认开启，方便直接对比新旧两版。
  * ================================================================ */
 var BP_KEY = "lzkg.theme";
-/* 壁纸切换：plain=原版 / terra=图纸陶土 / museum=宫墙墨绿
+/* 壁纸切换：plain=原版 / terra=图纸石墨 / museum=宫墙墨绿 / atlas=古地图宣纸
    ★ 规则只有一份（body.bp），壁纸差异全在令牌（body.bp.t-xxx）与各自的布局块。 */
 function bpApply(name) {
   var b = document.body;
@@ -6254,7 +6254,9 @@ function bpApply(name) {
   try { localStorage.setItem(BP_KEY, name || "plain"); } catch (e) {}
 }
 function bpInit() {
-  var v = "terra";
+  /* 默认壁纸 = 古地图 · 宣纸（2026-11-10 用户拍板）；
+     已有选择的人保留自己选的那张 —— 默认值只管「还没选过」的人。 */
+  var v = "atlas";
   try {
     var s0 = localStorage.getItem(BP_KEY);
     /* 只认白名单里的壁纸名；旧版本存的值（如 "bp"）一律落到默认壁纸 */
