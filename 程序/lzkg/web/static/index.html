@@ -283,6 +283,14 @@ html[data-lang="en"] .ph-en,html[data-lang="ja"] .ph-en{display:none}
 /* ---------- 统计页 · 地图增强（借鉴「江湖时序」：图层面板 / 抽屉 / 悬停浮层 / 刷选器） ---------- */
 .map-atlas-wrap{display:grid;grid-template-columns:1fr 0;gap:12px;align-items:start}
 .map-atlas-wrap.open{grid-template-columns:1fr 320px}
+/* BP14 左栏：良渚时间图谱矩阵（X=良渚分期带，Y=主题族带，格内纵向=出版年） */
+.map-atlas-tl{border:1px solid var(--line);border-radius:6px;background:var(--card);padding:8px 12px;margin-bottom:12px}
+.tl-head{display:flex;flex-direction:column;gap:1px;margin-bottom:2px}
+.tl-svg{display:block;max-width:100%;height:auto}
+.tl-legend{margin-top:6px;line-height:1.6}
+.tl-col,.tl-row{cursor:pointer}
+.tl-col:hover text,.tl-row:hover text{fill:#1d5f88}
+.tl-imgs .imgtiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
 .map-atlas-main{position:relative;min-width:0}
 .map-atlas-drawer{overflow:hidden;border:1px solid var(--line);border-radius:6px;background:var(--card);
   max-height:660px}
@@ -3714,8 +3722,9 @@ function loadStatsPage() {
   var box = $("#w-stats");
   if (!box) return;
   box.innerHTML = '<div class="loading"><span class="spin"></span>正在读取统计…</div>';
-  Promise.all([api("/api/stats/timeline"), api("/api/stats/region"), api("/api/stats/mapdata")]).then(function (res) {
-    var tl = res[0], rg = res[1], md = res[2];
+  Promise.all([api("/api/stats/timeline"), api("/api/stats/region"), api("/api/stats/mapdata"),
+                 api("/api/stats/timeline-matrix")]).then(function (res) {
+    var tl = res[0], rg = res[1], md = res[2], mx = res[3];
     var h = "";
     /* 1 时间分期 */
     h += '<div class="fullblk">' + (tl.ok
@@ -3735,11 +3744,12 @@ function loadStatsPage() {
     /* 4 空间分区（可点击：与地图双向联动，整块由 mapstRenderRegionChart 填） */
     h += '<div class="fullblk" id="w-region-blk"></div>';
     /* 5 交互地图（Leaflet，本地底图；替换原来的静态 PNG 块） */
-    h += '<div class="fullblk"><div class="barhead">⑤ 交互地图<span class="tag">/api/stats/mapdata · /basemap/*.geojson</span></div>' +
+    h += '<div class="fullblk"><div class="barhead">⑤ 良渚时间图谱 × 交互地图<span class="tag">/api/stats/timeline-matrix · /api/stats/mapdata · /basemap/*.geojson</span></div>' +
       '<div class="litmap-bar" id="mapst-mode" hidden><span class="seg">' +
       '<button class="segbtn on" data-mm="vec">矢量</button>' +
       '<button class="segbtn" data-mm="sat">卫星影像</button></span>' +
       '<span class="small muted" id="mapst-mode-note"></span></div>' +
+      '<div class="map-atlas-tl" id="w-tl"></div>' +
       '<div class="map-atlas-wrap" id="mapatlas-wrap"><div class="map-atlas-main">' +
       '<div class="lz-wrap"><div id="stats-map"></div></div>' +
       '<div class="map-search"><input type="text" id="mapatlas-q" placeholder="搜索文献号 / 地名 / 分区名">' +
@@ -3788,6 +3798,12 @@ function loadStatsPage() {
       MAPST.data = null;
       var w = $("#stats-map");
       if (w) w.innerHTML = '<div class="notice bad" style="margin:12px">地图数据不可用：' + esc(md.error) + "</div>";
+    }
+    /* BP14 左栏：良渚时间图谱矩阵（与地图双向联动） */
+    var tlBox = $("#w-tl");
+    if (window.LZKG_TL) {
+      if (mx.ok) LZKG_TL.render(mx.data || {});
+      else if (tlBox) tlBox.innerHTML = '<div class="notice bad">时间图谱数据不可用：' + esc(mx.error) + "</div>";
     }
   });
 }
@@ -4119,6 +4135,8 @@ function mapstShowPoint(p) {
   }, "在文献页筛选（关键词：" + (q || "—") + "）");
 }
 function mapstShowRegion(r) {
+  /* BP14：地图点了分区 → 左栏时间图谱高亮该分区的点（反向联动） */
+  if (window.LZKG_TL && LZKG_TL.onRegionPick) LZKG_TL.onRegionPick(r.name);
   var rows = [
     ["类型", "空间分区代表点（区域统一坐标，<b>示意，±1.1 km，非实测坐标</b>）"],
     ["依据", esc(r.basis || "")]
@@ -6363,5 +6381,7 @@ function loadNotes() {
 <script src="/js/map-atlas.js"></script>
 <script src="/js/shortcuts.js"></script>
 <script src="/js/lzkg-api.js"></script>
+<!-- BP14 良渚时间图谱矩阵（ES5，零外链） -->
+<script src="/js/timeline.js"></script>
 </body>
 </html>

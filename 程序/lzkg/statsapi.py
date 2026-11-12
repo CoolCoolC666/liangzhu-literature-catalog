@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import io
 import json
+import re
 import sqlite3
 from pathlib import Path
 
@@ -1003,3 +1004,129 @@ def diagnose(conn: sqlite3.Connection) -> list[dict]:
         "fix": "" if meta.get("migrated_at") else "跑 python -m lzkg migrate"})
 
     return items
+
+# ── 良渚时间图谱：分期 × 主题族 矩阵（现算）────────────────────────────
+# ★ X 轴 = 良渚文化分期（登记表 period_tags 的**原文精确映射**，不猜）
+# ★ Y 轴 = 主题族（topic_tags 里的 S-08xx 码族）
+#   注意：这些码**不在受控词表里**（controlled_vocab_codes.json 的 topic 用 S-09xx），
+#   所以这里只做「按登记表原文的码前缀分组」，不改写、不重编码。
+PERIOD_BANDS = [
+    ("PRE",       "崧泽-良渚过渡"),
+    ("EARLY_MID", "新石器时代早中期"),
+    ("MID",       "新石器时代中期"),
+    ("MID_LATE",  "新石器时代中晚期"),
+    ("LATE",      "新石器时代晚期"),
+    ("SPAN_ALL",  "跨三期（早中晚）"),
+    ("GENERAL",   "通用（不分期）"),
+    ("CONTEMP",   "当代（申遗后/当代研究）"),
+]
+
+# ★ 实测登记表 period_tags 只有这 9 个原文取值 → 逐个精确映射；
+#   出现未登记的原文时归 OTHER 档（界面上单列，不并进任何一期）。
+PERIOD_MAP = {
+    "崧泽-良渚过渡": "PRE",
+    "新石器时代早中期": "EARLY_MID",
+    "新石器时代中期": "MID",
+    "新石器时代中晚期": "MID_LATE",
+    "新石器时代晚期": "LATE",
+    "新石器时代晚期（申遗后）": "LATE",
+    "新石器时代早中晚三期": "SPAN_ALL",
+    "通用": "GENERAL",
+    "当代": "CONTEMP",
+}
+
+FAMILY_RE = re.compile(r"(S-08\d{2})\s*([^;；,，]*)")
+YEAR_RE = re.compile(r"((?:19|20)\d{2})")
+
+
+def stats_timeline_matrix(conn: sqlite3.Connection) -> dict:
+    """良渚时间图谱矩阵：X=良渚分期，Y=主题族，点=文献（每篇按族展开）。**现算**。"""
+    img_cnt = {r["lit_id"]: r["n"] for r in conn.execute(
+        "SELECT lit_id, COUNT(*) n FROM images GROUP BY lit_id")}
+    fam_papers: dict[str, set] = {}
+    fam_labels: dict[str, dict] = {}
+    papers = []
+    for r in conn.execute("SELECT lit_id, title, year, doc_type, period_tags, "
+                          "region_tags, topic_tags FROM literatures"):
+        p_raw = (r["period_tags"] or "").strip()
+        p_key = PERIOD_MAP.get(p_raw, "OTHER")
+        fams = []
+        for m in FAMILY_RE.finditer(r["topic_tags"] or ""):
+            code, name = m.group(1), (m.group(2) or "").strip()
+            if code not in fams:
+                fams.append(code)
+            fam_papers.setdefault(code, set()).add(r["lit_id"])
+            if name:
+                fam_labels.setdefault(code, {})
+                fam_labels[code][name] = fam_labels[code].get(name, 0) + 1
+        if not fams:
+            fams = ["NOFAM"]
+            fam_papers.setdefault("NOFAM", set()).add(r["lit_id"])
+        ym = YEAR_RE.search(r["year"] or "")
+        papers.append({
+            "lit_id": r["lit_id"], "title": r["title"] or "",
+            "year": r["year"] or "", "y": int(ym.group(1)) if ym else None,
+            "doc_type": r["doc_type"] or "",
+            "period_raw": p_raw, "period": p_key,
+            "region": (r["region_tags"] or "").strip(),
+            "fams": fams,
+            "img_count": img_cnt.get(r["lit_id"], 0),
+        })
+
+    x_bands = []
+    for key, name in PERIOD_BANDS:
+        raw = [p for p in papers if p["period"] == key]
+        if not raw:
+            continue
+        x_bands.append({
+            "key": key, "name": name, "n": len(raw),
+            "post_heritage": sum(1 for p in raw if "申遗后" in p["period_raw"]),
+            "raws": sorted(set(p["period_raw"] for p in raw)),
+        })
+    other = [p for p in papers if p["period"] == "OTHER"]
+    if other:
+        x_bands.append({"key": "OTHER", "name": "未登记原文",
+                        "n": len(other), "post_heritage": 0,
+                        "raws": sorted(set(p["period_raw"] for p in other))})
+
+    y_bands = []
+    for code in sorted(fam_papers):
+        labels = sorted(fam_labels.get(code, {}).items(), key=lambda kv: (-kv[1], kv[0]))
+        y_bands.append({
+            "key": code,
+            "name": (labels[0][0] if labels else code),
+            "alt": [x[0] for x in labels[1:3]],
+            "n": len(fam_papers[code]), "labels": len(labels),
+        })
+
+    points, cells = [], {}
+    for p in papers:
+        for code in p["fams"]:
+            points.append({
+                "lit_id": p["lit_id"], "title": p["title"], "year": p["year"],
+                "y": p["y"], "period": p["period"], "family": code,
+                "region": p["region"], "doc_type": p["doc_type"],
+                "img_count": p["img_count"],
+            })
+            cells[p["period"] + "|" + code] = cells.get(p["period"] + "|" + code, 0) + 1
+
+    ys = [p["y"] for p in papers if p["y"]]
+    return {
+        "x": x_bands, "y": y_bands, "points": points, "cells": cells,
+        "meta": {
+            "papers": len(papers), "points": len(points),
+            "year_min": min(ys) if ys else None, "year_max": max(ys) if ys else None,
+            "papers_with_img": sum(1 for p in papers if p["img_count"]),
+            "img_total": sum(p["img_count"] for p in papers),
+            "multi_family": sum(1 for p in papers if len(p["fams"]) > 1),
+        },
+        "notes": [
+            "X 轴＝良渚文化分期：登记表 period_tags 原文的精确映射（9 个取值 → 8 档），"
+            "「跨三期」「通用（不分期）」「当代」各自单列，不并进考古分期。",
+            "Y 轴＝主题族：topic_tags 里 S-08xx 码族（登记表原文）。"
+            "★ 这些码不在受控词表（词表 topic 用 S-09xx），此处只按码前缀分组，不重编码。",
+            "点＝文献；一篇可带多个主题族 → 在多条带各出现一次。",
+            "点内纵向位置＝文献出版年（归一后取 4 位年份）；点色＝同一色阶的年份。",
+            "图版数见悬停与右侧面板。",
+        ],
+    }

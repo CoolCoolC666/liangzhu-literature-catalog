@@ -678,6 +678,42 @@
     "关联文献": ["Related literature", "関連文献"],
     "篇": ["items", "件"],
     "搜索文献号 / 地名 / 分区名": ["Search by literature ID, place name or zone name", "文献番号・地名・区分名で検索"],
+    /* ── BP14 良渚时间图谱（阶段 1 样例版）── */
+    "良渚时间图谱": ["Liangzhu timeline", "良渚時譜"],
+    "⑤ 良渚时间图谱 × 交互地图": ["⑤ Liangzhu timeline × interactive map", "⑤ 良渚時譜 × インタラクティブ地図"],
+    "X＝良渚文化分期带　Y＝主题族带　格内纵向＝出版年": ["X = Liangzhu cultural periods　Y = topic families　vertical position = publication year", "X＝良渚文化分期帯　Y＝テーマ族帯　縦位置＝出版年"],
+    "良渚时间图谱矩阵：横轴为良渚文化分期，纵轴为主题族带，每个点是一篇文献": ["Liangzhu timeline matrix: horizontal axis = cultural periods, vertical axis = topic families, each dot is one literature record", "良渚時譜マトリクス：横軸＝良渚文化分期、縦軸＝テーマ族帯、点1つ＝文献1件"],
+    "点＝一篇文献（一篇可带多个主题族，故在多条带各出现一次）；": ["One dot = one literature record (a record may carry several topic families, so it appears in several bands); ", "点1つ＝文献1件（1件に複数のテーマ族があり、複数帯に重複表示）；"],
+    "点的颜色＝出版年：": ["dot colour = publication year: ", "点の色＝出版年："],
+    "较早": ["earlier", "より古い"],
+    "较晚": ["later", "より新しい"],
+    "；点它 → 右侧出图版与文献；点格子／列头／行头 → 筛选并联动地图。": ["; click a dot → plates and record on the right; click a cell / column head / row head → filter and link the map.", "；点を選ぶ → 右に図版と文献を表示；セル／列見出し／行見出しをクリック → 絞り込みと地図連動。"],
+    "出版年 {y}": ["Year {y}", "出版年 {y}"],
+    "图版 {n} 张": ["Plates {n}", "図版 {n} 枚"],
+    "分期 {p}": ["Period {p}", "分期 {p}"],
+    "主题族 {f}": ["Topic family {f}", "テーマ族 {f}"],
+    "空间分区 {r}": ["Spatial division {r}", "空間分区 {r}"],
+    "{t}｜{y}｜图版 {n} 张": ["{t}｜{y}｜Plates {n}", "{t}｜{y}｜図版 {n} 枚"],
+    "无年份": ["no year", "年不明"],
+    "「{b}」中含申遗后文献 {n} 篇": ["In “{b}”, {n} records are post-heritage (after the 2019 inscription)", "「{b}」には申遺後の文献が {n} 件ある"],
+    "文献编号：": ["Record ID: ", "文献番号："],
+    "出版年：": ["Year: ", "出版年："],
+    "类型：": ["Type: ", "種別："],
+    "良渚分期：": ["Liangzhu period: ", "良渚分期："],
+    "主题族：": ["Topic family: ", "テーマ族："],
+    "空间分区：": ["Spatial division: ", "空間分区："],
+    "图版：": ["Plates: ", "図版："],
+    "文献 {n} 篇（展开点 {m} 个）": ["Literature {n} records ({m} expanded dots)", "文献 {n} 件（展開点 {m} 個）"],
+    "全部分期": ["All periods", "全期間"],
+    "全部主题族": ["All topic families", "すべてのテーマ族"],
+    "收起": ["Collapse", "閉じる"],
+    "打开文献详情": ["Open record detail", "文献詳細を開く"],
+    "在文献页筛选": ["Filter on the literature page", "文献ページで絞り込む"],
+    "正在读取图版…": ["Loading plates…", "図版を読み込み中…"],
+    "图版读取失败：": ["Failed to load plates:", "図版の読み込みに失敗："],
+    "这篇没有图版。": ["This record has no plates.", "この文献に図版はありません。"],
+    "共 {n} 张，以下显示前 {m} 张": ["Total {n} plates; showing the first {m} ", "全 {n} 枚中、先頭 {m} 枚を表示"],
+    "（其中 {n} 张尚未人工复核，图注与分类为 AI 初标）": ["({n} of them are not yet manually reviewed; captions and categories are AI initial labels)", "（うち {n} 枚は未だ人手復核されていません。図注と分類は AI の初期ラベルです）"],
   };
 
   /* 只做**整段精确命中**的键：这些短词在数据里也会出现（图号、类型、年份…），
@@ -692,7 +728,9 @@
     /* BP12 地图增强新增的界面短词：同样只做整段精确命中 */
     "图层": 1, "复位": 1, "定位": 1, "年份筛选": 1, "全部": 1,
     "出处": 1, "关联文献": 1, "个点位": 1, "个匹配点位": 1, "无匹配点位": 1,
-    "文献坐标点": 1, "空间分区代表点": 1, "候选遗址（实测坐标）": 1, "遗址群范围框": 1
+    "文献坐标点": 1, "空间分区代表点": 1, "候选遗址（实测坐标）": 1, "遗址群范围框": 1,
+    /* BP14：这两个词在文献标题里很常见，只做整段精确命中，别翻数据 */
+    "较早": 1, "较晚": 1
   };
 
   /* ── 数据容器：这里面的中文是**数据**，一律不翻 ── */

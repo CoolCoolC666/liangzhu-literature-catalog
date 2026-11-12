@@ -567,6 +567,20 @@ def stats_region():
         conn.close()
 
 
+@router.get("/stats/timeline-matrix")
+def stats_timeline_matrix_ep():
+    """良渚时间图谱矩阵：X=良渚文化分期带，Y=主题族带，格内纵向=出版年，点=文献。
+
+    ★ 与 ``/api/stats/timeline`` 的区别：那个是三条**计数**（分期/出版年/类型），
+      这个是**点级**数据（一篇文献一个点，带图版数与分区），前端才能画图、点选、联动地图。
+    """
+    conn = connect()
+    try:
+        return ok(statsapi.stats_timeline_matrix(conn))
+    finally:
+        conn.close()
+
+
 @router.get("/stats/map.png")
 def stats_map():
     """后端离线出图（matplotlib PNG）。

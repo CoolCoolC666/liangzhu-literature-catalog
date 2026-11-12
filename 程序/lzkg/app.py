@@ -114,6 +114,7 @@ _JS_FILES = {
     "map-atlas.js": "统计页地图增强（图层面板 / 比例尺 / 相机复位 / 搜索 / 年份刷选 / 悬停浮层）",
     "shortcuts.js": "全局快捷键",
     "lzkg-api.js": "浏览器端 Agent 接口 window.lzkgAPI",
+    "timeline.js": "良渚时间图谱矩阵（X=良渚分期带 / Y=主题族带 / 格内纵向=出版年）",
     "i18n.js": "界面多语言词典（/i18n.js 是同一条内容的旧路径）",
 }
 
