@@ -115,6 +115,7 @@ _JS_FILES = {
     "shortcuts.js": "全局快捷键",
     "lzkg-api.js": "浏览器端 Agent 接口 window.lzkgAPI",
     "timeline.js": "良渚时间图谱矩阵（X=良渚分期带 / Y=主题族带 / 格内纵向=出版年）",
+    "atlas.js": "良渚时序首页（双轴时间轴 + 独立地图实例 + 叙事栏）",
     "i18n.js": "界面多语言词典（/i18n.js 是同一条内容的旧路径）",
 }
 

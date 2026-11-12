@@ -1104,7 +1104,8 @@ def stats_timeline_matrix(conn: sqlite3.Connection) -> dict:
         for code in p["fams"]:
             points.append({
                 "lit_id": p["lit_id"], "title": p["title"], "year": p["year"],
-                "y": p["y"], "period": p["period"], "family": code,
+                "y": p["y"], "period": p["period"],
+                "period_raw": p["period_raw"], "family": code,
                 "region": p["region"], "doc_type": p["doc_type"],
                 "img_count": p["img_count"],
             })

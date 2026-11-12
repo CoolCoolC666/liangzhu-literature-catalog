@@ -20,6 +20,7 @@ from fastapi import (APIRouter, Depends, File, Form, Header, HTTPException,
                      Request, UploadFile)
 from fastapi.responses import JSONResponse, Response
 
+from . import atlasapi
 from . import importexport as ie
 from . import statsapi
 from .access import identity_from_headers
@@ -577,6 +578,21 @@ def stats_timeline_matrix_ep():
     conn = connect()
     try:
         return ok(statsapi.stats_timeline_matrix(conn))
+    finally:
+        conn.close()
+
+
+@router.get("/atlas")
+def atlas():
+    """良渚时序（首页）：出版年 × 良渚分期 × 空间分区，一份现算数据。
+
+    ★ 与 /api/stats/timeline-matrix 的区别：那个是「分期 × 主题族」的矩阵，
+      这个是首页叙事用的三合一（年份轴 + 分期带 + 地图点位 + 文献清单），
+      前端一个时间游标同时作用在三者上，不必自己拼两个端点。
+    """
+    conn = connect()
+    try:
+        return ok(atlasapi.atlas_payload(conn))
     finally:
         conn.close()
 

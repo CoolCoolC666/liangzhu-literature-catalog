@@ -93,6 +93,7 @@ REQUIRED = [
     # BP12 独立前端模块（地图增强 / 快捷键 / 浏览器端 Agent 接口）
     "lzkg/web/static/js/map-atlas.js",
     "lzkg/web/static/js/timeline.js",
+    "lzkg/web/static/js/atlas.js",
     "lzkg/web/static/js/shortcuts.js",
     "lzkg/web/static/js/lzkg-api.js",
     "tests/test_all.py",

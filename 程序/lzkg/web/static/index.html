@@ -741,6 +741,46 @@ body.bp .wcard h4{color:var(--bp-accent-deep)}
 body.bp .wcard .statline{background:var(--bp-soft);border-color:var(--bp-line);color:var(--bp-ink)}
 body.bp .wcard .eps{color:var(--bp-ink2)}
 body.bp .wcard .perm{color:var(--bp-ink2)}
+
+/* ── BP15 良渚时序（首页）──────────────────────────────────────── */
+.atlas{display:grid;gap:10px}
+.atlas-main{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:12px;align-items:start}
+@media (max-width:1080px){.atlas-main{grid-template-columns:minmax(0,1fr)}}
+.atlas-mapwrap{position:relative}
+#atlas-map{height:520px;border:1px solid var(--line);border-radius:6px;background:#f7fafb}
+.atlas-hud{position:absolute;z-index:700;left:58px;top:12px;width:264px;
+  background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:6px;padding:10px 11px;
+  box-shadow:0 2px 10px rgba(20,40,60,.10)}
+.atlas-hud-t{font-weight:700;font-size:15px;color:var(--ink)}
+.atlas-hud-s{font-size:11.5px;color:var(--ink2);margin:2px 0 7px}
+.atlas-hud input[type=text]{width:100%;padding:5px 7px;border:1px solid var(--line);
+  border-radius:4px;font-family:inherit;font-size:12.5px}
+.atlas-hud-b{display:flex;gap:6px;margin-top:7px}
+.atlas-hud-n{margin-top:6px;line-height:1.5}
+.atlas-side{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:11px 12px;
+  max-height:560px;overflow:auto}
+.atlas-h{font-size:12.5px;color:var(--ink2);margin:10px 0 5px}
+.atlas-h:first-child{margin-top:0}
+.atlas-state{display:flex;flex-wrap:wrap;gap:5px}
+.atlas-state .chip{background:#eef3f6;border:1px solid var(--line);border-radius:12px;
+  padding:2px 9px;font-size:11.5px;color:var(--ink2)}
+.atlas-count{font-size:13px;margin:7px 0}
+.atlas-count b{font-size:16px;color:var(--ink)}
+.atlas-side .btn{margin:0 6px 6px 0;font-size:12px}
+.atlas-side .lits{max-height:300px;overflow:auto;border-top:1px solid var(--line);margin-top:4px}
+.atlas-chips{display:flex;flex-wrap:wrap;gap:5px}
+.atlas-chips .achip{font-size:11.5px;padding:2px 8px;border:1px solid var(--line);
+  border-radius:12px;background:#f4f7f9;color:var(--ink2);cursor:pointer;font-family:inherit}
+.atlas-chips .achip.on{background:#C0392B;border-color:#C0392B;color:#fff}
+.atlas-side .lit{display:block;padding:4px 0;border-bottom:1px dashed #e8eef3;font-size:12.5px;line-height:1.5}
+.atlas-side .lit .ttl{font-weight:600;display:block}
+.atlas-side .lit .yr{color:var(--ink2);margin-left:6px;font-size:11.5px}
+.atlas-notes{margin:0;padding-left:16px;font-size:11.5px;color:var(--ink2);line-height:1.6}
+.atlas-tl-head{margin-top:2px}
+.atlas-tl{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:6px 4px 2px}
+.atlas-svg{width:100%;height:auto;display:block}
+.atlas-band{cursor:pointer}
+.atlas-band:hover rect{stroke:#33424d}
 </style>
 </head>
 <body>
@@ -753,7 +793,8 @@ body.bp .wcard .perm{color:var(--bp-ink2)}
       　|　全部数据由本机后端 <span class="mono">/api/*</span> 提供，同源访问，断网可用
     </div>
     <nav class="tabs" id="tabs">
-      <button data-tab="overview" class="active">总览</button>
+      <button data-tab="atlas" class="active">良渚时序</button>
+      <button data-tab="overview">总览</button>
       <button data-tab="list">文献</button>
       <button data-tab="imgsearch">图版</button>
       <button data-tab="graph">图谱</button>
@@ -1113,7 +1154,7 @@ function markTab(t) {
 function parseHash() {
   var h = (location.hash || "").replace(/^#\/?/, "");
   var parts = h.split("/").filter(function (x) { return x !== ""; });
-  if (!parts.length) return { tab: "overview", id: null, sub: "" };
+  if (!parts.length) return { tab: "atlas", id: null, sub: "" };
   /* #/lit/LIT-000001 → 详情；#/lit → 文献列表；#/browse、#/search 也进文献列表（兼容旧链接） */
   if (parts[0] === "lit") {
     return parts.length > 1 ? { tab: "detail", id: parts[1], sub: "" } : { tab: "list", id: null, sub: "" };
@@ -1121,8 +1162,8 @@ function parseHash() {
   if (parts[0] === "browse" || parts[0] === "search") return { tab: "list", id: null, sub: "" };
   /* 工作台子界面：#/work、#/work/account …（接口契约-v3 §1.1） */
   if (parts[0] === "work") return { tab: "work", id: null, sub: parts[1] || "" };
-  var tabs = ["overview", "list", "imgsearch", "graph", "stats", "work"];
-  if (tabs.indexOf(parts[0]) < 0) return { tab: "overview", id: null, sub: "" };
+  var tabs = ["atlas", "overview", "list", "imgsearch", "graph", "stats", "work"];
+  if (tabs.indexOf(parts[0]) < 0) return { tab: "atlas", id: null, sub: "" };
   return { tab: parts[0], id: parts[1] || null, sub: "" };
 }
 window.addEventListener("hashchange", route);
@@ -1325,7 +1366,10 @@ function listSideHtml() {
          后端 region_tags 存的是登记表原文（"R-0199 环太湖"），筛选走 LIKE 原文；
          而 tags.code 是归一后的码（如 R-0205），原文里根本没有 → 用码筛会命中 0 条。
          原文里都带名称，所以名称对 12 个分区都能正确命中。 */
-      var v = (dim === "region") ? t.name : (t.code || t.name);
+      /* ★ 一律用**名称**：登记表的标签列存的是原文（如「新石器时代晚期」），
+         而 tags.code 是归一后的码（X-9007 / S-0939）—— 原文里根本没有那个码，
+         按码筛永远命中 0 条；名称是原文的子串，LIKE 才命中。 */
+      var v = t.name;
       h += '<option value="' + esc(v) + '"' + (String(p[dim]) === String(v) ? " selected" : "") + ">" +
         esc(t.name) + (t.lit_count !== undefined ? "（" + t.lit_count + "）" : "") + "</option>";
     });
@@ -4226,6 +4270,9 @@ function mapstGoFilter(opts) {
   if (opts.q) p.q = opts.q;
   /* ★ 空间分区用**名称**：后端 region_tags 存登记表原文，LIKE 匹配的是原文里的名称 */
   if (opts.region) p.region = opts.region;
+  /* BP15：分期／主题同样用登记表原文（后端走 LIKE 包含匹配） */
+  if (opts.period) p.period = opts.period;
+  if (opts.topic) p.topic = opts.topic;
   var cur = String(location.hash || "").replace(/^#\/?/, "");
   if (cur === "lit") {
     renderList();                    /* 已在文献页 → 直接重画列表 */
@@ -6285,12 +6332,22 @@ function bpInit() {
   if (s) s.addEventListener("change", function () { bpApply(s.value); });
 }
 
+/* 良渚时序（首页）：壳子由本页出，数据与绘制交给 /js/atlas.js */
+function renderAtlas() {
+  view.innerHTML = '<div class="pagehead"><div><div class="ph-zh">良渚时序</div>' +
+    '<div class="ph-en">LIANGZHU TIMELINE / 出版年 · 分期 · 空间</div></div>' +
+    '<div class="ph-read">端点 <span class="mono">/api/atlas · /basemap/*.geojson</span></div></div>' +
+    '<div id="w-atlas"></div>';
+  if (window.LZKG_ATLAS) LZKG_ATLAS.render();
+}
 function route() {
   var r = parseHash();
   state.tab = r.tab;
   markTab(r.tab);
   /* 离开「统计与地图」页时把 Leaflet 实例拆掉，避免旧地图泄漏 */
   if (r.tab !== "stats") mapstDestroy();
+  /* 离开「良渚时序」页时拆掉本页自己的 Leaflet 实例（与统计页那套是两个实例） */
+  if (r.tab !== "atlas" && window.LZKG_ATLAS) LZKG_ATLAS.destroy();
   /* 同理：详情页内嵌小地图，离开详情页就拆 */
   if (r.tab !== "detail") litmapDestroy();
   /* 图谱页离开时停掉 scale 轮询 */
@@ -6301,7 +6358,8 @@ function route() {
   view.classList.remove("view-in");
   void view.offsetWidth;
   view.classList.add("view-in");
-  if (r.tab === "overview") renderOverview();
+  if (r.tab === "atlas") renderAtlas();
+  else if (r.tab === "overview") renderOverview();
   else if (r.tab === "list") renderList();
   else if (r.tab === "detail") renderDetail(r.id);
   else if (r.tab === "graph") renderGraph();
@@ -6383,5 +6441,7 @@ function loadNotes() {
 <script src="/js/lzkg-api.js"></script>
 <!-- BP14 良渚时间图谱矩阵（ES5，零外链） -->
 <script src="/js/timeline.js"></script>
+<!-- BP15 良渚时序（首页 · 阶段 1 样例版，ES5，零外链） -->
+<script src="/js/atlas.js"></script>
 </body>
 </html>

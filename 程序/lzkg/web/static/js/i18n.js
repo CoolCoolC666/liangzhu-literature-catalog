@@ -714,6 +714,39 @@
     "这篇没有图版。": ["This record has no plates.", "この文献に図版はありません。"],
     "共 {n} 张，以下显示前 {m} 张": ["Total {n} plates; showing the first {m} ", "全 {n} 枚中、先頭 {m} 枚を表示"],
     "（其中 {n} 张尚未人工复核，图注与分类为 AI 初标）": ["({n} of them are not yet manually reviewed; captions and categories are AI initial labels)", "（うち {n} 枚は未だ人手復核されていません。図注と分類は AI の初期ラベルです）"],
+    /* ── BP15 良渚时序（首页 · 阶段 1 样例版）── */
+    "良渚时序": ["Liangzhu Timeline", "良渚時譜"],
+    "出版年 × 良渚分期 × 空间分区": ["Publication year × Liangzhu period × spatial division", "出版年 × 良渚分期 × 空間分区"],
+    "搜索题名 / 文献编号": ["Search by title / record ID", "題名・文献番号で検索"],
+    "播放": ["Play", "再生"],
+    "暂停": ["Pause", "一時停止"],
+    "当前状态": ["Current state", "現在の状態"],
+    "截至 {y} 年": ["Up to {y}", "{y}年まで"],
+    "截至 {y} 年：{n} 篇": ["Up to {y}: {n} records", "{y}年まで：{n} 件"],
+    "全部年份": ["All years", "すべての年"],
+    "全部分区": ["All spatial divisions", "すべての空間分区"],
+    "命中 {n} 篇，共 {m} 篇": ["{n} of {m} records hit", "全 {m} 件中 {n} 件"],
+    "全库 {m} 篇": ["{m} records in total", "全庫 {m} 件"],
+    "在文献页按该分期筛选": ["Filter by this period on the literature page", "文献ページでこの分期で絞り込む"],
+    "在文献页按该分区筛选": ["Filter by this division on the literature page", "文献ページでこの分区で絞り込む"],
+    "清除筛选": ["Clear filters", "絞り込みを解除"],
+    "命中文献": ["Hit records", "該当文献"],
+    "口径与限制": ["Scope and limits", "口径と制限"],
+    "其中 {n} 篇无出版年信息（不参与年份筛选）": ["{n} records have no publication year (excluded from year filtering)", "出版年情報のない文献が {n} 件（年の絞り込み対象外）"],
+    "上轴＝出版年（不是良渚分期年）": ["Upper axis = publication year (not the Liangzhu period)", "上軸＝出版年（良渚分期年ではない）"],
+    "下轴＝良渚分期带（等宽档位，非年代跨度）": ["Lower axis = Liangzhu period bands (equal-width bins, not chronological spans)", "下軸＝良渚分期帯（等幅の区分であり、年代幅ではない）"],
+    "良渚时序双轴时间轴：上轴为文献出版年，下轴为良渚分期带": ["Liangzhu timeline dual axis: upper = publication year, lower = Liangzhu period bands", "良渚時譜の二軸：上＝出版年、下＝良渚分期帯"],
+    "点年份＝设定「截至该年」；点分期带＝按该期筛选；点地图分区＝按该分区筛选。": ["Click a year to set “up to that year”; click a period band to filter by it; click a map division to filter by it.", "年を選ぶと「その年まで」、分期帯を選ぶと当該分期、地図の分区を選ぶと当該分区で絞り込む。"],
+    "地图点位：分区代表点为区域统一坐标（±1.1 km 示意），不是遗址实测坐标。": ["Map points: division representative points use one zone-wide coordinate (±1.1 km schematic), not surveyed site coordinates.", "地図の点：分区代表点は区域全体の代表座標（±1.1 km の概略）で、実測座標ではない。"],
+    "本图为良渚区域尺度；不画国界与省界，边界不作官方界线依据。": ["This map is at Liangzhu regional scale; no national or provincial boundaries are drawn, and no boundary is an official demarcation.", "本図は良渚域スケール。国境・省界は描いておらず、境界を公式の境界線として扱わない。"],
+    "年份区间无法用文献页表达，跳转只带分期或分区。": ["A year range cannot be expressed on the literature page; jumps carry only the period or the division.", "年の範囲は文献ページでは指定できない。遷移には分期か分区のみが反映される。"],
+    "无结果": ["No results", "該当なし"],
+    "正在读取良渚时序…": ["Loading the Liangzhu timeline…", "良渚時譜を読み込み中…"],
+    "时序数据不可用：": ["Timeline data unavailable: ", "時譜データを取得できません："],
+    "Leaflet 未加载，地图不可用。": ["Leaflet is not loaded; the map is unavailable.", "Leaflet が読み込まれていません（地図は利用不可）。"],
+    "良渚分期": ["Liangzhu period", "良渚分期"],
+    "空间分区": ["Spatial division", "空間分区"],
+    "文献出版年": ["Publication year", "出版年"],
   };
 
   /* 只做**整段精确命中**的键：这些短词在数据里也会出现（图号、类型、年份…），
@@ -730,7 +763,10 @@
     "出处": 1, "关联文献": 1, "个点位": 1, "个匹配点位": 1, "无匹配点位": 1,
     "文献坐标点": 1, "空间分区代表点": 1, "候选遗址（实测坐标）": 1, "遗址群范围框": 1,
     /* BP14：这两个词在文献标题里很常见，只做整段精确命中，别翻数据 */
-    "较早": 1, "较晚": 1
+    "较早": 1, "较晚": 1,
+    /* BP15：短词一律只做整段精确命中，别翻数据（分区名/题名里也有这些字） */
+    "播放": 1, "暂停": 1, "分区": 1, "良渚分期": 1, "当前状态": 1,
+    "命中文献": 1, "口径与限制": 1, "无结果": 1, "文献出版年": 1
   };
 
   /* ── 数据容器：这里面的中文是**数据**，一律不翻 ── */
