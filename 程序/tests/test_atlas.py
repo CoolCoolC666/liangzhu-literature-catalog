@@ -63,8 +63,8 @@ def test_frontend():
     check("判据5 atlas.js 只用同源底图（/basemap/）", '"/basemap/"' in src or "/basemap/" in src, "")
     check("判据6 atlas.js 自建 Leaflet 实例（不动统计页单例）",
           "L.map(host" in src and "mapstInit" not in src, "")
-    check("判据7 atlas.js 有双轴时间轴（上=出版年 / 下=考古年代轴）",
-          "atlas-band" in src and "pxY(" in src and "pTop" in src, "")
+    check("判据7 atlas.js 有双轴时间轴（主轴=考古年代 / 右轴=出版年）",
+          "atlas-band" in src and "tlGeom()" in src and "yYear(" in src and "pTop" in src, "")
 
     app = (ROOT / "lzkg" / "app.py").read_text(encoding="utf-8")
     check("判据8 /js 白名单登记 atlas.js", '"atlas.js"' in app, "")
@@ -107,8 +107,8 @@ def test_frontend():
           "A.baseLayers" in src and "removeLayer" in src, "")
     check("判据49 切语言会重画时序页（data-lang 监听）",
           "data-lang" in src and "paintChrome" in src, "")
-    check("判据50 分期带点击绑在 g 上（点在文字上也要生效）",
-          "g.addEventListener(\"click\"" in src, "")
+    check("判据50 分期带点击绑在分段容器 g 上（点在文字上也要生效）",
+          'addEventListener("click"' in src and "atlas-band" in src, "")
 
     # ── BP16：良渚考古年代轴（播放轴）──
     atlasapi = (ROOT / "lzkg" / "atlasapi.py").read_text(encoding="utf-8")
@@ -130,6 +130,15 @@ def test_frontend():
           (ROOT / "_tools" / "make_arch_periods.py").exists(), "")
     check("判据60 旧口径词条已清（上轴＝出版年（不是良渚分期年））",
           "上轴＝出版年（不是良渚分期年）" not in i18n, "")
+    check("判据73 文献年份移到右侧 Y 轴（小在上、大在下）",
+          "yAxisX" in src and "yYear(" in src and "文献出版年" in src, "")
+    check("判据74 考古游标不压段内文字（线只画到段带上沿，带内只留 8px）",
+          'x2: cx2, y2: pTop' in src and "pTop + 8" in src, "")
+    check("判据75 拖拽几何量提到 drawTimeline 之外（上一版拖拽必报 ReferenceError）",
+          "function tlGeom()" in src and "function dragAxis(" in src and
+          src.index("function tlGeom()") < src.index("function drawTimeline()"), "")
+    check("判据76 口径写明右轴＝出版年（小在上、大在下）",
+          "右轴＝文献出版年" in src and "小在上" in src, "")
 
 
 def test_api_truth():
@@ -302,6 +311,8 @@ def test_api_truth():
     check("判据71 口径写明考古轴是播放轴", "播放轴" in notes, "")
     check("判据72 口径写明学术分歧与自动识别",
           "分歧" in notes and "自动识别" in notes, "")
+    check("判据77 端点口径写明右轴＝出版年（竖排、小在上）",
+          "右轴＝文献出版年" in notes and "小在上" in notes, "")
 
 
 def api_get_js():

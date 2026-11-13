@@ -715,8 +715,11 @@
     "共 {n} 张，以下显示前 {m} 张": ["Total {n} plates; showing the first {m} ", "全 {n} 枚中、先頭 {m} 枚を表示"],
     "（其中 {n} 张尚未人工复核，图注与分类为 AI 初标）": ["({n} of them are not yet manually reviewed; captions and categories are AI initial labels)", "（うち {n} 枚は未だ人手復核されていません。図注と分類は AI の初期ラベルです）"],
     /* ── BP15 良渚时序（首页 · 阶段 1 样例版）── */
-    "上轴＝文献出版年（文献学时间，非考古年代）": ["Upper axis = publication year (bibliographic time, not archaeological)", "上軸＝出版年（文献学的な時間、考古年代ではない）"],
-    "上轴＝文献出版年（文献学时间，非考古年代）。": ["Upper axis = publication year (bibliographic time, not archaeological).", "上軸＝出版年（文献学的な時間、考古年代ではない）。"],
+    "右轴＝文献出版年（文献学时间，小在上、大在下）": ["Right axis = publication year (bibliographic time; smaller years on top)", "右軸＝出版年（文献学的な時間、小さい年が上）"],
+    "右轴＝文献出版年（文献学时间，小在上、大在下；非考古年代）。": ["Right axis = publication year (bibliographic time; smaller years on top; not archaeological).", "右軸＝出版年（文献学的な時間、小さい年が上；考古年代ではない）。"],
+    "点右轴＝设定「截至该年」；点年代轴＝设定考古游标（播放轴）；点期段＝定位到该期；点分区＝按该分区筛选。": ["Click the right axis for “up to that year”; click the chronology to set the archaeological cursor (playback axis); click a period to jump to it; click a region to filter by it.", "右軸をクリック＝「その年までを」に設定／年代軸をクリック＝考古カーソル（再生軸）を設定／時期をクリック＝その時期へ／区画をクリック＝区画で絞り込み。"],
+    "文献出版年": ["Publication year", "出版年"],
+    "良渚时序时间轴：横轴为良渚考古年代（公元前），右轴为文献出版年": ["Liangzhu timeline: horizontal axis = Liangzhu archaeological chronology (BC), right axis = publication year", "良渚時譜：横軸＝良渚考古年代（紀元前）、右軸＝出版年"],
     "下轴＝良渚考古年代轴（公元前，按真实年代比例排）": ["Lower axis = Liangzhu archaeological chronology (BC, drawn to true date proportion)", "下軸＝良渚考古年代軸（紀元前、実年代に比例）"],
     "下轴＝良渚考古年代轴（公元前，按真实年代比例排），是本页播放轴。": ["Lower axis = Liangzhu archaeological chronology (BC, drawn to true date proportion) — the playback axis.", "下軸＝良渚考古年代軸（紀元前、実年代に比例）＝本ページの再生軸。"],
     "出处（本站文献）": ["Sources (site literature)", "出典（本サイト文献）"],
@@ -735,7 +738,6 @@
     "考古分期年代取自发掘简报与测年研究，存在学术分歧，各期段出处见「原文依据」。": ["Archaeological dates are taken from excavation reports and dating studies; academic disagreement remains, with sources per period under “textual basis”.", "考古分期の年代は発掘簡報と年代測定研究に基づく。学术的な異論もあり、各時期の出典は「原文の根拠」に示す。"],
     "考古游标未设定": ["Archaeological cursor not set", "考古カーソル未設定"],
     "考古游标：前 {n} 年": ["Archaeological cursor: {n} BC", "考古カーソル：紀元前 {n} 年"],
-    "良渚时序双轴时间轴：上轴为文献出版年，下轴为良渚考古年代轴（公元前）": ["Liangzhu timeline dual axis: upper = publication year, lower = Liangzhu archaeological chronology (BC)", "良渚時譜の二軸：上軸＝出版年、下軸＝良渚考古年代軸（紀元前）"],
     "良渚考古年代 × 空间分区 × 文献": ["Liangzhu chronology × spatial regions × literature", "良渚考古年代 × 空間区画 × 文献"],
     "期段速览": ["Period overview", "時期一覧"],
     "良渚时序": ["Liangzhu Timeline", "良渚時譜"],
@@ -764,7 +766,6 @@
     "时序数据不可用：": ["Timeline data unavailable: ", "時譜データを取得できません："],
     "Leaflet 未加载，地图不可用。": ["Leaflet is not loaded; the map is unavailable.", "Leaflet が読み込まれていません（地図は利用不可）。"],
     "良渚分期": ["Liangzhu period", "良渚分期"],
-    "文献出版年": ["Publication year", "出版年"],
   };
 
   /* 只做**整段精确命中**的键：这些短词在数据里也会出现（图号、类型、年份…），
