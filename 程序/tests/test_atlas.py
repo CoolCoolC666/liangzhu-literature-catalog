@@ -63,8 +63,8 @@ def test_frontend():
     check("判据5 atlas.js 只用同源底图（/basemap/）", '"/basemap/"' in src or "/basemap/" in src, "")
     check("判据6 atlas.js 自建 Leaflet 实例（不动统计页单例）",
           "L.map(host" in src and "mapstInit" not in src, "")
-    check("判据7 atlas.js 有双轴时间轴（上=出版年 / 下=分期带）",
-          "atlas-band" in src and "yBase" in src, "")
+    check("判据7 atlas.js 有双轴时间轴（上=出版年 / 下=考古年代轴）",
+          "atlas-band" in src and "pxY(" in src and "pTop" in src, "")
 
     app = (ROOT / "lzkg" / "app.py").read_text(encoding="utf-8")
     check("判据8 /js 白名单登记 atlas.js", '"atlas.js"' in app, "")
@@ -109,6 +109,27 @@ def test_frontend():
           "data-lang" in src and "paintChrome" in src, "")
     check("判据50 分期带点击绑在 g 上（点在文字上也要生效）",
           "g.addEventListener(\"click\"" in src, "")
+
+    # ── BP16：良渚考古年代轴（播放轴）──
+    atlasapi = (ROOT / "lzkg" / "atlasapi.py").read_text(encoding="utf-8")
+    check("判据51 atlas.js 有考古年代轴（公元前刻度 + 期段分段）",
+          "arch_year_start" in src and "pxA" in src and "archAt" in src, "")
+    check("判据52 播放沿考古轴推进（不是出版年）",
+          "setArch(y - 25)" in src, "")
+    check("判据53 期段按真实年代比例定位（用 y0/y1，不是等宽）",
+          "pxA(p.y0)" in src and "pxA(p.y1)" in src, "")
+    check("判据54 键盘左右键走考古轴",
+          "ArrowLeft" in src and "setArch(" in src, "")
+    check("判据55 落地点带期段速览（一眼看清五个期段）", "期段速览" in src, "")
+    check("判据56 右栏给期段特征与原文依据",
+          "期段特征" in src and "原文依据" in src, "")
+    check("判据57 词典文件在包里（lzkg/data/dict/lzkg_arch_periods.json）",
+          (ROOT / "lzkg" / "data" / "dict" / "lzkg_arch_periods.json").exists(), "")
+    check("判据58 atlasapi 读该词典", "lzkg_arch_periods.json" in atlasapi, "")
+    check("判据59 生成器在 01-程序/_tools 下（可重跑）",
+          (ROOT / "_tools" / "make_arch_periods.py").exists(), "")
+    check("判据60 旧口径词条已清（上轴＝出版年（不是良渚分期年））",
+          "上轴＝出版年（不是良渚分期年）" not in i18n, "")
 
 
 def test_api_truth():
@@ -233,13 +254,54 @@ def test_api_truth():
 
     # 口径说明必须在
     notes = " ".join(d.get("notes") or [])
-    check("判据42 口径写明上轴＝出版年", "出版年" in notes, "")
-    check("判据43 口径写明分期带等宽（非年代跨度）", "等宽" in notes, "")
+    check("判据42 口径写明下轴＝良渚考古年代轴（播放轴）", "考古年代轴" in notes, "")
+    check("判据43 口径写明分期年代存在学术分歧", "分歧" in notes, "")
     check("判据44 口径写明分区代表点是示意坐标", "±1.1 km" in notes, "")
 
     js = api_get_js()
     check("判据45 GET /js/atlas.js 走白名单通道且返回模块",
           js is not None and "LZKG_ATLAS" in js, "")
+
+    # ── BP16：考古期段（与库/词典现算对账）──
+    phases = d.get("phases") or []
+    check("判据61 /api/atlas 返回 5 个考古期段", len(phases) == 5, str(len(phases)))
+    check("判据62 期段顺序 = 转型→早期→中期→晚期→末期",
+          [p["id"] for p in phases] == ["TRANS", "EARLY", "MID", "LATE", "END"],
+          str([p["id"] for p in phases]))
+    check("判据63 期段年代连续无缝（轴上不留空档）",
+          all(phases[i]["y1"] == phases[i + 1]["y0"] for i in range(len(phases) - 1)),
+          str([(p["y0"], p["y1"]) for p in phases]))
+    check("判据64 考古轴端点 = 前3500 / 前2000",
+          meta.get("arch_year_start") == 3500 and meta.get("arch_year_end") == 2000,
+          f"{meta.get('arch_year_start')}-{meta.get('arch_year_end')}")
+    calc: dict = {}
+    for p in papers:
+        for pid in (p.get("phases") or []):
+            calc[pid] = calc.get(pid, 0) + 1
+    check("判据65 每期篇数 = papers 归并现算",
+          all(p["n"] == calc.get(p["id"], 0) for p in phases),
+          str({p["id"]: (p["n"], calc.get(p["id"], 0)) for p in phases}))
+    check("判据66 入期文献数 = meta.arch_docs = 59",
+          meta.get("arch_docs") == 59 and
+          sum(1 for p in papers if p.get("phases")) == 59, str(meta.get("arch_docs")))
+    dic = json.loads((ROOT / "lzkg" / "data" / "dict" / "lzkg_arch_periods.json")
+                      .read_text(encoding="utf-8"))
+    docs = dic.get("docs") or {}
+    bad = [p["id"] for p in phases
+           if p["n"] != sum(1 for v in docs.values() if p["id"] in (v.get("phases") or []))]
+    check("判据67 期段篇数 = 词典文件归并（离线生成源一致）", not bad, str(bad))
+    check("判据68 每期都有特征 / 口径 / 出处 / 绝对年代",
+          all(p.get("feature") and p.get("note") and p.get("sources_titles")
+              and p.get("canon") for p in phases), "")
+    mid_ids = set(phases[2].get("lit_ids") or [])
+    early_ids = set(phases[1].get("lit_ids") or [])
+    check("判据69 抽查 LIT-000115（钟家港中段简报）落在早期与中期",
+          "LIT-000115" in mid_ids and "LIT-000115" in early_ids, "")
+    check("判据70 期段与登记分期不同源（至少一篇入期但登记分期为『通用』）",
+          any(p.get("phases") and p.get("period") == "GENERAL" for p in papers), "")
+    check("判据71 口径写明考古轴是播放轴", "播放轴" in notes, "")
+    check("判据72 口径写明学术分歧与自动识别",
+          "分歧" in notes and "自动识别" in notes, "")
 
 
 def api_get_js():

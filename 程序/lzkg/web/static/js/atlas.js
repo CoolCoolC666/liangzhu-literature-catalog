@@ -19,7 +19,8 @@
     data: null,          /* /api/atlas 的 data */
     map: null,           /* 本页自己的 Leaflet 实例 */
     marks: {},           /* 分区名 → marker */
-    sel: { year: null, period: "", region: "", q: "" },
+    /* sel.year＝文献出版年游标（截至该年）；sel.arch＝考古游标（公元前年份） */
+    sel: { year: null, arch: null, period: "", region: "", q: "" },
     playing: false,
     timer: null,
     keyHandler: null,
@@ -69,11 +70,30 @@
   /* 跳文献页用的筛选值＝该档在登记表里的**原文**（后端已挑好能命中整档的那一条） */
   function bandFilter(k) { var b = bandByKey(k); return b ? (b.filter_value || b.name) : ""; }
 
+  /* 考古期段（播放轴上的分段） */
+  function phases() { return (A.data && A.data.phases) || []; }
+  function phaseById(id) {
+    var p = null;
+    phases().forEach(function (x) { if (x.id === id) p = x; });
+    return p;
+  }
+  /* 当前考古游标落在哪一段（公元前年份 → 期段） */
+  function currentPhase() {
+    if (A.sel.arch === null || A.sel.arch === undefined) return null;
+    var y = A.sel.arch, p = null;
+    phases().forEach(function (x) { if (y <= x.y0 && y >= x.y1) p = x; });
+    return p;
+  }
+  function bcText(y) { return TF("前 {n} 年", { n: y }); }
+
   function filtered() {
     var d = A.data || {}, sel = A.sel;
     var q = (sel.q || "").toLowerCase();
     var out = [];
     (d.papers || []).forEach(function (p) {
+      /* 考古游标：只保留原文归属该期段的文献（未入期的不出现） */
+      var ph = currentPhase();
+      if (ph && (p.phases || []).indexOf(ph.id) < 0) return;
       /* 年份游标：无年份的文献无法判断先后 → 一律保留（界面里写明这个口径） */
       if (sel.year !== null && p.y !== null && p.y !== undefined && p.y > sel.year) return;
       if (sel.period && p.period !== sel.period) return;
@@ -311,19 +331,33 @@
     });
   }
 
-  /* ── 时间轴（双轴：上＝出版年刻度，下＝分期带） ───────────── */
+  /* ── 时间轴（上＝文献出版年；下＝良渚考古年代轴＝播放轴） ───────── */
   function drawTimeline() {
     var box = doc.getElementById("atlas-tl");
     if (!box || !A.data) return;
     var d = A.data, meta = d.meta || {}, sel = A.sel;
+    var phs = phases();
     var W = Math.max(360, box.clientWidth || 900);
-    var H = 214;
-    var ml = 46, mr = 20, iw = W - ml - mr;
-    var yTop = 30, yBase = 108;      /* 年份柱区 */
-    var bTop = 132, bH = 60;        /* 分期带区 */
+    var H = 250;
+    var ml = 54, mr = 20, iw = W - ml - mr;
+    var yBar = 44;            /* 出版年柱基线 */
+    var yRul = 78;            /* 考古年代刻度线 */
+    var pTop = 94, pH = 104;  /* 期段带区 */
     var ymin = meta.year_min, ymax = meta.year_max;
+    var aStart = meta.arch_year_start || 3500;   /* 轴左端：最早 */
+    var aEnd = meta.arch_year_end || 2000;       /* 轴右端：最晚 */
 
-    function px(y) {
+    function pxA(y) {
+      if (aStart === aEnd) return ml + iw / 2;
+      return ml + (aStart - y) / (aStart - aEnd) * iw;
+    }
+    function archAt(x) {
+      var t = (x - ml) / iw;
+      if (t < 0) t = 0;
+      if (t > 1) t = 1;
+      return Math.round(aStart - t * (aStart - aEnd));
+    }
+    function pxY(y) {
       if (ymax === ymin) return ml + iw / 2;
       return ml + (y - ymin) / (ymax - ymin) * iw;
     }
@@ -337,91 +371,124 @@
     var svg = svgEl("svg", {
       "class": "atlas-svg", width: W, height: H,
       viewBox: "0 0 " + W + " " + H, role: "img",
-      "aria-label": T("良渚时序双轴时间轴：上轴为文献出版年，下轴为良渚分期带")
+      "aria-label": T("良渚时序双轴时间轴：上轴为文献出版年，下轴为良渚考古年代轴（公元前）")
     });
 
-    /* 年份柱：每一年一根细柱，高＝该年文献数 */
+    /* ── 上轴：文献出版年（文献学时间，只做筛选） ── */
     var years = d.years || [], maxN = 0;
     years.forEach(function (y) { if (y.n > maxN) maxN = y.n; });
     years.forEach(function (y) {
-      var x = px(y.year);
-      var h = maxN ? (y.n / maxN) * 56 : 0;
+      var x = pxY(y.year);
+      var h = maxN ? (y.n / maxN) * 22 : 0;
       var on = (sel.year === null || y.year <= sel.year);
       svg.appendChild(svgEl("rect", {
-        x: x - 1.7, y: yBase - Math.max(h, 0.8), width: 3.4, height: Math.max(h, 0.8),
+        x: x - 1.7, y: yBar - Math.max(h, 0.8), width: 3.4, height: Math.max(h, 0.8),
         fill: on ? "#5B7F9C" : "#D2DBE1", "data-year": y.year
       }));
     });
-    /* 年份刻度 */
-    svg.appendChild(svgEl("line", { x1: ml, y1: yBase, x2: ml + iw, y2: yBase,
+    svg.appendChild(svgEl("line", { x1: ml, y1: yBar, x2: ml + iw, y2: yBar,
       stroke: "#C6D0D7", "stroke-width": 1 }));
     for (var y = ymin; y <= ymax; y++) {
       if (y % 5 !== 0 && y !== ymin && y !== ymax) continue;
-      /* 首尾年若紧挨着 5 的倍数就别再标（1984/1985、2025/2026 会叠字） */
       if (y === ymin && (ymin + 1) % 5 === 0) continue;
       if (y === ymax && (ymax - 1) % 5 === 0) continue;
-      var xt = px(y);
-      svg.appendChild(svgEl("line", { x1: xt, y1: yBase, x2: xt, y2: yBase + 4,
+      var xt = pxY(y);
+      svg.appendChild(svgEl("line", { x1: xt, y1: yBar, x2: xt, y2: yBar + 4,
         stroke: "#B9C4CC", "stroke-width": 1 }));
-      var tt = svgEl("text", { x: xt, y: yBase + 16, "text-anchor": "middle",
+      var tt = svgEl("text", { x: xt, y: yBar + 15, "text-anchor": "middle",
         "font-size": 10, fill: "#7B8A95" });
       tt.textContent = String(y);
       svg.appendChild(tt);
     }
-    /* 游标（截至 Y 年） */
+    /* 出版年游标 */
     if (sel.year !== null) {
-      var cx = px(sel.year);
-      svg.appendChild(svgEl("line", { x1: cx, y1: yTop - 12, x2: cx, y2: yBase,
-        stroke: "#C0392B", "stroke-width": 1.6 }));
-      svg.appendChild(svgEl("circle", { cx: cx, cy: yTop - 13, r: 5,
-        fill: "#C0392B", stroke: "#fff", "stroke-width": 1.5 }));
+      var yx = pxY(sel.year);
+      svg.appendChild(svgEl("line", { x1: yx, y1: yBar - 26, x2: yx, y2: yBar,
+        stroke: "#5B7F9C", "stroke-width": 1.4, "stroke-dasharray": "3 2" }));
     }
 
-    /* 分期带（8 段等宽） */
-    var bs = bands(), bw = iw / Math.max(1, bs.length);
-    bs.forEach(function (b, i) {
-      var x = ml + i * bw;
-      var on = (sel.period === b.key);
+    /* ── 考古年代刻度（每 500 年一格） ── */
+    svg.appendChild(svgEl("line", { x1: ml, y1: yRul, x2: ml + iw, y2: yRul,
+      stroke: "#C6D0D7", "stroke-width": 1 }));
+    for (var ay = aStart; ay >= aEnd; ay -= 100) {
+      var ax = pxA(ay);
+      var big = (ay % 500 === 0);
+      svg.appendChild(svgEl("line", { x1: ax, y1: yRul, x2: ax, y2: yRul + (big ? 5 : 3),
+        stroke: big ? "#9FB0BC" : "#CBD5DB", "stroke-width": 1 }));
+      if (big) {
+        var anchor = (ay === aStart) ? "start" : ((ay === aEnd) ? "end" : "middle");
+        var at = svgEl("text", { x: ax, y: yRul + 16, "text-anchor": anchor,
+          "font-size": 10, fill: "#7B8A95" });
+        at.textContent = TF("前 {n}", { n: ay });
+        svg.appendChild(at);
+      }
+    }
+
+    /* ── 下轴：良渚考古年代轴（按真实年代比例分段） ── */
+    var cur = currentPhase();
+    phs.forEach(function (p) {
+      var x0 = pxA(p.y0), x1 = pxA(p.y1);
+      var w = Math.max(x1 - x0, 2);
+      var on = (cur && cur.id === p.id);
       var g = svgEl("g", { "class": "atlas-band", tabindex: "0", role: "button",
-        "aria-label": b.name + " " + b.n + " " + T("篇") });
-      var r = svgEl("rect", {
-        x: x + 1.5, y: bTop, width: Math.max(bw - 3, 1), height: bH, rx: 4,
-        fill: BAND_COLOR[b.key] || "#9AA0A6",
-        "fill-opacity": on ? 0.96 : 0.4,
-        stroke: on ? "#33424D" : "#FFFFFF", "stroke-width": on ? 2 : 1
-      });
-      /* ★ 事件绑在 **g** 上，不绑在 rect 上：分段名与篇数是 <text>，
-         盖在 rect 上面，点到文字时事件不会冒泡到 rect → 点了没反应。 */
+        "aria-label": p.name + " " + p.canon + " " + p.n + " " + T("篇") });
       g.addEventListener("mousedown", function (e) { if (e.stopPropagation) e.stopPropagation(); });
       g.addEventListener("click", function (e) {
         if (e.stopPropagation) e.stopPropagation();
-        togglePeriod(b.key);
+        setArch(Math.round((p.y0 + p.y1) / 2));
       });
-      g.appendChild(r);
-      var nm = String(b.name || "");
-      var cut = Math.ceil(nm.length / 2);
-      var t1 = svgEl("text", { x: x + bw / 2, y: bTop + 17, "text-anchor": "middle",
-        "font-size": 11, fill: "#24313B" });
-      t1.textContent = nm.length > 5 ? nm.slice(0, cut) : nm;
+      g.appendChild(svgEl("rect", {
+        x: x0 + 1.5, y: pTop, width: Math.max(w - 3, 1), height: pH, rx: 5,
+        fill: p.color || "#B08D57",
+        "fill-opacity": on ? 0.95 : 0.42,
+        stroke: on ? "#33424D" : "#FFFFFF", "stroke-width": on ? 2 : 1
+      }));
+      var cx = x0 + w / 2;
+      var nm = String(p.name || "");
+      var cut2 = Math.ceil(nm.length / 2);
+      var t1 = svgEl("text", { x: cx, y: pTop + 20, "text-anchor": "middle",
+        "font-size": 12, fill: "#24313B" });
+      t1.textContent = nm.length > 5 ? nm.slice(0, cut2) : nm;
       g.appendChild(t1);
       if (nm.length > 5) {
-        var t2 = svgEl("text", { x: x + bw / 2, y: bTop + 30, "text-anchor": "middle",
-          "font-size": 11, fill: "#24313B" });
-        t2.textContent = nm.slice(cut);
+        var t2 = svgEl("text", { x: cx, y: pTop + 35, "text-anchor": "middle",
+          "font-size": 12, fill: "#24313B" });
+        t2.textContent = nm.slice(cut2);
         g.appendChild(t2);
       }
-      var t3 = svgEl("text", { x: x + bw / 2, y: bTop + bH - 7, "text-anchor": "middle",
-        "font-size": 10, fill: "#5B6B78" });
-      t3.textContent = b.n + " " + T("篇");
+      var t3 = svgEl("text", { x: cx, y: pTop + 54, "text-anchor": "middle",
+        "font-size": 11, fill: "#5B6B78" });
+      t3.textContent = p.canon || "";
       g.appendChild(t3);
+      var t4 = svgEl("text", { x: cx, y: pTop + 72, "text-anchor": "middle",
+        "font-size": 10, fill: "#5B6B78" });
+      t4.textContent = p.n + " " + T("篇");
+      g.appendChild(t4);
+      var t5 = svgEl("text", { x: cx, y: pTop + 90, "text-anchor": "middle",
+        "font-size": 9, fill: "#6E7C88" });
+      t5.textContent = T("点此定位到该期");
+      g.appendChild(t5);
       svg.appendChild(g);
     });
 
-    /* 拖动游标 */
+    /* 考古游标（播放轴游标） */
+    if (sel.arch !== null && sel.arch !== undefined) {
+      var cx2 = pxA(sel.arch);
+      svg.appendChild(svgEl("line", { x1: cx2, y1: yRul - 14, x2: cx2, y2: pTop + pH,
+        stroke: "#C0392B", "stroke-width": 1.8 }));
+      svg.appendChild(svgEl("circle", { cx: cx2, cy: yRul - 15, r: 5.5,
+        fill: "#C0392B", stroke: "#fff", "stroke-width": 1.5 }));
+    }
+
+    /* 交互：上区＝改出版年，下区＝改考古游标 */
     svg.addEventListener("mousedown", function (ev) {
-      if (bandZone(ev, svg, bTop)) return;
-      setYear(yearAt(svgX(ev, svg)));
-      drag(ev, svg);
+      if (svgY(ev, svg) < yRul - 12) {
+        setYear(yearAt(svgX(ev, svg)));
+        dragYear(ev, svg);
+      } else {
+        setArch(archAt(svgX(ev, svg)));
+        dragArch(ev, svg);
+      }
     });
 
     box.innerHTML = "";
@@ -444,8 +511,18 @@
   }
   function bandZone(ev, svg, bTop) { return svgY(ev, svg) > bTop - 14; }
 
-  function drag(ev, svg) {
+  function dragYear(ev, svg) {
     function move(e) { setYear(yearAt(svgX(e, svg))); }
+    function up() {
+      doc.removeEventListener("mousemove", move);
+      doc.removeEventListener("mouseup", up);
+    }
+    doc.addEventListener("mousemove", move);
+    doc.addEventListener("mouseup", up);
+    if (ev.preventDefault) ev.preventDefault();
+  }
+  function dragArch(ev, svg) {
+    function move(e) { setArch(archAt(svgX(e, svg))); }
     function up() {
       doc.removeEventListener("mousemove", move);
       doc.removeEventListener("mouseup", up);
@@ -465,6 +542,16 @@
     A.sel.year = y;
     paint();
   }
+  /* 考古游标（公元前年份） */
+  function setArch(y) {
+    var meta = (A.data && A.data.meta) || {};
+    var hi = meta.arch_year_start || 3500, lo = meta.arch_year_end || 2000;
+    if (y === null) { A.sel.arch = null; paint(); return; }
+    y = Math.max(lo, Math.min(hi, Math.round(y)));
+    if (y === A.sel.arch) return;
+    A.sel.arch = y;
+    paint();
+  }
   function togglePeriod(key) {
     A.sel.period = (A.sel.period === key) ? "" : key;
     paint();
@@ -477,20 +564,23 @@
     A.sel.period = "";
     A.sel.region = "";
     A.sel.q = "";
+    A.sel.arch = null;
     var q = doc.getElementById("atlas-q");
     if (q) q.value = "";
     paint();
   }
 
-  /* 播放：逐年推进游标 */
+  /* 播放：沿考古年代轴推进（公元前从早到晚，步长 25 年） */
   function togglePlay() {
     if (A.playing) { stopPlay(); return; }
     var meta = (A.data && A.data.meta) || {};
+    var hi = meta.arch_year_start || 3500, lo = meta.arch_year_end || 2000;
     A.playing = true;
+    if (A.sel.arch === null || A.sel.arch === undefined) A.sel.arch = hi;
     A.timer = setInterval(function () {
-      var y = A.sel.year === null ? (meta.year_min || 0) : A.sel.year;
-      if (y >= (meta.year_max || 0)) { stopPlay(); return; }
-      setYear(y + 1);
+      var y = A.sel.arch;
+      if (y <= lo) { stopPlay(); return; }
+      setArch(y - 25);
     }, 140);
     paint();
   }
@@ -506,21 +596,89 @@
     if (!box || !A.data) return;
     var d = A.data, meta = d.meta || {}, sel = A.sel;
     var list = filtered();
+    var ph = currentPhase();
+    var phs = phases();
     var h = "";
 
     h += '<div class="atlas-h"><b>' + T("当前状态") + "</b></div>";
     h += '<div class="atlas-state">';
+    h += '<span class="chip">' + (ph ? esc(ph.name) : T("未定位期段")) + "</span>";
+    if (ph) h += '<span class="chip">' + esc(ph.canon) + "</span>";
+    h += '<span class="chip">' + (sel.arch === null || sel.arch === undefined ?
+      T("考古游标未设定") : TF("考古游标：前 {n} 年", { n: sel.arch })) + "</span>";
     h += '<span class="chip">' + (sel.year === null ? T("全部年份") :
       TF("截至 {y} 年", { y: sel.year })) + "</span>";
     h += '<span class="chip">' + (sel.period ? bandName(sel.period) : T("全部分期")) + "</span>";
     h += '<span class="chip">' + (sel.region ? sel.region : T("全部分区")) + "</span>";
     if (sel.q) h += '<span class="chip">' + esc(sel.q) + "</span>";
     h += "</div>";
-    h += '<div class="atlas-count">' + TF("命中 {n} 篇，共 {m} 篇", { n: list.length, m: meta.papers }) + "</div>";
+    h += '<div class="atlas-count">' + TF("命中 {n} 篇，共 {m} 篇",
+      { n: list.length, m: meta.papers }) + "</div>";
 
-    if (sel.period) h += '<button class="btn" id="atlas-jump-period">' + T("在文献页按该分期筛选") + "</button>";
-    if (sel.region) h += '<button class="btn" id="atlas-jump-region">' + T("在文献页按该分区筛选") + "</button>";
-    if (sel.period || sel.region || sel.q) h += '<button class="btn ghost" id="atlas-clear">' + T("清除筛选") + "</button>";
+    if (sel.period) h += '<button class="btn" id="atlas-jump-period">' +
+      T("在文献页按该分期筛选") + "</button>";
+    if (sel.region) h += '<button class="btn" id="atlas-jump-region">' +
+      T("在文献页按该分区筛选") + "</button>";
+    if (sel.period || sel.region || sel.q || sel.arch !== null) {
+      h += '<button class="btn ghost" id="atlas-clear">' + T("清除筛选") + "</button>";
+    }
+
+    /* 期段速览：落地页一眼看清五个期段的时间与篇数，点一下把游标定位过去 */
+    if (phs.length) {
+      h += '<div class="atlas-h"><b>' + T("期段速览") + "</b></div>";
+      h += '<div class="atlas-chips">';
+      phs.forEach(function (p2) {
+        var on2 = (ph && ph.id === p2.id);
+        h += '<button class="achip' + (on2 ? " on" : "") + '" data-ph="' +
+          esc(p2.id) + '">' + esc(p2.name) + " " + esc(p2.canon) + " · " +
+          (p2.n || 0) + " " + T("篇") + "</button>";
+      });
+      h += "</div>";
+    }
+
+    /* 期段特征 + 原文依据（考古分期的时间与说法都指回本站文献） */
+    if (ph) {
+      h += '<div class="atlas-h"><b>' + T("期段特征") + "</b></div>";
+      h += '<div class="atlas-phase">';
+      h += '<div class="ap-t">' + esc(ph.name) + "　<span>" + esc(ph.canon) + "</span></div>";
+      h += '<p class="ap-v">' + esc(ph.feature) + "</p>";
+      if (ph.note) {
+        h += '<div class="ap-n small muted"><span>' + T("口径：") + "</span>" +
+          '<span class="ap-v">' + esc(ph.note) + "</span></div>";
+      }
+      if (ph.evidence && ph.evidence.length) {
+        h += '<div class="ap-s">' + T("原文依据（本站文献）") + "</div>";
+        h += '<ul class="ap-ev">';
+        ph.evidence.forEach(function (e) {
+          h += '<li><a href="#/lit/' + esc(e.lit_id) + '">' + esc(e.lit_id) + "</a>：" +
+            esc(e.snippet) + "</li>";
+        });
+        h += "</ul>";
+      }
+      if (ph.sources_titles && ph.sources_titles.length) {
+        h += '<div class="ap-s">' + T("出处（本站文献）") + "</div>";
+        h += '<ul class="ap-ev">';
+        ph.sources_titles.forEach(function (s2) {
+          h += '<li><a href="#/lit/' + esc(s2.lit_id) + '">' + esc(s2.lit_id) + "</a> " +
+            esc(s2.title) + "</li>";
+        });
+        h += "</ul>";
+      }
+      h += "</div>";
+    }
+
+    /* 登记分期标签（教科书式分期，只做筛选，不画成年代轴） */
+    var bs = bands();
+    if (bs.length) {
+      h += '<div class="atlas-h"><b>' + T("登记分期标签") + "</b></div>";
+      h += '<div class="atlas-chips">';
+      bs.forEach(function (b) {
+        var on = (sel.period === b.key);
+        h += '<button class="achip' + (on ? " on" : "") + '" data-band="' +
+          esc(b.key) + '">' + esc(b.name) + " " + (b.n || 0) + "</button>";
+      });
+      h += "</div>";
+    }
 
     /* 分区 chip：6 个上图分区挤在 ±1.1 km 内，点地图点不中 → 这里给可靠选择 */
     var mregs = ((A.data && A.data.map) || {}).regions || [];
@@ -551,12 +709,16 @@
 
     h += '<div class="atlas-h"><b>' + T("口径与限制") + "</b></div>";
     h += '<ul class="atlas-notes">';
-    h += "<li>" + T("上轴＝出版年（不是良渚分期年）") + "</li>";
-    h += "<li>" + T("下轴＝良渚分期带（等宽档位，非年代跨度）") + "</li>";
+    h += "<li>" + T("下轴＝良渚考古年代轴（公元前，按真实年代比例排），是本页播放轴。") + "</li>";
+    h += "<li>" + T("上轴＝文献出版年（文献学时间，非考古年代）。") + "</li>";
+    h += "<li>" + T("考古分期年代取自发掘简报与测年研究，存在学术分歧，各期段出处见「原文依据」。") + "</li>";
+    h += "<li>" + TF("期段归属按文献原文表述与绝对年代自动识别（{m}/{s} 篇命中），非人工编目；未入期者不出现。",
+      { m: meta.arch_docs, s: meta.arch_scanned }) + "</li>";
+    h += "<li>" + T("登记分期标签是教科书式分期，与良渚考古分期不同源，不画成年代轴。") + "</li>";
     h += "<li>" + T("地图点位：分区代表点为区域统一坐标（±1.1 km 示意），不是遗址实测坐标。") + "</li>";
     h += "<li>" + T("本图为良渚区域尺度；不画国界与省界，边界不作官方界线依据。") + "</li>";
     h += "<li>" + TF("其中 {n} 篇无出版年信息（不参与年份筛选）", { n: meta.no_year }) + "</li>";
-    h += "<li>" + T("年份区间无法用文献页表达，跳转只带分期或分区。") + "</li>";
+    h += "<li>" + T("年份区间无法用文献页表达，跳转只带登记分期或分区。") + "</li>";
     h += "</ul>";
 
     box.innerHTML = h;
@@ -575,7 +737,14 @@
     for (var ci = 0; ci < chips.length; ci++) {
       chips[ci].addEventListener("click", function () {
         var nm = this.getAttribute("data-reg");
-        if (nm) setRegion(nm);
+        if (nm) { setRegion(nm); return; }
+        var bk = this.getAttribute("data-band");
+        if (bk) { togglePeriod(bk); return; }
+        var pid = this.getAttribute("data-ph");
+        if (pid) {
+          var pp = phaseById(pid);
+          if (pp) setArch(Math.round((pp.y0 + pp.y1) / 2));
+        }
       });
     }
   }
@@ -607,9 +776,10 @@
     var meta = (A.data && A.data.meta) || {};
     var note = doc.getElementById("atlas-hud-note");
     if (note) {
-      note.textContent = TF("截至 {y} 年：{n} 篇", {
-        y: A.sel.year === null ? T("全部年份") : A.sel.year, n: list.length
-      }) + "　" + TF("全库 {m} 篇", { m: meta.papers });
+      var ph = currentPhase();
+      note.textContent = (ph ? ph.name + "（" + ph.canon + "）" : T("未定位期段")) +
+        "：" + TF("命中 {n} 篇", { n: list.length }) + "　" +
+        TF("全库 {m} 篇", { m: meta.papers });
     }
     var play = doc.getElementById("atlas-play");
     if (play) play.textContent = A.playing ? "❚❚ " + T("暂停") : "▶ " + T("播放");
@@ -620,16 +790,16 @@
     var ttl = doc.getElementById("atlas-title");
     if (ttl) ttl.textContent = T("良渚时序");
     var sub = doc.getElementById("atlas-sub");
-    if (sub) sub.textContent = T("出版年 × 良渚分期 × 空间分区");
+    if (sub) sub.textContent = T("良渚考古年代 × 空间分区 × 文献");
     var qin = doc.getElementById("atlas-q");
     if (qin) qin.setAttribute("placeholder", T("搜索题名 / 文献编号"));
     var rst = doc.getElementById("atlas-reset");
     if (rst) rst.textContent = T("复位");
     var th = doc.getElementById("atlas-tlhead");
     if (th) {
-      th.textContent = T("上轴＝出版年（不是良渚分期年）") + "　|　" +
-        T("下轴＝良渚分期带（等宽档位，非年代跨度）") + "　|　" +
-        T("点年份＝设定「截至该年」；点分期带＝按该期筛选；点地图分区＝按该分区筛选。");
+      th.textContent = T("上轴＝文献出版年（文献学时间，非考古年代）") + "　|　" +
+        T("下轴＝良渚考古年代轴（公元前，按真实年代比例排）") + "　|　" +
+        T("点年代轴＝设定考古游标（播放轴）；点出版年＝设定「截至该年」；点期段＝定位到该期；点分区＝按该分区筛选。");
     }
     var mbar = doc.getElementById("atlas-mode");
     if (mbar) {
@@ -663,11 +833,12 @@
     var t = e.target;
     if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
     var meta = (A.data && A.data.meta) || {};
+    var hi = meta.arch_year_start || 3500, lo = meta.arch_year_end || 2000;
     if (e.key === "ArrowLeft") {
-      setYear((A.sel.year === null ? meta.year_max : A.sel.year) - 1);
+      setArch((A.sel.arch === null ? hi : A.sel.arch) + 25);
       if (e.preventDefault) e.preventDefault();
     } else if (e.key === "ArrowRight") {
-      setYear((A.sel.year === null ? meta.year_min : A.sel.year) + 1);
+      setArch((A.sel.arch === null ? hi : A.sel.arch) - 25);
       if (e.preventDefault) e.preventDefault();
     } else if (e.key === " " || e.keyCode === 32) {
       togglePlay();
@@ -705,9 +876,9 @@
           '<aside class="atlas-side" id="atlas-side"></aside>' +
         "</div>" +
         '<div class="atlas-tl-head small muted" id="atlas-tlhead">' +
-          T("上轴＝出版年（不是良渚分期年）") + "　|　" +
-          T("下轴＝良渚分期带（等宽档位，非年代跨度）") + "　|　" +
-          T("点年份＝设定「截至该年」；点分期带＝按该期筛选；点地图分区＝按该分区筛选。") +
+          T("上轴＝文献出版年（文献学时间，非考古年代）") + "　|　" +
+          T("下轴＝良渚考古年代轴（公元前，按真实年代比例排）") + "　|　" +
+          T("点年代轴＝设定考古游标（播放轴）；点出版年＝设定「截至该年」；点期段＝定位到该期；点分区＝按该分区筛选。") +
         "</div>" +
         '<div class="atlas-tl" id="atlas-tl"></div>' +
       "</div>";
@@ -726,7 +897,8 @@
       reset.addEventListener("click", function () {
         stopPlay();
         A.sel.period = ""; A.sel.region = ""; A.sel.q = "";
-        A.sel.year = meta.year_max;
+        A.sel.year = null;
+        A.sel.arch = null;
         if (q) q.value = "";
         paint();
       });
@@ -771,7 +943,7 @@
       }
       A.data = r.data || {};
       var meta = A.data.meta || {};
-      A.sel = { year: meta.year_max || null, period: "", region: "", q: "" };
+      A.sel = { year: null, arch: null, period: "", region: "", q: "" };
       build();
     });
   }
