@@ -19,6 +19,7 @@
     data: null,          /* /api/atlas 的 data */
     map: null,           /* 本页自己的 Leaflet 实例 */
     marks: {},           /* 分区名 → marker */
+    halo: null,           /* 当前期段的地图高亮圈（L.circleMarker 图层） */
     /* sel.year＝文献出版年游标（截至该年）；sel.arch＝考古游标（公元前年份） */
     sel: { year: null, arch: null, period: "", region: "", q: "" },
     playing: false,
@@ -203,6 +204,7 @@
     A.map = null;
     A.marks = {};
     A.baseLayers = [];
+    A.halo = null;
   }
 
   /* 矢量底图统一走这里：切到卫星影像时要把它们整批撤掉 ——
@@ -554,6 +556,187 @@
     if (ev.preventDefault) ev.preventDefault();
   }
 
+  /* ── 左下角图例：每个空间分区一条「期段分布时间线」 ──────────────
+     ★ 良渚没有政权概念 → 以**时间分期**代替「政权」：
+       每个分区一条线，线上五段＝五个考古期段，段长＝该期该分区文献数（后端现算的交叉表）。
+     ★ 交互沿用「江山时序」：悬停＝该分区在地图上高亮；点击＝视角聚焦过去；
+       点线上某一段＝把考古游标定位到该期段。 */
+  function legendRows() {
+    var regs = ((A.data && A.data.map) || {}).regions || [];
+    var max = 1;
+    regs.forEach(function (r) {
+      var n = r.in_phase_n || 0;
+      if (n > max) max = n;
+    });
+    return { rows: regs, max: max };
+  }
+  /* 图例行的 class 统一由这里生成（避免各处拼接出重复类名） */
+  function rowClass(row) {
+    var nm = row.getAttribute("data-reg");
+    var c = "lg-row";
+    var regs = ((A.data && A.data.map) || {}).regions || [];
+    for (var i = 0; i < regs.length; i++) {
+      if (regs[i].name === nm) {
+        if (regs[i].on_map) c += " onmap";
+        break;
+      }
+    }
+    if (A.sel.region === regionKey(nm)) c += " sel";
+    if (row.getAttribute("data-hov") === "1") c += " hov";
+    return c;
+  }
+  function buildLegend() {
+    var box = doc.getElementById("atlas-legend");
+    if (!box || !A.data) return;
+    var phs = phases();
+    var lg = legendRows();
+    /* ★ 图例文案走 **i18n 原生翻译**（写中文原文，交给 LZ_apply 翻），
+       不在这里 T()：图例节点常驻 DOM，翻译由全局 apply 负责，切语言不必重建 DOM。 */
+    var h = '<div class="lg-h">分区图例（每区一条期段时间线）</div>';
+    h += '<div class="lg-rows">';
+    lg.rows.forEach(function (r) {
+      var pc = r.phase_counts || {};
+      var tot = r.in_phase_n || 0;
+      var segs = "";
+      /* 段格按**该期段内的篇数**归一（一篇可跨期，段内计数之和 ≥ 入期篇数） */
+      var sumSeg = 0;
+      phs.forEach(function (p) { sumSeg += (pc[p.id] || 0); });
+      phs.forEach(function (p) {
+        var n = pc[p.id] || 0;
+        if (!n) return;
+        /* 期段名属元数据 → 放 data-tip（自定义提示层，不走 i18n 的 title 替换） */
+        segs += '<i class="lg-seg" data-ph="' + esc(p.id) + '" data-tip="' +
+          esc(p.name + " · " + n) + '" style="width:' +
+          (n / sumSeg * 100).toFixed(1) + "%;background:" + (p.color || "#B08D57") +
+          '"></i>';
+      });
+      h += '<div class="lg-row' + (r.on_map ? " onmap" : "") + '" data-reg="' +
+        esc(r.name) + '">' +
+        '<span class="lg-nm">' + esc(r.name) + "</span>" +
+        '<span class="lg-track"><span class="lg-bar" style="width:' +
+        (tot / lg.max * 100).toFixed(1) + '%">' + segs + "</span></span>" +
+        '<span class="lg-c">' + tot + "</span></div>";
+    });
+    h += "</div>";
+    h += '<div class="lg-note">悬停高亮 · 点击聚焦 · 点色块定位该期段</div>';
+    h += '<div class="lg-tip" id="atlas-lg-tip" hidden></div>';
+    box.innerHTML = h;
+    /* 新建的节点要立刻过一遍翻译（否则新语言下仍是中文原文） */
+    if (global.LZ_apply) { try { global.LZ_apply(box); } catch (e) { /* 翻译失败不影响图例 */ } }
+
+    var tip = doc.getElementById("atlas-lg-tip");
+    box.onmouseover = function (ev) {
+      var seg = closestRow(ev.target, "lg-seg");
+      var row = closestRow(ev.target, "lg-row");
+      if (seg) {
+        if (tip) {
+          tip.textContent = seg.getAttribute("data-tip") || "";
+          tip.hidden = false;
+        }
+        return;
+      }
+      if (!row) return;
+      row.setAttribute("data-hov", "1");
+      row.className = rowClass(row);
+      var nm = row.getAttribute("data-reg");
+      var mk = A.marks[nm];
+      if (mk && global.mapstRegionIcon) mk.setIcon(global.mapstRegionIcon(true));
+    };
+    box.onmouseout = function (ev) {
+      var to = ev.relatedTarget;
+      var row = closestRow(ev.target, "lg-row");
+      if (row && !(to && row.contains(to))) {
+        row.setAttribute("data-hov", "0");
+        row.className = rowClass(row);
+        var nm = row.getAttribute("data-reg");
+        var mk = A.marks[nm];
+        if (mk && global.mapstRegionIcon) {
+          mk.setIcon(global.mapstRegionIcon(A.sel.region === regionKey(nm)));
+        }
+      }
+      /* 提示层只在**整个图例**都离开时才收起（在图例内部挪动不该闪没） */
+      if (tip && !(to && box.contains(to))) tip.hidden = true;
+    };
+    box.onclick = function (ev) {
+      var seg = closestRow(ev.target, "lg-seg");
+      var row = closestRow(ev.target, "lg-row");
+      if (!row) return;
+      var nm = row.getAttribute("data-reg");
+      if (seg) {
+        /* 点段格＝定位到该期段（并按该分区筛选） */
+        var pid = seg.getAttribute("data-ph");
+        var p = phaseById(pid);
+        if (p) setArch(Math.round((p.y0 + p.y1) / 2));
+      }
+      /* 图例点击＝选中该分区（不像地图点那样再点一次就取消） */
+      A.sel.region = regionKey(nm);
+      paint();
+      focusRegion(nm);
+    };
+  }
+  function closestRow(el, cls) {
+    while (el && el !== doc.body) {
+      if (el.className && (" " + el.className + " ").indexOf(" " + cls + " ") >= 0) return el;
+      el = el.parentNode;
+    }
+    return null;
+  }
+  /* 视角聚焦到该分区（无坐标就不动 —— 不编造坐标） */
+  function focusRegion(name) {
+    if (!A.map) return;
+    var regs = ((A.data && A.data.map) || {}).regions || [];
+    for (var i = 0; i < regs.length; i++) {
+      var r = regs[i];
+      if (r.name !== name || !r.on_map || !hasCoord(r)) continue;
+      try {
+        A.map.flyTo([r.lat, r.lon], 13, { duration: 0.5 });
+      } catch (e) { /* 聚焦失败不影响筛选 */ }
+      return;
+    }
+  }
+  /* 图例状态刷新：当前期段的段格高亮 + 选中分区标出（不重建 DOM，免得打断悬停） */
+  function paintLegendState() {
+    var box = doc.getElementById("atlas-legend");
+    if (!box) return;
+    var ph = currentPhase();
+    var segs = box.querySelectorAll(".lg-seg");
+    for (var i = 0; i < segs.length; i++) {
+      var on = (ph && segs[i].getAttribute("data-ph") === ph.id);
+      segs[i].className = "lg-seg" + (on ? " on" : "");
+    }
+    var rows = box.querySelectorAll(".lg-row");
+    for (var j = 0; j < rows.length; j++) {
+      rows[j].className = rowClass(rows[j]);
+    }
+  }
+  /* 当前期段在地图上的着色圈：该期有文献的分区画一个同色光环（半径随篇数） */
+  function paintPhaseHalo() {
+    if (!A.map) return;
+    if (A.halo) {
+      try { A.map.removeLayer(A.halo); } catch (e) { /* 忽略 */ }
+      A.halo = null;
+    }
+    var ph = currentPhase();
+    if (!ph) return;
+    var regs = ((A.data && A.data.map) || {}).regions || [];
+    var max = 1;
+    regs.forEach(function (r) {
+      var n = (r.phase_counts || {})[ph.id] || 0;
+      if (n > max) max = n;
+    });
+    A.halo = global.L.layerGroup();
+    regs.forEach(function (r) {
+      var n = (r.phase_counts || {})[ph.id] || 0;
+      if (!n || !r.on_map || !hasCoord(r)) return;
+      var rad = 10 + Math.min(16, Math.round(16 * n / max));
+      A.halo.addLayer(global.L.circleMarker([r.lat, r.lon], {
+        radius: rad, color: ph.color || "#B08D57", weight: 2,
+        fillColor: ph.color || "#B08D57", fillOpacity: 0.16, interactive: false
+      }));
+    });
+    A.halo.addTo(A.map);
+  }
+
   /* ── 状态操作 ────────────────────────────────────────────── */
   function setYear(y) {
     var meta = (A.data && A.data.meta) || {};
@@ -738,6 +921,8 @@
       { m: meta.arch_docs, s: meta.arch_scanned }) + "</li>";
     h += "<li>" + T("登记分期标签是教科书式分期，与良渚考古分期不同源，不画成年代轴。") + "</li>";
     h += "<li>" + T("地图点位：分区代表点为区域统一坐标（±1.1 km 示意），不是遗址实测坐标。") + "</li>";
+    h += "<li>" + T("左下角图例：每个空间分区一条期段分布时间线（段＝考古期段，段长＝该期该分区篇数）；悬停高亮该分区在图上的点，点击把视角聚焦过去并按该分区筛选，点色块定位到该期段。良渚无政权概念，此处以时间分期代替政权。") + "</li>";
+    h += "<li>" + T("无坐标的空间分区（主题类）只能筛选，视角无法聚焦 —— 不编造坐标。") + "</li>";
     h += "<li>" + T("本图为良渚区域尺度；不画国界与省界，边界不作官方界线依据。") + "</li>";
     h += "<li>" + TF("其中 {n} 篇无出版年信息（不参与年份筛选）", { n: meta.no_year }) + "</li>";
     h += "<li>" + T("年份区间无法用文献页表达，跳转只带登记分期或分区。") + "</li>";
@@ -795,6 +980,8 @@
     drawTimeline();
     drawSide();
     refreshMapTips(list);
+    paintPhaseHalo();
+    paintLegendState();
     var meta = (A.data && A.data.meta) || {};
     var note = doc.getElementById("atlas-hud-note");
     if (note) {
@@ -894,6 +1081,7 @@
               '<div class="atlas-hud-n small muted" id="atlas-hud-note"></div>' +
             "</div>" +
             '<div id="atlas-map"></div>' +
+            '<div class="atlas-legend" id="atlas-legend"></div>' +
           "</div>" +
           '<aside class="atlas-side" id="atlas-side"></aside>' +
         "</div>" +
@@ -926,6 +1114,7 @@
       });
     }
     initMap();
+    buildLegend();
     /* 本地卫星瓦片：有清单才露切换条（公开包没带瓦片 → 整条隐藏） */
     if (global.satManifest) {
       global.satManifest().then(function (m) {

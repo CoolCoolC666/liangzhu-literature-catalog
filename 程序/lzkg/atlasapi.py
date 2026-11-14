@@ -22,6 +22,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from pathlib import Path
 
@@ -117,6 +118,31 @@ def atlas_payload(conn: sqlite3.Connection) -> dict:
 
     ameta = arch.get("meta") or {}
 
+    # ── 5) 分区 × 考古期段 交叉（现算）：图例里每条分区时间线用 ──
+    #    分区名有两套写法：登记表带编码（R-0101 良渚古城），地图侧不带 →
+    #    统一去掉编码前缀再比（与前端 regionKey 同一口径）。
+    def rkey(s: object) -> str:
+        return re.sub(r"^[A-Za-z]+-\d+\s*", "", str(s or "").strip())
+
+    cross: dict[str, dict[str, int]] = {}
+    phased_lits: dict[str, set] = {}
+    for pp in papers:
+        k = rkey(pp.get("region"))
+        if not k:
+            continue
+        row = cross.setdefault(k, {})
+        for pid in (pp.get("phases") or []):
+            row[pid] = row.get(pid, 0) + 1
+        if pp.get("phases"):
+            phased_lits.setdefault(k, set()).add(pp["lit_id"])
+    for r in md["regions"]:
+        k = rkey(r.get("name"))
+        row = cross.get(k, {})
+        r["phase_counts"] = row
+        # 入期篇数按**文献去重**（一篇可跨多个期段，不能按段累加）
+        r["in_phase_n"] = len(phased_lits.get(k, ()))
+        r["unphased_n"] = max(0, int(r.get("lit_count") or 0) - r["in_phase_n"])
+
     return {
         "meta": {
             "papers": len(papers),
@@ -136,6 +162,11 @@ def atlas_payload(conn: sqlite3.Connection) -> dict:
             # 轴左端＝最早（公元前数最大），轴右端＝最晚
             "arch_year_start": max((p["y0"] for p in phases_out), default=3500),
             "arch_year_end": min((p["y1"] for p in phases_out), default=2000),
+            # 分区×期段交叉的非空格子数（图例里有多少条时间线真有内容）
+            "region_phase_cells": sum(1 for r in md["regions"]
+                                      if sum((r.get("phase_counts") or {}).values()) > 0),
+            "regions_with_phase": sum(1 for r in md["regions"]
+                                      if (r.get("phase_counts") or {})),
         },
         "phases": phases_out,
         "bands": bands_out,
@@ -161,6 +192,10 @@ def atlas_payload(conn: sqlite3.Connection) -> dict:
             "本轴取常见切分并在各期段「口径」中标注差异，不做唯一解。",
             "地图点位＝库里已有的真实坐标：空间分区代表点是区域统一坐标（±1.1 km 示意），"
             "**不是遗址实测坐标**；候选遗址多数无坐标，不画点。",
+            "左下角图例＝每个空间分区一条**期段分布时间线**（五个期段段格，段长＝该期该分区篇数）。"
+            "良渚没有政权概念，这里以**时间分期**代替「政权」，颜色取期段在时间轴上的同一套配色。",
+            "图例「悬停高亮 / 点击聚焦」＝高亮该分区在地图上的点、点击把视角移到该分区；"
+            "段格可点＝把考古游标定位到该期段。该分区无坐标时只能筛选、无法聚焦（不编造坐标）。",
             "年份区间无法用文献页表达（后端年份是精确匹配），跳转文献页只带登记分期或分区。",
             "所有数值现算，随库变化。",
         ],

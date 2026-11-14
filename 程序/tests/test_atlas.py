@@ -140,6 +140,30 @@ def test_frontend():
     check("判据76 口径写明右轴＝出版年（小在上、大在下）",
           "右轴＝文献出版年" in src and "小在上" in src, "")
 
+    # ── BP17：左下角分区图例（期段时间线）──
+    check("判据78 图例浮层在地图容器内（左下角）",
+          'id="atlas-legend"' in src and ".atlas-legend" in html, "")
+    check("判据79 图例每区一条期段分布时间线（段格带期段色）",
+          "lg-seg" in src and "phase_counts" in src and "data-ph" in src, "")
+    check("判据80 图例悬停高亮该分区在图上的点",
+          "mapstRegionIcon(true)" in src and 'data-hov' in src, "")
+    check("判据81 图例点击＝聚焦视角（flyTo）并按该分区筛选",
+          "function focusRegion" in src and "flyTo" in src and "A.sel.region = regionKey(nm)" in src, "")
+    check("判据82 点色块＝把考古游标定位到该期段",
+          'seg.getAttribute("data-ph")' in src and "setArch(Math.round((p.y0 + p.y1) / 2))" in src, "")
+    check("判据83 当前期段在地图上画同色光环（期段即良渚版的『政权色』）",
+          "function paintPhaseHalo" in src and "circleMarker" in src and "phase_counts" in src, "")
+    check("判据84 播放联动期段→光环（paint 里驱动）",
+          "paintPhaseHalo();" in src, "")
+    check("判据85 后端现算分区×期段交叉表",
+          "phase_counts" in atlasapi and "in_phase_n" in atlasapi, "")
+    check("判据86 图例相关新词条入 i18n 词典",
+          "分区图例（每区一条期段时间线）" in i18n and "悬停高亮 · 点击聚焦" in i18n, "")
+    check("判据87 图例里的分区名属数据（进 SKIP，不翻）",
+          ".lg-nm" in i18n and ".lg-tip" in i18n, "")
+    check("判据95 图例文案走 i18n 原生翻译（写中文原文 + LZ_apply，不靠重建 DOM）",
+          "global.LZ_apply(box)" in src and "T(\"分区图例" not in src, "")
+
 
 def test_api_truth():
     print("\n── /api/atlas：与库现算对账 ──")
@@ -313,6 +337,62 @@ def test_api_truth():
           "分歧" in notes and "自动识别" in notes, "")
     check("判据77 端点口径写明右轴＝出版年（竖排、小在上）",
           "右轴＝文献出版年" in notes and "小在上" in notes, "")
+
+    # ── BP17：分区 × 考古期段 交叉表（与库现算对账）──
+    regions17 = m.get("regions") or []
+    dic17 = json.loads((ROOT / "lzkg" / "data" / "dict" / "lzkg_arch_periods.json")
+                        .read_text(encoding="utf-8"))
+    docs17 = dic17.get("docs") or {}
+    conn17 = db_conn()
+    try:
+        rows17 = list(conn17.execute("SELECT lit_id, region_tags FROM literatures"))
+        rkey = lambda s: re.sub(r"^[A-Za-z]+-\d+\s*", "", str(s or "").strip())
+        lit_phase: dict = {}
+        for r in rows17:
+            ph = (docs17.get(r["lit_id"]) or {}).get("phases") or []
+            if ph:
+                lit_phase[r["lit_id"]] = set(ph)
+        cross17: dict = {}
+        for r in rows17:
+            k = rkey(r["region_tags"])
+            if not k:
+                continue
+            row = cross17.setdefault(k, {})
+            for pid in lit_phase.get(r["lit_id"], ()):
+                row[pid] = row.get(pid, 0) + 1
+        bad17 = []
+        for r in regions17:
+            k = rkey(r.get("name"))
+            want = cross17.get(k, {})
+            got = r.get("phase_counts") or {}
+            if got != want:
+                bad17.append((r["name"], got, want))
+        check("判据88 每个分区的期段计数 = 库现算交叉（逐分区对账）", not bad17, str(bad17[:3]))
+        bad18 = []
+        for r in regions17:
+            k = rkey(r.get("name"))
+            want_lits = sum(1 for x in rows17
+                            if rkey(x["region_tags"]) == k and x["lit_id"] in lit_phase)
+            if r.get("in_phase_n") != want_lits:
+                bad18.append((r["name"], r.get("in_phase_n"), want_lits))
+        check("判据89 分区入期篇数 = 库现算去重计数", not bad18, str(bad18[:3]))
+        check("判据90 各分区入期篇数之和 = 全库入期 59",
+              sum(r.get("in_phase_n") or 0 for r in regions17) == 59,
+              str(sum(r.get("in_phase_n") or 0 for r in regions17)))
+        check("判据91 未入期篇数 + 入期篇数 = 分区总篇数",
+              all((r.get("in_phase_n") or 0) + (r.get("unphased_n") or 0) == r.get("lit_count")
+                  for r in regions17), "")
+        check("判据92 有期段内容的分区数 = meta.regions_with_phase = 8",
+              meta.get("regions_with_phase") == 8 and
+              sum(1 for r in regions17 if (r.get("phase_counts") or {})) == 8,
+              str(meta.get("regions_with_phase")))
+        check("判据93 良渚古城在早期有 23 篇（实测）",
+              (regions17[0].get("phase_counts") or {}).get("EARLY") == 23,
+              str((regions17[0].get("phase_counts") or {})))
+    finally:
+        conn17.close()
+    check("判据94 口径写明图例＝分区期段时间线（无政权概念）",
+          "期段分布时间线" in notes and "政权" in notes, "")
 
 
 def api_get_js():

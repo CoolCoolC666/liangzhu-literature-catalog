@@ -766,6 +766,12 @@
     "时序数据不可用：": ["Timeline data unavailable: ", "時譜データを取得できません："],
     "Leaflet 未加载，地图不可用。": ["Leaflet is not loaded; the map is unavailable.", "Leaflet が読み込まれていません（地図は利用不可）。"],
     "良渚分期": ["Liangzhu period", "良渚分期"],
+    /* ── BP17 良渚时序 · 左下角分区图例 ── */
+    "分区图例（每区一条期段时间线）": ["Region legend (one period timeline per region)", "空間区画の凡例（各区画に時期タイムライン）"],
+    "悬停高亮该分区在图上的点；点击＝聚焦视角并按该分区筛选；点色块＝定位到该期段。无坐标分区只能筛选。": ["Hover to highlight the region's point on the map; click to focus the view and filter by that region; click a colour block to jump to that period. Regions without coordinates can only be filtered.", "ホバーで当該区画の地図上の点を強調。クリックで視点を寄せ当該区画で絞り込み。色ブロックのクリックで当該時期へ移動。座標のない区画は絞り込みのみ。"],
+    "悬停高亮 · 点击聚焦 · 点色块定位该期段": ["Hover to highlight · click to focus · click a colour block to jump to that period", "ホバーで強調・クリックで視点移動・色ブロックで当該時期へ"],
+    "左下角图例：每个空间分区一条期段分布时间线（段＝考古期段，段长＝该期该分区篇数）；悬停高亮该分区在图上的点，点击把视角聚焦过去并按该分区筛选，点色块定位到该期段。良渚无政权概念，此处以时间分期代替政权。": ["Bottom-left legend: one period-distribution timeline per spatial region (segment = archaeological period, length = records of that region in that period); hovering highlights the region's point on the map, clicking focuses the view there and filters by that region, clicking a colour block jumps to that period. Liangzhu has no polity concept, so periods stand in for polities.", "左下の凡例：各空間区画に時期分布タイムライン（区切り＝考古時期、長さ＝その時期のその区画の文献数）。ホバーで地図上の点を強調、クリックで視点を寄せ当該区画で絞り込み、色ブロックのクリックで当該時期へ移動。良渚には政権概念がないため、時期が政権の代わり。"],
+    "无坐标的空间分区（主题类）只能筛选，视角无法聚焦 —— 不编造坐标。": ["Spatial regions without coordinates (topic-type ones) can only be filtered; the view cannot focus there — no coordinates are invented.", "座標のない空間区画（テーマ系）は絞り込みのみ。視点は寄せられず、座標は作らない。"],
   };
 
   /* 只做**整段精确命中**的键：这些短词在数据里也会出现（图号、类型、年份…），
@@ -791,6 +797,7 @@
   /* ── 数据容器：这里面的中文是**数据**，一律不翻 ── */
   var SKIP = ".ttl,.snip,.au,.tg,.dl dd,.cite,.cap,.imgtile,.jsonlist,.rawbody,.ev," +
     ".ap-t,.ap-v,.ap-ev," +
+    ".lg-nm,.lg-tip," +
     ".edgelist,.lbcap,mark,code,pre,textarea,.tablewrap td," +
     ".imgrow .act .small,.imgcard .pnl,.imgcard .small";
 
