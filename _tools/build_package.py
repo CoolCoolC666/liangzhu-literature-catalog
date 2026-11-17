@@ -38,6 +38,9 @@ INCLUDE_DATA = ["遗址点位表.xlsx", "遗址坐标.json", "controlled_vocab_c
 # 卫星影像瓦片（本地切片，零外链）：**只随组内离线包分发**。
 #   公开版由 make_github_release.py 显式拒绝（许可条款未核实 + 不公开再分发）。
 TILES_SRC = PROGRAM / 'data' / 'basemap_tiles'
+# 组员交付的第三方地图素材（BP18）：同样**只进组内离线包**，公开版不带。
+#   授权未核实 → 不公开再分发；站内只做阅读与引用（每幅带来源与原文链接）。
+MAPS_SRC = PROGRAM / 'data' / 'media' / 'maps'
 # 底图：完整版 22 MB → 精简版 3 MB（区域图层裁剪 + 压精度），包里放**精简版**
 #   本机 data/basemap/ 保持完整版（可画任意范围），包内 data/basemap/ 用精简版，
 #   程序读路径不变，只是内容不同。
@@ -114,6 +117,8 @@ REQUIRED = [
     "data/basemap/manifest.json",
     # 卫星影像瓦片（组内离线包必备；缺了说明瓦片没下载完）
     "data/basemap_tiles/manifest.json",
+    # 组内地图素材（BP18；公开版不带）
+    "data/media/maps/manifest.json",
 ]
 
 
@@ -154,6 +159,13 @@ def collect() -> list[tuple[Path, str]]:
         mf = TILES_SRC / "manifest.json"
         if mf.exists():
             items.append((mf, "data/basemap_tiles/manifest.json"))
+    # 组员地图素材（BP18）：组内包带上（公开版不带）
+    if MAPS_SRC.exists():
+        for p in sorted(MAPS_SRC.glob("*.jpg")):
+            items.append((p, f"data/media/maps/{p.name}"))
+        mf = MAPS_SRC / "manifest.json"
+        if mf.exists():
+            items.append((mf, "data/media/maps/manifest.json"))
     # 底图：优先用精简版，没有就退回完整版
     bsrc = BASEMAP_LITE if BASEMAP_LITE.exists() else BASEMAP_FULL
     if bsrc.exists():

@@ -772,6 +772,28 @@
     "悬停高亮 · 点击聚焦 · 点色块定位该期段": ["Hover to highlight · click to focus · click a colour block to jump to that period", "ホバーで強調・クリックで視点移動・色ブロックで当該時期へ"],
     "左下角图例：每个空间分区一条期段分布时间线（段＝考古期段，段长＝该期该分区篇数）；悬停高亮该分区在图上的点，点击把视角聚焦过去并按该分区筛选，点色块定位到该期段。良渚无政权概念，此处以时间分期代替政权。": ["Bottom-left legend: one period-distribution timeline per spatial region (segment = archaeological period, length = records of that region in that period); hovering highlights the region's point on the map, clicking focuses the view there and filters by that region, clicking a colour block jumps to that period. Liangzhu has no polity concept, so periods stand in for polities.", "左下の凡例：各空間区画に時期分布タイムライン（区切り＝考古時期、長さ＝その時期のその区画の文献数）。ホバーで地図上の点を強調、クリックで視点を寄せ当該区画で絞り込み、色ブロックのクリックで当該時期へ移動。良渚には政権概念がないため、時期が政権の代わり。"],
     "无坐标的空间分区（主题类）只能筛选，视角无法聚焦 —— 不编造坐标。": ["Spatial regions without coordinates (topic-type ones) can only be filtered; the view cannot focus there — no coordinates are invented.", "座標のない空間区画（テーマ系）は絞り込みのみ。視点は寄せられず、座標は作らない。"],
+    /* ── BP18 地图素材页 ── */
+    "地图": ["Maps", "地図"],
+    "地图素材": ["Map materials", "地図素材"],
+    "地图素材 · 组员交付的第三方地图 · 逐幅标注来源": ["Map materials · third-party maps from teammates · every sheet credited", "地図素材・チーム提供の第三者地図・1枚ずつ出典明記"],
+    "正在读取地图素材…": ["Loading map materials…", "地図素材を読み込み中…"],
+    "地图素材读取失败：": ["Failed to load map materials:", "地図素材の読み込みに失敗："],
+    "全部维度": ["All dimensions", "すべての区画"],
+    "原文链接": ["Source page", "原文リンク"],
+    "复原示意，非考古实景": ["Reconstruction, not an archaeological view", "復元図であり、考古実景ではない"],
+    "本组地图素材均为第三方网页转载，原始权利人未核实：站内只提供阅读与引用，每幅均标注来源与原文链接；公开版不含本组素材。": ["All map materials here are third-party web reproductions whose original rightsholders are unverified: the site only offers reading and citation, each sheet credited with its source and source page; the public release excludes them.", "本ページの地図素材はすべて第三者のウェブ転載で、原権利者は未確認：站内は閲覧と引用のみ、各枚に出典と原文リンクを明記。公開版には含まない。"],
+    "收录数量（幅）": ["Included (sheets)", "収載数（枚）"],
+    "素材总数（幅）": ["Collected (sheets)", "素材総数（枚）"],
+    "收录口径：": ["Selection rules:", "収載基準："],
+    "地图素材未随包分发。": ["Map materials are not included in this distribution.", "本パッケージには地図素材を含んでいません。"],
+    "城址格局": ["City-site layout", "城址配置"],
+    "水利系统": ["Water-management system", "水利システム"],
+    "文化分布": ["Cultural distribution", "文化の分布"],
+    "局部遗址": ["Specific sites", "個別遺跡"],
+    "复原想象": ["Reconstructions", "復元図"],
+    "文化谱系": ["Cultural sequence", "文化系統"],
+    "中心遗址": ["Central sites", "中心遺跡"],
+    "展示导览": ["Park guide maps", "展示案内図"],
   };
 
   /* 只做**整段精确命中**的键：这些短词在数据里也会出现（图号、类型、年份…），
@@ -791,13 +813,16 @@
     "较早": 1, "较晚": 1,
     /* BP15：短词一律只做整段精确命中，别翻数据（分区名/题名里也有这些字） */
     "播放": 1, "暂停": 1, "分区": 1, "良渚分期": 1, "当前状态": 1,
-    "命中文献": 1, "口径与限制": 1, "无结果": 1, "文献出版年": 1
+    "命中文献": 1, "口径与限制": 1, "无结果": 1, "文献出版年": 1,
+    /* BP18：页签名与短词只做整段精确命中 */
+    "地图": 1, "地图素材": 1
   };
 
   /* ── 数据容器：这里面的中文是**数据**，一律不翻 ── */
   var SKIP = ".ttl,.snip,.au,.tg,.dl dd,.cite,.cap,.imgtile,.jsonlist,.rawbody,.ev," +
     ".ap-t,.ap-v,.ap-ev," +
     ".lg-nm,.lg-tip," +
+    ".maps-t,.maps-n,.maps-src," +
     ".edgelist,.lbcap,mark,code,pre,textarea,.tablewrap td," +
     ".imgrow .act .small,.imgcard .pnl,.imgcard .small";
 

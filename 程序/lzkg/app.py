@@ -116,6 +116,7 @@ _JS_FILES = {
     "lzkg-api.js": "浏览器端 Agent 接口 window.lzkgAPI",
     "timeline.js": "良渚时间图谱矩阵（X=良渚分期带 / Y=主题族带 / 格内纵向=出版年）",
     "atlas.js": "良渚时序首页（双轴时间轴 + 独立地图实例 + 叙事栏）",
+    "maps.js": "地图素材页（组员交付的第三方地图，含逐幅来源标注）",
     "i18n.js": "界面多语言词典（/i18n.js 是同一条内容的旧路径）",
 }
 
@@ -1270,6 +1271,36 @@ def media_img(filename: str):
         return Response(content=PLACEHOLDER_SVG, media_type="image/svg+xml")
     ctype = mimetypes.guess_type(str(p))[0] or "application/octet-stream"
     return FileResponse(p, media_type=ctype)
+
+
+# ── 地图素材（组员交付的第三方地图）────────────────────────────────
+# ★ 这些图是第三方网页转载、原始权利人未核实：**只进组内离线包，公开版不带**。
+#   站内只做「阅读与引用」——每幅都带来源与原文链接，不设原图下载入口。
+MAPS_DIR = Path(__file__).resolve().parent.parent / "data" / "media" / "maps"
+MAPS_MANIFEST = MAPS_DIR / "manifest.json"
+
+
+@app.get("/api/maps")
+def api_maps():
+    """地图素材清单（含收录口径、逐幅来源与原文链接）。"""
+    if not MAPS_MANIFEST.exists():
+        return {"items": [], "dims": {}, "total_all": 0, "included": 0,
+                "rules": [], "note": "地图素材未随包分发。"}
+    try:
+        return json.loads(MAPS_MANIFEST.read_text(encoding="utf-8"))
+    except Exception:
+        raise HTTPException(status_code=500, detail="地图素材清单读取失败")
+
+
+@app.get("/media/map/{filename}")
+def media_map(filename: str):
+    """地图素材图片（固定目录 + 文件名校验，防目录穿越）。"""
+    if "/" in filename or "\\" in filename or ".." in filename:
+        raise HTTPException(400, "非法文件名")
+    p = MAPS_DIR / filename
+    if not p.exists():
+        raise HTTPException(404, "地图素材不存在")
+    return FileResponse(p, media_type="image/jpeg")
 
 
 @app.get("/api/notes")
